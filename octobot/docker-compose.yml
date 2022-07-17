@@ -1,0 +1,23 @@
+version: '3.7'
+
+services:
+  octobot:
+    image: drakkarsoftware/octobot:stable
+    restart: unless-stopped
+    ports:
+      - 8085:5001
+    volumes:
+      - ./data/backtesting:/octobot/backtesting
+      - ./data/logs:/octobot/logs
+      - ./data/tentacles:/octobot/tentacles
+      - ./data/user:/octobot/user
+    labels:
+      - "traefik.enable=true"
+      # Service
+      - "traefik.http.services.fe.loadbalancer.server.port=3000"
+      # HTTPS Host
+      - "traefik.http.routers.fe-secured.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.fe-secured.entrypoints=websecure"
+      - "traefik.http.routers.fe-secured.tls=true"
+      - "traefik.http.routers.fe-secured.tls.certResolver=webcert"
+      - "traefik.http.routers.fe-secured.service=fe"
