@@ -26,8 +26,12 @@ services:
       - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
       - "--entrypoints.websecure.address=:443"
       # Let's Encrypt
-      - "--certificatesResolvers.webcert.acme.email=${ACME_EMAIL?Variable ACME_EMAIL not set}"
+      # Through HTTP challenge
       - "--certificatesResolvers.webcert.acme.tlschallenge=true"
+      # Or through DNS challenge using Digital Ocean
+      # - "--certificatesresolvers.webcert.acme.dnschallenge=true"
+      # - "--certificatesresolvers.webcert.acme.dnschallenge.provider=digitalocean"
+      - "--certificatesResolvers.webcert.acme.email=${ACME_EMAIL?Variable ACME_EMAIL not set}"
       - "--certificatesResolvers.webcert.acme.storage=/opt/traefik/acme.json"
       # Docker Provider
       - "--providers.docker" # Tells Traefik to listen to docker
@@ -55,13 +59,16 @@ services:
       # - "--metrics.influxdb2.addrouterslabels=true"
       # - "--metrics.influxdb2.addServicesLabels=true"
       # - "--metrics.influxdb2.pushInterval=10s"
-      # - "--metrics.influxdb2.additionallabels.host=traefik.${DOMAIN}"
+      # - "--metrics.influxdb2.additionallabels.host=${TRAEFIK_HOST}"
+    environment:
+      # Digital Ocean Token can be used for Let's Encrypt DNS challenge
+      # - "DO_AUTH_TOKEN=${DO_AUTH_TOKEN}"
     labels:
       - "traefik.enable=true"
       # Global Middlewares
       - "traefik.http.middlewares.global-auth.basicauth.users=${USERNAME?Variable USERNAME not set}:${HASHED_PASSWORD?Variable HASHED_PASSWORD not set}"
       # HTTPS Host
-      - "traefik.http.routers.traefik-api-secured.rule=Host(`traefik.${DOMAIN?Variable DOMAIN not set}`)"
+      - "traefik.http.routers.traefik-api-secured.rule=Host(`${TRAEFIK_HOST?Variable TRAEFIK_HOST not set}`)"
       - "traefik.http.routers.traefik-api-secured.entrypoints=websecure"
       - "traefik.http.routers.traefik-api-secured.tls=true"
       - "traefik.http.routers.traefik-api-secured.tls.certResolver=webcert"
