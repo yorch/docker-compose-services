@@ -45,13 +45,13 @@ services:
       # - "--log.format=json"
       # Metrics (Influx v1)
       # - "--metrics.influxdb=true"
-      # - "--metrics.influxdb.address=${INFLUXDB_HOST}" # Should looks like `influxdb:8086`
+      # - "--metrics.influxdb.address=${INFLUXDB_HOST}"
       # - "--metrics.influxdb.database=${INFLUXDB_DATABASE}"
       # - "--metrics.influxdb.username=${INFLUXDB_USERNAME}"
       # - "--metrics.influxdb.password=${INFLUXDB_PASSWORD}"
       # Metrics (Influx v2)
       # - "--metrics.influxdb2=true"
-      # - "--metrics.influxdb2.address=${INFLUXDB2_URL}" # Should looks like `http://influxdb:8086`
+      # - "--metrics.influxdb2.address=${INFLUXDB2_URL}"
       # - "--metrics.influxdb2.token=${INFLUXDB2_TOKEN}"
       # - "--metrics.influxdb2.org=${INFLUXDB2_ORG}"
       # - "--metrics.influxdb2.bucket=${INFLUXDB2_BUCKET}"
