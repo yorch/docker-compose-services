@@ -13,8 +13,8 @@ services:
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data/traefik:/opt/traefik
-      - ./logs/traefik:/opt/logs
+      - ./data:/opt/traefik
+      - ./logs:/opt/logs
     command:
       # Dashboard
       - "--api" # Enables the web UI
