@@ -39,6 +39,23 @@ services:
       - "--log.level=${TRAEFIK_LOG_LEVEL:-INFO}"
       # - "--log.filePath=/opt/logs/traefik.log"
       # - "--log.format=json"
+      # Metrics (Influx v1)
+      # - "--metrics.influxdb=true"
+      # - "--metrics.influxdb.address=${INFLUXDB_HOST}" # Should looks like `influxdb:8086`
+      # - "--metrics.influxdb.database=${INFLUXDB_DATABASE}"
+      # - "--metrics.influxdb.username=${INFLUXDB_USERNAME}"
+      # - "--metrics.influxdb.password=${INFLUXDB_PASSWORD}"
+      # Metrics (Influx v2)
+      # - "--metrics.influxdb2=true"
+      # - "--metrics.influxdb2.address=${INFLUXDB2_URL}" # Should looks like `http://influxdb:8086`
+      # - "--metrics.influxdb2.token=${INFLUXDB2_TOKEN}"
+      # - "--metrics.influxdb2.org=${INFLUXDB2_ORG}"
+      # - "--metrics.influxdb2.bucket=${INFLUXDB2_BUCKET}"
+      # - "--metrics.influxdb2.addEntryPointsLabels=true"
+      # - "--metrics.influxdb2.addrouterslabels=true"
+      # - "--metrics.influxdb2.addServicesLabels=true"
+      # - "--metrics.influxdb2.pushInterval=10s"
+      # - "--metrics.influxdb2.additionallabels.host=traefik.${DOMAIN}"
     labels:
       - "traefik.enable=true"
       # Global Middlewares
