@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  server:
+    networks:
+      - default
+      - traefik
+    environment:
+      - GITEA__server__ROOT_URL=https://${GITEA_DOMAIN}/
+    labels:
+      - "traefik.enable=true"
+      # Service
+      - "traefik.http.services.fe.loadbalancer.server.port=3000"
+      # HTTPS Host
+      - "traefik.http.routers.fe-secured.rule=Host(`${GITEA_DOMAIN}`)"
+      - "traefik.http.routers.fe-secured.entrypoints=websecure"
+      - "traefik.http.routers.fe-secured.tls=true"
+      - "traefik.http.routers.fe-secured.tls.certResolver=webcert"
+      - "traefik.http.routers.fe-secured.service=fe"
+
+  db:
+    networks:
+      - default
+
+networks:
+  traefik:
+    external: false
