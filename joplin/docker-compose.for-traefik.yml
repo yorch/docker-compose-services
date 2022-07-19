@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  app:
+    networks:
+      - default
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      # Service
+      - "traefik.http.services.joplin.loadbalancer.server.port=3000"
+      # HTTPS Host
+      - "traefik.http.routers.joplin.rule=Host(`${JOPLIN_DOMAIN}`)"
+      - "traefik.http.routers.joplin.entrypoints=websecure"
+      - "traefik.http.routers.joplin.tls=true"
+      - "traefik.http.routers.joplin.tls.certResolver=webcert"
+      - "traefik.http.routers.joplin.service=joplin"
+
+  db:
+    networks:
+      - default
+
+networks:
+  traefik:
+    external: false
