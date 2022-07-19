@@ -9,7 +9,7 @@ services:
       - "80:80"
       - "443:443"
     networks:
-      - gitea
+      - traefik
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
