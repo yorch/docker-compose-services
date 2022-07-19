@@ -1,4 +1,4 @@
-version: "3.7"
+version: "3.8"
 
 services:
   traefik:
@@ -60,7 +60,7 @@ services:
       # - "--metrics.influxdb2.addServicesLabels=true"
       # - "--metrics.influxdb2.pushInterval=10s"
       # - "--metrics.influxdb2.additionallabels.host=${TRAEFIK_HOST}"
-    # environment:
+      # environment:
       # Digital Ocean Token can be used for Let's Encrypt DNS challenge
       # - "DO_AUTH_TOKEN=${DO_AUTH_TOKEN}"
     labels:
