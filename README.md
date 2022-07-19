@@ -1,3 +1,9 @@
-# Misc of services running with docker-compose
+# Collection of services running with `docker-compose`
 
 ## Gitea
+
+## Joplin
+
+## Octobot
+
+## Traefik
