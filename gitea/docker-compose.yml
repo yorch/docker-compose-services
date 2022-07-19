@@ -1,60 +1,8 @@
 version: "3.8"
 
 services:
-  traefik:
-    image: traefik:v2.8
-    container_name: traefik2
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    networks:
-      - gitea
-    volumes:
-      # So that Traefik can listen to the Docker events
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./data/traefik:/opt/traefik
-      - ./logs/traefik:/opt/logs
-    command:
-      # Dashboard
-      - "--api" # Enables the web UI
-      - "--global.sendanonymoususage=false"
-      # Entrypoints (with HTTPS redirect)
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
-      - "--entrypoints.websecure.address=:443"
-      # Let's Encrypt
-      - "--certificatesResolvers.webcert.acme.email=${ACME_EMAIL?Variable ACME_EMAIL not set}"
-      - "--certificatesResolvers.webcert.acme.tlschallenge=true"
-      - "--certificatesResolvers.webcert.acme.storage=/opt/traefik/acme.json"
-      # Docker Provider
-      - "--providers.docker" # Tells Traefik to listen to docker
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.watch"
-      # Logging
-      - "--accesslog"
-      - "--log"
-      - "--log.level=${TRAEFIK_LOG_LEVEL:-INFO}"
-      # - "--log.filePath=/opt/logs/traefik.log"
-      # - "--log.format=json"
-    labels:
-      - "traefik.enable=true"
-      # Global Middlewares
-      - "traefik.http.middlewares.global-auth.basicauth.users=${USERNAME?Variable USERNAME not set}:${HASHED_PASSWORD?Variable HASHED_PASSWORD not set}"
-      # # HTTPS Host
-      # - "traefik.http.routers.traefik-api-secured.rule=Host(`traefik.${DOMAIN?Variable DOMAIN not set}`)"
-      # - "traefik.http.routers.traefik-api-secured.entrypoints=websecure"
-      # - "traefik.http.routers.traefik-api-secured.tls=true"
-      # - "traefik.http.routers.traefik-api-secured.tls.certResolver=webcert"
-      # - "traefik.http.routers.traefik-api-secured.service=api@internal"
-      # # Auth
-      # - "traefik.http.routers.traefik-api-secured.middlewares=global-auth"
-
   server:
     image: gitea/gitea:1.16.7
-    container_name: gitea
     environment:
       - USER_UID=1000
       - USER_GID=1000
@@ -64,30 +12,17 @@ services:
       - GITEA__database__USER=${DATABASE_USER}
       - GITEA__database__PASSWD=${DATABASE_PASS}
       - GITEA__server__PROTOCOL=http
-      - GITEA__server__ROOT_URL=https://${DOMAIN}/
+      # - GITEA__server__ROOT_URL=https://${DOMAIN}/
       - GITEA__server__HTTP_PORT=3000
       # - GITEA__server__CERT_FILE=cert.pem
       # - GITEA__server__KEY_FILE=key.pem
     restart: unless-stopped
-    networks:
-      - gitea
     volumes:
       - ./data/gitea:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
-      - "3000:3000"
       - "222:22"
-    labels:
-      - "traefik.enable=true"
-      # Service
-      - "traefik.http.services.fe.loadbalancer.server.port=3000"
-      # HTTPS Host
-      - "traefik.http.routers.fe-secured.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.fe-secured.entrypoints=websecure"
-      - "traefik.http.routers.fe-secured.tls=true"
-      - "traefik.http.routers.fe-secured.tls.certResolver=webcert"
-      - "traefik.http.routers.fe-secured.service=fe"
 
   db:
     image: postgres:14-alpine
@@ -96,11 +31,6 @@ services:
       - POSTGRES_USER=${DATABASE_USER}
       - POSTGRES_PASSWORD=${DATABASE_PASS}
       - POSTGRES_DB=${DATABASE_DB}
-    networks:
-      - gitea
+
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
-
-networks:
-  gitea:
-    external: false
