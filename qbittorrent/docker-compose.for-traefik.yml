@@ -9,7 +9,7 @@ services:
       # Service
       - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
       # HTTPS Host
-      - "traefik.http.routers.qbittorrent.rule=Host(`${HOST}`)"
+      - "traefik.http.routers.qbittorrent.rule=Host(`${HOST?Variable HOST not set}`)"
       - "traefik.http.routers.qbittorrent.entrypoints=websecure"
       - "traefik.http.routers.qbittorrent.tls=true"
       - "traefik.http.routers.qbittorrent.tls.certResolver=webcert"
@@ -17,4 +17,4 @@ services:
 
 networks:
   traefik:
-    external: false
+    external: true
