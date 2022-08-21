@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  influxdb:
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      # Service
+      - "traefik.http.services.influxdb2.loadbalancer.server.port=8080"
+      # HTTPS Host
+      - "traefik.http.routers.influxdb2.rule=Host(`${HOST?Variable HOST not set}`)"
+      - "traefik.http.routers.influxdb2.entrypoints=websecure"
+      - "traefik.http.routers.influxdb2.tls=true"
+      - "traefik.http.routers.influxdb2.tls.certResolver=webcert"
+      - "traefik.http.routers.influxdb2.service=influxdb2"
+
+networks:
+  traefik:
+    external: true
