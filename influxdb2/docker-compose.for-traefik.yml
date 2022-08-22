@@ -6,8 +6,9 @@ services:
       - traefik
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
       # Service
-      - "traefik.http.services.influxdb2.loadbalancer.server.port=8080"
+      - "traefik.http.services.influxdb2.loadbalancer.server.port=8086"
       # HTTPS Host
       - "traefik.http.routers.influxdb2.rule=Host(`${HOST?Variable HOST not set}`)"
       - "traefik.http.routers.influxdb2.entrypoints=websecure"
