@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  nocodb:
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      # Service
+      - "traefik.http.services.nocodb.loadbalancer.server.port=8080"
+      # HTTPS Host
+      - "traefik.http.routers.nocodb.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.nocodb.entrypoints=websecure"
+      - "traefik.http.routers.nocodb.tls=true"
+      - "traefik.http.routers.nocodb.tls.certResolver=webcert"
+      - "traefik.http.routers.nocodb.service=nocodb"
+
+networks:
+  traefik:
+    external: true
