@@ -18,7 +18,7 @@ services:
 
   nocodb:
     depends_on:
-      root_db:
+      db:
         condition: service_healthy
     image: nocodb/nocodb:latest
     restart: unless-stopped
