@@ -1,6 +1,17 @@
 version: "3.8"
 
 services:
+  app:
+    depends_on:
+      db:
+        condition: service_healthy
+    image: nocodb/nocodb:latest
+    restart: unless-stopped
+    volumes:
+      - ./data/nocodb:/usr/app/data
+    environment:
+      NC_DB: "pg://db:${POSTGRES_PORT}?u=${POSTGRES_USER}&p=${POSTGRES_PASSWORD}&d=${POSTGRES_DATABASE}"
+
   db:
     image: postgres:14-alpine
     restart: unless-stopped
@@ -15,14 +26,3 @@ services:
       interval: 10s
       timeout: 2s
       retries: 10
-
-  nocodb:
-    depends_on:
-      db:
-        condition: service_healthy
-    image: nocodb/nocodb:latest
-    restart: unless-stopped
-    volumes:
-      - ./data/nocodb:/usr/app/data
-    environment:
-      NC_DB: "pg://db:${POSTGRES_PORT}?u=${POSTGRES_USER}&p=${POSTGRES_PASSWORD}&d=${POSTGRES_DATABASE}"
