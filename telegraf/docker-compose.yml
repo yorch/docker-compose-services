@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  telegraf:
+    image: telegraf:alpine
+    restart: unless-stopped
+    # https://www.influxdata.com/blog/docker-run-telegraf-as-non-root/
+    # https://github.com/influxdata/telegraf/issues/10050#issuecomment-968244937
+    user: telegraf:${DOCKER_GROUP_ID}
+    environment:
+      - INFLUX_TOKEN=${INFLUX_TOKEN}
+      - INFLUX_HOST=${INFLUX_HOST}
+      - INFLUX_ORG=${INFLUX_ORG}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # - ./config/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    command: "telegraf --config ${CONFIG_URL}"
