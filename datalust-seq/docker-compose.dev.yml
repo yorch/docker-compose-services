@@ -1,0 +1,9 @@
+version: "3.8"
+
+services:
+  seq:
+    ports:
+      # UI port. Allows both ingestion and API requests.
+      - 80:80
+      # Ingestion only port. Doesn't allow API requests.
+      - 5341:5341
