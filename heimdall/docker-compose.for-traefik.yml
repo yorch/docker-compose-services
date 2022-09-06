@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  heimdall:
+    networks:
+      - traefik
+    # ports:
+    #   - "80:80"
+    #   - "443:443"
+    labels:
+      - "traefik.enable=true"
+      # HTTPS Host
+      - "traefik.http.routers.heimdall-secured.rule=Host(`${HOST}`)"
+      - "traefik.http.routers.heimdall-secured.entrypoints=websecure"
+      - "traefik.http.routers.heimdall-secured.service=heimdall"
+      - "traefik.http.routers.heimdall-secured.tls=true"
+      - "traefik.http.services.heimdall.loadbalancer.server.port=80"
+
+networks:
+  traefik:
+    external: true
