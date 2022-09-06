@@ -7,6 +7,7 @@ services:
       - traefik
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
       # Service
       - "traefik.http.services.joplin.loadbalancer.server.port=3000"
       # HTTPS Host
