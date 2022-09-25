@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  grafana:
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      # Service
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      # HTTPS Host
+      - "traefik.http.routers.grafana.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.routers.grafana.tls.certResolver=webcert"
+      - "traefik.http.routers.grafana.service=grafana"
+
+networks:
+  traefik:
+    external: true
