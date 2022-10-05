@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  app:
+    image: dokku/dokku:0.28.1
+    ports:
+      - 22
+      - 80
+      - 443
+    restart: unless-stopped
+    volumes:
+      - ./data/dokku:/mnt/dokku
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOKKU_HOSTNAME=${DOKKU_HOSTNAME}
+      - DOKKU_HOST_ROOT=/var/lib/dokku/home/dokku
