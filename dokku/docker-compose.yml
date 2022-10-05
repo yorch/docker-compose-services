@@ -4,9 +4,9 @@ services:
   app:
     image: dokku/dokku:0.28.1
     ports:
-      - 22
-      - 80
-      - 443
+      - "22:22"
+      - "80:80"
+      - "443:443"
     restart: unless-stopped
     volumes:
       - ./data/dokku:/mnt/dokku
