@@ -1,0 +1,9 @@
+version: "3.8"
+
+services:
+  traefik:
+    labels:
+      # Global Middlewares
+      - "traefik.http.middlewares.global-auth.basicauth.users=${USERNAME?Variable USERNAME not set}:${HASHED_PASSWORD?Variable HASHED_PASSWORD not set}"
+      # Auth
+      - "traefik.http.routers.traefik-api.middlewares=global-auth"

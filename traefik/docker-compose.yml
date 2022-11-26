@@ -65,16 +65,12 @@ services:
       # - "DO_AUTH_TOKEN=${DO_AUTH_TOKEN}"
     labels:
       - "traefik.enable=true"
-      # Global Middlewares
-      - "traefik.http.middlewares.global-auth.basicauth.users=${USERNAME?Variable USERNAME not set}:${HASHED_PASSWORD?Variable HASHED_PASSWORD not set}"
       # HTTPS Host
       - "traefik.http.routers.traefik-api.rule=Host(`${TRAEFIK_HOST?Variable TRAEFIK_HOST not set}`)"
       - "traefik.http.routers.traefik-api.entrypoints=websecure"
       - "traefik.http.routers.traefik-api.tls=true"
       - "traefik.http.routers.traefik-api.tls.certResolver=webcert"
       - "traefik.http.routers.traefik-api.service=api@internal"
-      # Auth
-      - "traefik.http.routers.traefik-api.middlewares=global-auth"
 
 networks:
   traefik:
