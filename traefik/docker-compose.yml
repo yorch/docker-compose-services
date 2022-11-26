@@ -68,13 +68,13 @@ services:
       # Global Middlewares
       - "traefik.http.middlewares.global-auth.basicauth.users=${USERNAME?Variable USERNAME not set}:${HASHED_PASSWORD?Variable HASHED_PASSWORD not set}"
       # HTTPS Host
-      - "traefik.http.routers.traefik-api-secured.rule=Host(`${TRAEFIK_HOST?Variable TRAEFIK_HOST not set}`)"
-      - "traefik.http.routers.traefik-api-secured.entrypoints=websecure"
-      - "traefik.http.routers.traefik-api-secured.tls=true"
-      - "traefik.http.routers.traefik-api-secured.tls.certResolver=webcert"
-      - "traefik.http.routers.traefik-api-secured.service=api@internal"
+      - "traefik.http.routers.traefik-api.rule=Host(`${TRAEFIK_HOST?Variable TRAEFIK_HOST not set}`)"
+      - "traefik.http.routers.traefik-api.entrypoints=websecure"
+      - "traefik.http.routers.traefik-api.tls=true"
+      - "traefik.http.routers.traefik-api.tls.certResolver=webcert"
+      - "traefik.http.routers.traefik-api.service=api@internal"
       # Auth
-      - "traefik.http.routers.traefik-api-secured.middlewares=global-auth"
+      - "traefik.http.routers.traefik-api.middlewares=global-auth"
 
 networks:
   traefik:
