@@ -9,6 +9,7 @@ services:
       - GITEA__server__ROOT_URL=https://${GITEA_DOMAIN}/
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
       # Service
       - "traefik.http.services.gitea.loadbalancer.server.port=3000"
       # HTTPS Host
