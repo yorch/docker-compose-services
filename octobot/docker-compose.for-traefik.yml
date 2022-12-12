@@ -6,6 +6,7 @@ services:
       - traefik
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
       # Service
       - "traefik.http.services.octobot.loadbalancer.server.port=5001"
       # HTTPS Host
