@@ -10,19 +10,29 @@ version: "3.8"
 
 services:
   app:
-    image: joplin/server:latest
+    # image: joplin/server:latest
+    image: joplin/server:2.9-beta
     depends_on:
       - db
     restart: unless-stopped
     environment:
-      - APP_PORT=22300
+      - APP_NAME=${APP_NAME}
       - APP_BASE_URL=${APP_BASE_URL}
+      - APP_PORT=${APP_PORT}
       - DB_CLIENT=pg
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DATABASE=${POSTGRES_DATABASE}
       - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_HOST=db
+      - MAILER_ENABLED=${MAILER_ENABLED}
+      - MAILER_HOST=${MAILER_HOST}
+      - MAILER_PORT=${MAILER_PORT}
+      - MAILER_SECURITY=${MAILER_SECURITY}
+      - MAILER_AUTH_USER=${MAILER_AUTH_USER}
+      - MAILER_AUTH_PASSWORD=${MAILER_AUTH_PASSWORD}
+      - MAILER_NOREPLY_NAME=${MAILER_NOREPLY_NAME}
+      - MAILER_NOREPLY_EMAIL=${MAILER_NOREPLY_EMAIL}
 
   db:
     image: postgres:14-alpine
@@ -33,3 +43,31 @@ services:
       - POSTGRES_DB=${POSTGRES_DATABASE}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+  dbbackups:
+    # https://github.com/prodrigestivill/docker-postgres-backup-local
+    image: prodrigestivill/postgres-backup-local
+    depends_on:
+      - db
+    # user: postgres:postgres
+    volumes:
+      - ./data/postgres-backups:/backups
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DATABASE}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      # - POSTGRES_PASSWORD_FILE=/run/secrets/db_password <-- alternative for POSTGRES_PASSWORD (to use with docker secrets)
+      - POSTGRES_EXTRA_OPTS=-Z6 --schema=public --blobs
+      - SCHEDULE=${DBBACKUPS_SCHEDULE}
+      - BACKUP_KEEP_DAYS=${DBBACKUPS_BACKUP_KEEP_DAYS}
+      - BACKUP_KEEP_WEEKS=${DBBACKUPS_BACKUP_KEEP_WEEKS}
+      - BACKUP_KEEP_MONTHS=${DBBACKUPS_BACKUP_KEEP_MONTHS}
+      - HEALTHCHECK_PORT=${DBBACKUPS_HEALTHCHECK_PORT}
+
+  adminer:
+    image: adminer:latest
+    depends_on:
+      - db
+    restart: unless-stopped

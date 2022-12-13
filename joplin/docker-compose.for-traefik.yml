@@ -9,9 +9,9 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"
       # Service
-      - "traefik.http.services.joplin.loadbalancer.server.port=3000"
+      - "traefik.http.services.joplin.loadbalancer.server.port=${APP_PORT}"
       # HTTPS Host
-      - "traefik.http.routers.joplin.rule=Host(`${JOPLIN_DOMAIN}`)"
+      - "traefik.http.routers.joplin.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.joplin.entrypoints=websecure"
       - "traefik.http.routers.joplin.tls=true"
       - "traefik.http.routers.joplin.tls.certResolver=webcert"
@@ -20,6 +20,41 @@ services:
   db:
     networks:
       - default
+
+  dbbackups:
+    networks:
+      - default
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      # Service
+      - "traefik.http.services.joplin-dbbackups.loadbalancer.server.port=${DBBACKUPS_HEALTHCHECK_PORT}"
+      # HTTPS Host
+      - "traefik.http.routers.joplin-dbbackups.rule=Host(`dbbackups.${DOMAIN}`)"
+      - "traefik.http.routers.joplin-dbbackups.entrypoints=websecure"
+      - "traefik.http.routers.joplin-dbbackups.tls=true"
+      - "traefik.http.routers.joplin-dbbackups.tls.certResolver=webcert"
+      - "traefik.http.routers.joplin-dbbackups.service=joplin-dbbackups"
+    # Traefik filters out this container as it gets reported as unhealthy in some part of the process
+    healthcheck:
+      disable: true
+
+  adminer:
+    networks:
+      - default
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      # Service
+      - "traefik.http.services.joplin-adminer.loadbalancer.server.port=8080"
+      # HTTPS Host
+      - "traefik.http.routers.joplin-adminer.rule=Host(`adminer.${DOMAIN}`)"
+      - "traefik.http.routers.joplin-adminer.entrypoints=websecure"
+      - "traefik.http.routers.joplin-adminer.tls=true"
+      - "traefik.http.routers.joplin-adminer.tls.certResolver=webcert"
+      - "traefik.http.routers.joplin-adminer.service=joplin-adminer"
 
 networks:
   traefik:
