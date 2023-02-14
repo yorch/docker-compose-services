@@ -1,11 +1,8 @@
 version: "3.8"
 
 services:
-  example-app:
+  hotrod:
     image: jaegertracing/example-hotrod:latest
-    ports:
-      # https://www.jaegertracing.io/docs/1.38/getting-started/#sample-app-hotrod
-      - "8080:8080"
     restart: unless-stopped
     environment:
       # - JAEGER_AGENT_HOST=jaeger

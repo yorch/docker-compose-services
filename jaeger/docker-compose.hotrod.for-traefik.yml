@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  hotrod:
+    networks:
+      - default
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      # Service
+      - "traefik.http.services.jaeger-hotrod.loadbalancer.server.port=8080"
+      # HTTPS Host
+      - "traefik.http.routers.jaeger-hotrod.rule=Host(`jaeger-hotrod${DOMAIN}`)"
+      - "traefik.http.routers.jaeger-hotrod.entrypoints=websecure"
+      - "traefik.http.routers.jaeger-hotrod.tls=true"
+      - "traefik.http.routers.jaeger-hotrod.tls.certResolver=webcert"
+      - "traefik.http.routers.jaeger-hotrod.service=jaeger-hotrod"
+
+networks:
+  traefik:
+    external: true

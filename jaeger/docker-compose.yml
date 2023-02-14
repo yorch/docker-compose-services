@@ -4,7 +4,7 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:1
     ports:
-      # https://www.jaegertracing.io/docs/1.38/getting-started/
+      # https://www.jaegertracing.io/docs/1.42/getting-started/
       # UDP agent accept jaeger.thrift over Thrift-compact protocol (used by most SDKs)
       - "6831:6831/udp"
       # UDP agent accept jaeger.thrift over Thrift-binary protocol (used by Node.js SDK)
@@ -14,7 +14,7 @@ services:
       # HTTP agent serve configs (sampling, etc.)
       - "5778:5778"
       # HTTP query serve frontend
-      - "16686:16686"
+      # - "16686:16686"
       # HTTP collector accept OpenTelemetry Protocol (OTLP) over gRPC, if enabled
       - "4317:4317"
       # HTTP collector accept OpenTelemetry Protocol (OTLP) over HTTP, if enabled

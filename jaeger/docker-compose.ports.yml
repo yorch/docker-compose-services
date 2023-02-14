@@ -1,0 +1,7 @@
+version: "3.8"
+
+services:
+  jaeger:
+    ports:
+      # HTTP query serve frontend
+      - "16686:16686"
