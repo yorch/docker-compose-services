@@ -11,7 +11,7 @@ services:
       # Service
       - "traefik.http.services.jaeger-hotrod.loadbalancer.server.port=8080"
       # HTTPS Host
-      - "traefik.http.routers.jaeger-hotrod.rule=Host(`jaeger-hotrod${DOMAIN}`)"
+      - "traefik.http.routers.jaeger-hotrod.rule=Host(`jaeger-hotrod.${DOMAIN}`)"
       - "traefik.http.routers.jaeger-hotrod.entrypoints=websecure"
       - "traefik.http.routers.jaeger-hotrod.tls=true"
       - "traefik.http.routers.jaeger-hotrod.tls.certResolver=webcert"
