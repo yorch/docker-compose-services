@@ -7,3 +7,4 @@ services:
     environment:
       # - JAEGER_AGENT_HOST=jaeger
       - OTEL_EXPORTER_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+    command: [ "all" ]
