@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   jaeger:
-    image: jaegertracing/all-in-one:1.38
+    image: jaegertracing/all-in-one:1
     ports:
       # https://www.jaegertracing.io/docs/1.38/getting-started/
       # UDP agent accept jaeger.thrift over Thrift-compact protocol (used by most SDKs)
@@ -23,13 +23,11 @@ services:
       - "14250:14250"
       # HTTP collector accept jaeger.thrift directly from clients
       - "14268:14268"
-      # TODO: Not sure what this is
-      - "14269:14269"
       # HTTP collector Zipkin compatible endpoint (optional)
-      - "9411:9411"
+      # - "9411:9411"
     restart: unless-stopped
     environment:
-      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      # - COLLECTOR_ZIPKIN_HOST_PORT=:9411
       - COLLECTOR_OTLP_ENABLED=true
-    # volumes:
-    #   - ./data:/var/lib/jaeger? # TODO: Need to figure where is stored
+    # All-in-one comes with memory storage, so it's volatile
+    # TODO: Add storage like ElasticSearch (https://www.jaegertracing.io/docs/1.42/faq/#what-is-the-recommended-storage-backend)
