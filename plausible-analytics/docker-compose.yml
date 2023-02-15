@@ -16,6 +16,9 @@ services:
       - MAILER_EMAIL=${MAILER_EMAIL}
       - MAILER_ADAPTER=Bamboo.PostmarkAdapter
       - POSTMARK_API_KEY=${POSTMARK_API_KEY}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - HONEYCOMB_API_KEY=${HONEYCOMB_API_KEY}
+      - HONEYCOMB_DATASET=${HONEYCOMB_DATASET}
     depends_on:
       - db
       - events_db
