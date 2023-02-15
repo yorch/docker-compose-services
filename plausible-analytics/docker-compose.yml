@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  app:
+    image: plausible/analytics:latest
+    restart: unless-stopped
+    volumes:
+      - ./data/geoip:/geoip:ro
+    environment:
+      - BASE_URL=${BASE_URL}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - PORT=${PORT}
+      - DATABASE_URL=${DATABASE_URL}
+      - CLICKHOUSE_DATABASE_URL=${CLICKHOUSE_DATABASE_URL}
+      - GEOLITE2_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb
+    depends_on:
+      - db
+      - events_db
+      - geoip
+      - mail
+    command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
+
+  db:
+    # Supported versions: 12, 13, and 14
+    image: postgres:14-alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+  events_db:
+    image: clickhouse/clickhouse-server:22.6-alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/clickhouse:/var/lib/clickhouse
+      - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
+      - ./config/clickhouse/user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  geoip:
+    image: maxmindinc/geoipupdate
+    restart: unless-stopped
+    volumes:
+      - ./data/geoip:/usr/share/GeoIP
+    environment:
+      - GEOIPUPDATE_ACCOUNT_ID=${GEOIPUPDATE_ACCOUNT_ID}
+      - GEOIPUPDATE_LICENSE_KEY=${GEOIPUPDATE_LICENSE_KEY}
+      - GEOIPUPDATE_EDITION_IDS=GeoLite2-Country
+      - GEOIPUPDATE_FREQUENCY=168 # Update every 7 days
+
+  mail:
+    image: bytemark/smtp
+    restart: unless-stopped
+    environment:
+      - MAILER_ADAPTER=Bamboo.PostmarkAdapter
+      - POSTMARK_API_KEY=${POSTMARK_API_KEY}
