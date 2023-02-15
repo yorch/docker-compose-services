@@ -58,5 +58,6 @@ services:
     image: bytemark/smtp
     restart: unless-stopped
     environment:
+      - MAILER_EMAIL=${MAILER_EMAIL}
       - MAILER_ADAPTER=Bamboo.PostmarkAdapter
       - POSTMARK_API_KEY=${POSTMARK_API_KEY}
