@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "2.8.7"
+  },
+  "packageManager": "yarn@3.5.0"
+}

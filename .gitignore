@@ -1,3 +1,13 @@
 data/
+node_modules/
 
 .env
+
+# Yarn v2+ Non Zero Installs
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
