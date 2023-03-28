@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.onedev.loadbalancer.server.port=6010'
+      # HTTPS Host
+      - 'traefik.http.routers.onedev.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.onedev.entrypoints=websecure'
+      - 'traefik.http.routers.onedev.tls=true'
+      - 'traefik.http.routers.onedev.tls.certResolver=webcert'
+      - 'traefik.http.routers.onedev.service=onedev'
+
+networks:
+  traefik:
+    external: true

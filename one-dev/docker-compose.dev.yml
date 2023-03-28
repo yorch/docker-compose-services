@@ -1,0 +1,7 @@
+version: '3.8'
+
+services:
+  app:
+    ports:
+      - ${PORT_WEB}:6610
+      - ${PORT_SSH}:6611
