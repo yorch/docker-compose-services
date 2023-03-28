@@ -1,20 +1,20 @@
-version: "3.8"
+version: '3.8'
 
 services:
   octobot:
     networks:
       - traefik
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
       # Service
-      - "traefik.http.services.octobot.loadbalancer.server.port=5001"
+      - 'traefik.http.services.octobot.loadbalancer.server.port=5001'
       # HTTPS Host
-      - "traefik.http.routers.octobot.rule=Host(`${OCTOBOT_DOMAIN}`)"
-      - "traefik.http.routers.octobot.entrypoints=websecure"
-      - "traefik.http.routers.octobot.tls=true"
-      - "traefik.http.routers.octobot.tls.certResolver=webcert"
-      - "traefik.http.routers.octobot.service=octobot"
+      - 'traefik.http.routers.octobot.rule=Host(`${OCTOBOT_DOMAIN}`)'
+      - 'traefik.http.routers.octobot.entrypoints=websecure'
+      - 'traefik.http.routers.octobot.tls=true'
+      - 'traefik.http.routers.octobot.tls.certResolver=webcert'
+      - 'traefik.http.routers.octobot.service=octobot'
 
 networks:
   traefik:

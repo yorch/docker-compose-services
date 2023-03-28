@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   jaeger:
@@ -6,25 +6,25 @@ services:
     ports:
       # https://www.jaegertracing.io/docs/1.42/getting-started/
       # UDP agent accept jaeger.thrift over Thrift-compact protocol (used by most SDKs)
-      - "6831:6831/udp"
+      - 6831:6831/udp
       # UDP agent accept jaeger.thrift over Thrift-binary protocol (used by Node.js SDK)
-      - "6832:6832/udp"
+      - 6832:6832/udp
       # UDP agent (deprecated) accept zipkin.thrift over compact Thrift protocol (used by legacy clients only)
-      # - "5775:5775/udp"
+      # - 5775:5775/udp
       # HTTP agent serve configs (sampling, etc.)
-      - "5778:5778"
+      - 5778:5778
       # HTTP query serve frontend
-      # - "16686:16686"
+      # - 16686:16686
       # HTTP collector accept OpenTelemetry Protocol (OTLP) over gRPC, if enabled
-      - "4317:4317"
+      - 4317:4317
       # HTTP collector accept OpenTelemetry Protocol (OTLP) over HTTP, if enabled
-      - "4318:4318"
+      - 4318:4318
       # HTTP collector accept model.proto
-      - "14250:14250"
+      - 14250:14250
       # HTTP collector accept jaeger.thrift directly from clients
-      - "14268:14268"
+      - 14268:14268
       # HTTP collector Zipkin compatible endpoint (optional)
-      # - "9411:9411"
+      # - 9411:9411
     restart: unless-stopped
     environment:
       # - COLLECTOR_ZIPKIN_HOST_PORT=:9411

@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   jaeger:
@@ -6,16 +6,16 @@ services:
       - default
       - traefik
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
       # Service
-      - "traefik.http.services.jaeger.loadbalancer.server.port=16686"
+      - 'traefik.http.services.jaeger.loadbalancer.server.port=16686'
       # HTTPS Host
-      - "traefik.http.routers.jaeger.rule=Host(`jaeger.${DOMAIN}`)"
-      - "traefik.http.routers.jaeger.entrypoints=websecure"
-      - "traefik.http.routers.jaeger.tls=true"
-      - "traefik.http.routers.jaeger.tls.certResolver=webcert"
-      - "traefik.http.routers.jaeger.service=jaeger"
+      - 'traefik.http.routers.jaeger.rule=Host(`jaeger.${DOMAIN}`)'
+      - 'traefik.http.routers.jaeger.entrypoints=websecure'
+      - 'traefik.http.routers.jaeger.tls=true'
+      - 'traefik.http.routers.jaeger.tls.certResolver=webcert'
+      - 'traefik.http.routers.jaeger.service=jaeger'
 
 networks:
   traefik:

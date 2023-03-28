@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   grafana:
@@ -8,4 +8,4 @@ services:
       - ACCOUNT_EMAIL=${ACCOUNT_EMAIL}
       - ACCOUNT_PASSWORD=${ACCOUNT_PASSWORD}
       - DEVICE_NAME=${DEVICE_NAME}
-    command: "-tou-accept -email ${ACCOUNT_EMAIL} -pass ${ACCOUNT_PASSWORD} -device ${DEVICE_NAME}"
+    command: '-tou-accept -email ${ACCOUNT_EMAIL} -pass ${ACCOUNT_PASSWORD} -device ${DEVICE_NAME}'

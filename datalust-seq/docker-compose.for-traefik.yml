@@ -1,20 +1,20 @@
-version: "3.8"
+version: '3.8'
 
 services:
   seq:
     networks:
       - traefik
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
       # Service
-      - "traefik.http.services.seq.loadbalancer.server.port=80"
+      - 'traefik.http.services.seq.loadbalancer.server.port=80'
       # HTTPS Host
-      - "traefik.http.routers.seq.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.seq.entrypoints=websecure"
-      - "traefik.http.routers.seq.tls=true"
-      - "traefik.http.routers.seq.tls.certResolver=webcert"
-      - "traefik.http.routers.seq.service=seq"
+      - 'traefik.http.routers.seq.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.seq.entrypoints=websecure'
+      - 'traefik.http.routers.seq.tls=true'
+      - 'traefik.http.routers.seq.tls.certResolver=webcert'
+      - 'traefik.http.routers.seq.service=seq'
 
 networks:
   traefik:

@@ -1,10 +1,10 @@
-version: "3.8"
+version: '3.8'
 
 services:
   app:
     ports:
-      - "22300:22300"
+      - 22300:22300
 
   db:
     ports:
-      - "5432:5432"
+      - 5432:5432

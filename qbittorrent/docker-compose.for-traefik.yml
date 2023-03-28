@@ -1,19 +1,19 @@
-version: "3.8"
+version: '3.8'
 
 services:
   qbittorrent:
     networks:
       - traefik
     labels:
-      - "traefik.enable=true"
+      - 'traefik.enable=true'
       # Service
-      - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
+      - 'traefik.http.services.qbittorrent.loadbalancer.server.port=8080'
       # HTTPS Host
-      - "traefik.http.routers.qbittorrent.rule=Host(`${HOST?Variable HOST not set}`)"
-      - "traefik.http.routers.qbittorrent.entrypoints=websecure"
-      - "traefik.http.routers.qbittorrent.tls=true"
-      - "traefik.http.routers.qbittorrent.tls.certResolver=webcert"
-      - "traefik.http.routers.qbittorrent.service=qbittorrent"
+      - 'traefik.http.routers.qbittorrent.rule=Host(`${HOST?Variable HOST not set}`)'
+      - 'traefik.http.routers.qbittorrent.entrypoints=websecure'
+      - 'traefik.http.routers.qbittorrent.tls=true'
+      - 'traefik.http.routers.qbittorrent.tls.certResolver=webcert'
+      - 'traefik.http.routers.qbittorrent.service=qbittorrent'
 
 networks:
   traefik:

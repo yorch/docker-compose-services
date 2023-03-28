@@ -1,7 +1,7 @@
-version: "3.8"
+version: '3.8'
 
 services:
   hotrod:
     ports:
       # https://www.jaegertracing.io/docs/1.42/getting-started/#sample-app-hotrod
-      - "8080:8080"
+      - 8080:8080

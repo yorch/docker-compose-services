@@ -1,6 +1,6 @@
-version: "3.8"
+version: '3.8'
 
 services:
   app:
     ports:
-      - "2368:2368"
+      - 2368:2368

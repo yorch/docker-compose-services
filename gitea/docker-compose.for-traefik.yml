@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   app:
@@ -8,16 +8,16 @@ services:
     environment:
       - GITEA__server__ROOT_URL=https://${GITEA_DOMAIN}/
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
       # Service
-      - "traefik.http.services.gitea.loadbalancer.server.port=3000"
+      - 'traefik.http.services.gitea.loadbalancer.server.port=3000'
       # HTTPS Host
-      - "traefik.http.routers.gitea.rule=Host(`${GITEA_DOMAIN}`)"
-      - "traefik.http.routers.gitea.entrypoints=websecure"
-      - "traefik.http.routers.gitea.tls=true"
-      - "traefik.http.routers.gitea.tls.certResolver=webcert"
-      - "traefik.http.routers.gitea.service=gitea"
+      - 'traefik.http.routers.gitea.rule=Host(`${GITEA_DOMAIN}`)'
+      - 'traefik.http.routers.gitea.entrypoints=websecure'
+      - 'traefik.http.routers.gitea.tls=true'
+      - 'traefik.http.routers.gitea.tls.certResolver=webcert'
+      - 'traefik.http.routers.gitea.service=gitea'
 
   db:
     networks:

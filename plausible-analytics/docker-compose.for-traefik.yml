@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   app:
@@ -6,16 +6,16 @@ services:
       - default
       - traefik
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
       # Service
-      - "traefik.http.services.plausible.loadbalancer.server.port=${PORT}"
+      - 'traefik.http.services.plausible.loadbalancer.server.port=${PORT}'
       # HTTPS Host
-      - "traefik.http.routers.plausible.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.plausible.entrypoints=websecure"
-      - "traefik.http.routers.plausible.tls=true"
-      - "traefik.http.routers.plausible.tls.certResolver=webcert"
-      - "traefik.http.routers.plausible.service=plausible"
+      - 'traefik.http.routers.plausible.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.plausible.entrypoints=websecure'
+      - 'traefik.http.routers.plausible.tls=true'
+      - 'traefik.http.routers.plausible.tls.certResolver=webcert'
+      - 'traefik.http.routers.plausible.service=plausible'
 
 networks:
   traefik:

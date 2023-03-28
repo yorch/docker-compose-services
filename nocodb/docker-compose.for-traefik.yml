@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   app:
@@ -6,16 +6,16 @@ services:
       - default
       - traefik
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
       # Service
-      - "traefik.http.services.nocodb.loadbalancer.server.port=8080"
+      - 'traefik.http.services.nocodb.loadbalancer.server.port=8080'
       # HTTPS Host
-      - "traefik.http.routers.nocodb.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.nocodb.entrypoints=websecure"
-      - "traefik.http.routers.nocodb.tls=true"
-      - "traefik.http.routers.nocodb.tls.certResolver=webcert"
-      - "traefik.http.routers.nocodb.service=nocodb"
+      - 'traefik.http.routers.nocodb.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.nocodb.entrypoints=websecure'
+      - 'traefik.http.routers.nocodb.tls=true'
+      - 'traefik.http.routers.nocodb.tls.certResolver=webcert'
+      - 'traefik.http.routers.nocodb.service=nocodb'
 
   db:
     networks:

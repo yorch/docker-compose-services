@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   app:
@@ -6,16 +6,16 @@ services:
       - default
       - traefik
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
       # Service
-      - "traefik.http.services.joplin.loadbalancer.server.port=${APP_PORT}"
+      - 'traefik.http.services.joplin.loadbalancer.server.port=${APP_PORT}'
       # HTTPS Host
-      - "traefik.http.routers.joplin.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.joplin.entrypoints=websecure"
-      - "traefik.http.routers.joplin.tls=true"
-      - "traefik.http.routers.joplin.tls.certResolver=webcert"
-      - "traefik.http.routers.joplin.service=joplin"
+      - 'traefik.http.routers.joplin.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.joplin.entrypoints=websecure'
+      - 'traefik.http.routers.joplin.tls=true'
+      - 'traefik.http.routers.joplin.tls.certResolver=webcert'
+      - 'traefik.http.routers.joplin.service=joplin'
 
   db:
     networks:
@@ -26,16 +26,16 @@ services:
       - default
       - traefik
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
       # Service
-      - "traefik.http.services.joplin-dbbackups.loadbalancer.server.port=${DBBACKUPS_HEALTHCHECK_PORT}"
+      - 'traefik.http.services.joplin-dbbackups.loadbalancer.server.port=${DBBACKUPS_HEALTHCHECK_PORT}'
       # HTTPS Host
-      - "traefik.http.routers.joplin-dbbackups.rule=Host(`dbbackups.${DOMAIN}`)"
-      - "traefik.http.routers.joplin-dbbackups.entrypoints=websecure"
-      - "traefik.http.routers.joplin-dbbackups.tls=true"
-      - "traefik.http.routers.joplin-dbbackups.tls.certResolver=webcert"
-      - "traefik.http.routers.joplin-dbbackups.service=joplin-dbbackups"
+      - 'traefik.http.routers.joplin-dbbackups.rule=Host(`dbbackups.${DOMAIN}`)'
+      - 'traefik.http.routers.joplin-dbbackups.entrypoints=websecure'
+      - 'traefik.http.routers.joplin-dbbackups.tls=true'
+      - 'traefik.http.routers.joplin-dbbackups.tls.certResolver=webcert'
+      - 'traefik.http.routers.joplin-dbbackups.service=joplin-dbbackups'
     # Traefik filters out this container as it gets reported as unhealthy in some part of the process
     healthcheck:
       disable: true
@@ -45,16 +45,16 @@ services:
       - default
       - traefik
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
       # Service
-      - "traefik.http.services.joplin-adminer.loadbalancer.server.port=8080"
+      - 'traefik.http.services.joplin-adminer.loadbalancer.server.port=8080'
       # HTTPS Host
-      - "traefik.http.routers.joplin-adminer.rule=Host(`adminer.${DOMAIN}`)"
-      - "traefik.http.routers.joplin-adminer.entrypoints=websecure"
-      - "traefik.http.routers.joplin-adminer.tls=true"
-      - "traefik.http.routers.joplin-adminer.tls.certResolver=webcert"
-      - "traefik.http.routers.joplin-adminer.service=joplin-adminer"
+      - 'traefik.http.routers.joplin-adminer.rule=Host(`adminer.${DOMAIN}`)'
+      - 'traefik.http.routers.joplin-adminer.entrypoints=websecure'
+      - 'traefik.http.routers.joplin-adminer.tls=true'
+      - 'traefik.http.routers.joplin-adminer.tls.certResolver=webcert'
+      - 'traefik.http.routers.joplin-adminer.service=joplin-adminer'
 
 networks:
   traefik:

@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   traefik:
@@ -6,8 +6,8 @@ services:
     container_name: traefik
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - 80:80
+      - 443:443
     networks:
       - traefik
     volumes:
@@ -17,54 +17,54 @@ services:
       - ./logs:/opt/logs
     command:
       # Dashboard
-      - "--api" # Enables the web UI
-      - "--global.sendanonymoususage=false"
+      - '--api' # Enables the web UI
+      - '--global.sendanonymoususage=false'
       # Entrypoints (with HTTPS redirect)
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
-      - "--entrypoints.websecure.address=:443"
+      - '--entrypoints.web.address=:80'
+      - '--entrypoints.web.http.redirections.entryPoint.to=websecure'
+      - '--entrypoints.web.http.redirections.entryPoint.scheme=https'
+      - '--entrypoints.web.http.redirections.entrypoint.permanent=true'
+      - '--entrypoints.websecure.address=:443'
       # Let's Encrypt
       # Through HTTP challenge
-      - "--certificatesResolvers.webcert.acme.tlschallenge=true"
+      - '--certificatesResolvers.webcert.acme.tlschallenge=true'
       # Or through DNS challenge using Digital Ocean
-      # - "--certificatesresolvers.webcert.acme.dnschallenge=true"
-      # - "--certificatesresolvers.webcert.acme.dnschallenge.provider=digitalocean"
-      - "--certificatesResolvers.webcert.acme.email=${ACME_EMAIL?Variable ACME_EMAIL not set}"
-      - "--certificatesResolvers.webcert.acme.storage=/opt/traefik/acme.json"
+      # - '--certificatesresolvers.webcert.acme.dnschallenge=true'
+      # - '--certificatesresolvers.webcert.acme.dnschallenge.provider=digitalocean'
+      - '--certificatesResolvers.webcert.acme.email=${ACME_EMAIL?Variable ACME_EMAIL not set}'
+      - '--certificatesResolvers.webcert.acme.storage=/opt/traefik/acme.json'
       # Docker Provider
-      - "--providers.docker" # Tells Traefik to listen to docker
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.watch"
+      - '--providers.docker' # Tells Traefik to listen to docker
+      - '--providers.docker.exposedbydefault=false'
+      - '--providers.docker.watch'
       # Logging
-      - "--accesslog"
-      - "--log"
-      - "--log.level=${TRAEFIK_LOG_LEVEL:-INFO}"
-      # - "--log.filePath=/opt/logs/traefik.log"
-      # - "--log.format=json"
+      - '--accesslog'
+      - '--log'
+      - '--log.level=${TRAEFIK_LOG_LEVEL:-INFO}'
+      # - '--log.filePath=/opt/logs/traefik.log'
+      # - '--log.format=json'
       # Metrics (Influx v2)
-      # - "--metrics.influxdb2=true"
-      # - "--metrics.influxdb2.address=${INFLUXDB2_URL}"
-      # - "--metrics.influxdb2.token=${INFLUXDB2_TOKEN}"
-      # - "--metrics.influxdb2.org=${INFLUXDB2_ORG}"
-      # - "--metrics.influxdb2.bucket=${INFLUXDB2_BUCKET}"
-      # - "--metrics.influxdb2.addEntryPointsLabels=true"
-      # - "--metrics.influxdb2.addrouterslabels=true"
-      # - "--metrics.influxdb2.addServicesLabels=true"
-      # - "--metrics.influxdb2.pushInterval=10s"
-      # - "--metrics.influxdb2.additionallabels.host=${TRAEFIK_HOST}"
+      # - '--metrics.influxdb2=true'
+      # - '--metrics.influxdb2.address=${INFLUXDB2_URL}'
+      # - '--metrics.influxdb2.token=${INFLUXDB2_TOKEN}'
+      # - '--metrics.influxdb2.org=${INFLUXDB2_ORG}'
+      # - '--metrics.influxdb2.bucket=${INFLUXDB2_BUCKET}'
+      # - '--metrics.influxdb2.addEntryPointsLabels=true'
+      # - '--metrics.influxdb2.addrouterslabels=true'
+      # - '--metrics.influxdb2.addServicesLabels=true'
+      # - '--metrics.influxdb2.pushInterval=10s'
+      # - '--metrics.influxdb2.additionallabels.host=${TRAEFIK_HOST}'
       # environment:
       # Digital Ocean Token can be used for Let's Encrypt DNS challenge
-      # - "DO_AUTH_TOKEN=${DO_AUTH_TOKEN}"
+      # - 'DO_AUTH_TOKEN=${DO_AUTH_TOKEN}'
     labels:
-      - "traefik.enable=true"
+      - 'traefik.enable=true'
       # HTTPS Host
-      - "traefik.http.routers.traefik-api.rule=Host(`${TRAEFIK_HOST?Variable TRAEFIK_HOST not set}`)"
-      - "traefik.http.routers.traefik-api.entrypoints=websecure"
-      - "traefik.http.routers.traefik-api.tls=true"
-      - "traefik.http.routers.traefik-api.tls.certResolver=webcert"
-      - "traefik.http.routers.traefik-api.service=api@internal"
+      - 'traefik.http.routers.traefik-api.rule=Host(`${TRAEFIK_HOST?Variable TRAEFIK_HOST not set}`)'
+      - 'traefik.http.routers.traefik-api.entrypoints=websecure'
+      - 'traefik.http.routers.traefik-api.tls=true'
+      - 'traefik.http.routers.traefik-api.tls.certResolver=webcert'
+      - 'traefik.http.routers.traefik-api.service=api@internal'
 
 networks:
   traefik:

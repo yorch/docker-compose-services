@@ -1,4 +1,4 @@
-version: "3.7"
+version: '3.8'
 
 # TODO: Replace hardcoded `redpanda-0` with a variable that holds the current service name
 # https://docs.redpanda.com/docs/get-started/quick-start/?quickstart=docker
