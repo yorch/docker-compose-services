@@ -7,7 +7,22 @@ services:
     ports:
       - 1883:1883
     volumes:
-      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf
-      - ./config/passwd:/mosquitto/config/passwd
+      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./config/mosquitto/passwd:/mosquitto/config/passwd
       - ./data:/mosquitto/data/
       - ./log:/mosquitto/log/
+
+  explorer:
+    image: smeagolworms4/mqtt-explorer
+    restart: unless-stopped
+    ports:
+      - 4000:4000
+    volumes:
+      - ./config/explorer:/mqtt-explorer/config
+    environment:
+      - HTTP_PORT=4000
+      - CONFIG_PATH=/mqtt-explorer/config
+      # - HTTP_USER=user
+      # - HTTP_PASSWORD=
+      # - SSL_KEY_PATH=
+      # - SSH_CERT_PATH=value
