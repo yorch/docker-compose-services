@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   mqtt:
-    image: eclipse-mosquitto:latest
+    image: eclipse-mosquitto:2
     restart: unless-stopped
     ports:
       - 1883:1883
@@ -11,18 +11,23 @@ services:
       - ./config/mosquitto/passwd:/mosquitto/config/passwd
       - ./data:/mosquitto/data/
       - ./log:/mosquitto/log/
+  # mqttx:
+  #   image: emqx/mqttx-web:latest
+  #   restart: unless-stopped
+  #   ports:
+  #     - 8280:80
 
-  explorer:
-    image: smeagolworms4/mqtt-explorer
-    restart: unless-stopped
-    ports:
-      - 4000:4000
-    volumes:
-      - ./config/explorer:/mqtt-explorer/config
-    environment:
-      - HTTP_PORT=4000
-      - CONFIG_PATH=/mqtt-explorer/config
-      # - HTTP_USER=user
-      # - HTTP_PASSWORD=
-      # - SSL_KEY_PATH=
-      # - SSH_CERT_PATH=value
+  # explorer:
+  #   image: smeagolworms4/mqtt-explorer
+  #   restart: unless-stopped
+  #   ports:
+  #     - 4000:4000
+  #   volumes:
+  #     - ./config/explorer:/mqtt-explorer/config
+  #   environment:
+  #     - HTTP_PORT=4000
+  #     - CONFIG_PATH=/mqtt-explorer/config
+  #     # - HTTP_USER=user
+  #     # - HTTP_PASSWORD=
+  #     # - SSL_KEY_PATH=
+  #     # - SSH_CERT_PATH=value
