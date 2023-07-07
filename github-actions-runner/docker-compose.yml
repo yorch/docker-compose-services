@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  runner:
+    build: .
+    restart: unless-stopped
+    environment:
+      - ACCESS_TOKEN=${ACCESS_TOKEN}
+      - ORGANIZATION=${ORGANIZATION}
