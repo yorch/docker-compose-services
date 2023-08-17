@@ -11,7 +11,7 @@ version: '3.8'
 services:
   app:
     # image: joplin/server:latest
-    image: joplin/server:2.9-beta
+    image: joplin/server:2.12-beta
     depends_on:
       - db
     restart: unless-stopped
@@ -35,7 +35,7 @@ services:
       - MAILER_NOREPLY_EMAIL=${MAILER_NOREPLY_EMAIL}
 
   db:
-    image: postgres:14-alpine
+    image: postgres:13-alpine
     restart: unless-stopped
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
