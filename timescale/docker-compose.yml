@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  timescale:
+    # Includes the TimescaleDB Toolkit, and support for PostGIS and Patroni
+    image: timescale/timescaledb-ha:pg14-latest
+    # Smaller image
+    # image: timescale/timescaledb:latest-pg14
+    restart: unless-stopped
+    volumes:
+      - ./data/timescale:/home/postgres/pgdata/data
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
