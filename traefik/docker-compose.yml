@@ -60,6 +60,16 @@ services:
       # - '--metrics.influxdb2.addServicesLabels=true'
       # - '--metrics.influxdb2.pushInterval=10s'
       # - '--metrics.influxdb2.additionallabels.host=${TRAEFIK_HOST}'
+      # Metrics (Prometheus)
+      # - '--metrics.prometheus=true'
+      # - '--metrics.prometheus.buckets=0.1,0.3,1.2,5.0'
+      # - '--metrics.prometheus.addEntryPointsLabels=true'
+      # - '--metrics.prometheus.addRoutersLabels=true'
+      # - '--metrics.prometheus.addServicesLabels=true'
+      # - '--metrics.prometheus.addTraefikLabels=true'
+      # - '--metrics.prometheus.entryPoint=metrics'
+      # - '--metrics.prometheus.pushInterval=15s'
+      # - '--metrics.prometheus.additionallabels.host=${TRAEFIK_HOST}'
       # environment:
       # Digital Ocean Token can be used for Let's Encrypt DNS challenge
       # - 'DO_AUTH_TOKEN=${DO_AUTH_TOKEN}'
