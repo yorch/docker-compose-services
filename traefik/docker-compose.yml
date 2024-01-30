@@ -66,9 +66,7 @@ services:
       # - '--metrics.prometheus.addEntryPointsLabels=true'
       # - '--metrics.prometheus.addRoutersLabels=true'
       # - '--metrics.prometheus.addServicesLabels=true'
-      # - '--metrics.prometheus.addTraefikLabels=true'
       # - '--metrics.prometheus.entryPoint=metrics'
-      # - '--metrics.prometheus.pushInterval=15s'
       # - '--metrics.prometheus.additionallabels.host=${TRAEFIK_HOST}'
       # environment:
       # Digital Ocean Token can be used for Let's Encrypt DNS challenge
