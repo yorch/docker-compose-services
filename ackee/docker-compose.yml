@@ -7,13 +7,15 @@ services:
     environment:
       - WAIT_HOSTS=mongo:27017
       - ACKEE_MONGODB=mongodb://mongo:27017/ackee
-    env_file:
-      - .env
+      - ACKEE_PORT=3000
+      - ACKEE_USERNAME=${ACKEE_USERNAME}
+      - ACKEE_PASSWORD=${ACKEE_PASSWORD}
+      - ACKEE_TTL=${ACKEE_TTL}
     depends_on:
       - mongo
 
   mongo:
-    image: mongo
+    image: mongo:5-focal
     restart: unless-stopped
     volumes:
       - ./data/mongo:/data/db
