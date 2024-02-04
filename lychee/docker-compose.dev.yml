@@ -1,6 +1,6 @@
 version: '3.8'
 
 services:
-  lychee:
+  app:
     ports:
       - 8085:80
