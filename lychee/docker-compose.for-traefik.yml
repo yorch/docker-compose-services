@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.lychee.loadbalancer.server.port=80'
+      # HTTPS Host
+      - 'traefik.http.routers.lychee.rule=Host(`${LYCHEE_DOMAIN}`)'
+      - 'traefik.http.routers.lychee.entrypoints=websecure'
+      - 'traefik.http.routers.lychee.tls=true'
+      - 'traefik.http.routers.lychee.tls.certResolver=webcert'
+      - 'traefik.http.routers.lychee.service=lychee'
+
+networks:
+  traefik:
+    external: true

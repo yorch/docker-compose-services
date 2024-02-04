@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  lychee:
+    image: lycheeorg/lychee
+    restart: unless-stopped
+    volumes:
+      - ./data/lychee/conf:/conf
+      - ./data/lychee/uploads:/uploads
+      - ./data/lychee/sym:/sym
+      - ./data/lychee/logs:/logs
+    environment:
+      # - PUID=1000
+      # - PGID=1000
+      # PHP timezone e.g. PHP_TZ=America/New_York
+      # - PHP_TZ=UTC
+      - PHP_TZ=${TIMEZONE}
+      - TIMEZONE=${TIMEZONE}
+      # - APP_NAME=Laravel
+      # - APP_ENV=local
+      # - APP_FORCE_HTTPS=false
+      # - APP_DEBUG=true
+      # - APP_URL=http://localhost
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=${POSTGRES_DB}
+      - DB_USERNAME=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      # - DB_PASSWORD_FILE=<filename>
+      # - DB_OLD_LYCHEE_PREFIX=''
+      # - CACHE_DRIVER=file
+      # - SESSION_DRIVER=file
+      # - SESSION_LIFETIME=120
+      # - SECURITY_HEADER_HSTS_ENABLE=false
+      # - REDIS_HOST=127.0.0.1
+      # - REDIS_PASSWORD=null
+      # - REDIS_PASSWORD_FILE=<filename>
+      # - REDIS_PORT=6379
+      # - MAIL_DRIVER=smtp
+      # - MAIL_HOST=smtp.mailtrap.io
+      # - MAIL_PORT=2525
+      # - MAIL_USERNAME=null
+      # - MAIL_PASSWORD=null
+      # - MAIL_PASSWORD_FILE=<filename>
+      # - MAIL_ENCRYPTION=null
+      - STARTUP_DELAY=15
+      # - ADMIN_USER=admin
+      # - ADMIN_PASSWORD=<ADMIN_PASSWORD>
+      # - ADMIN_PASSWORD_FILE=<filename>
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 2s
+      retries: 10
