@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  ackee:
+  app:
     networks:
       - default
       - traefik
