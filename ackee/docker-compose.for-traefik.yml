@@ -3,6 +3,7 @@ version: '3.8'
 services:
   ackee:
     networks:
+      - default
       - traefik
     labels:
       - 'traefik.enable=true'
