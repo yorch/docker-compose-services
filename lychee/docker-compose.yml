@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  lychee:
+  app:
     image: lycheeorg/lychee
     restart: unless-stopped
     volumes:
@@ -20,7 +20,7 @@ services:
       # - APP_ENV=local
       # - APP_FORCE_HTTPS=false
       # - APP_DEBUG=true
-      # - APP_URL=http://localhost
+      - APP_URL=http://${LYCHEE_DOMAIN}
       - DB_CONNECTION=pgsql
       - DB_HOST=db
       - DB_PORT=5432
