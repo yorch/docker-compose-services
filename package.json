@@ -1,4 +1,5 @@
 {
+  "name": "docker-compose-services",
   "scripts": {
     "docker:base": "docker compose -f ${INIT_CWD}/docker-compose.yml",
     "docker:dev": "cd ${INIT_CWD} && run docker:base -f ${INIT_CWD}/docker-compose.dev.yml",
