@@ -10,22 +10,6 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
-# The first argument is the username
-username="$1"
-
-# Search for the string at the beginning of any line
-if grep -q "^${username}:" "$file_path"; then
-  echo "The user already exists in '$file_path'"
-  echo "Please choose another username or delete it from the file"
-  exit 1
-fi
-
-# Prompt for the password
-echo -n "Enter password for ${username}: "
-# -s flag hides the password input
-read -s password
-echo
-
 # Extract the directory path from the file path
 dir_path=$(dirname "${file_path}")
 
@@ -45,9 +29,27 @@ else
   fi
 fi
 
+# The first argument is the username
+username="${1}"
+
+# Search for the string at the beginning of any line
+if grep -q "^${username}:" "${file_path}"; then
+  echo "The user already exists in '${file_path}'"
+  echo "Please choose another username or delete it from the file"
+  exit 1
+fi
+
+# Prompt for the password
+echo -n "Enter password for ${username}: "
+# -s flag hides the password input
+read -s password
+echo
+
+# Append the username and password to the file
 docker run \
   --entrypoint htpasswd \
   --rm \
-  httpd:2 -Bbn ${username} ${password} >> ${file_path}
+  --volume "$(pwd)/${file_path}:/${file_path}" \
+  httpd:2 -Bb "/${file_path}" ${username} ${password}
 
 echo "User '${username}' has been created."
