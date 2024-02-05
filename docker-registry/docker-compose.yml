@@ -8,43 +8,62 @@ services:
       - ./data/registry:/var/lib/registry
       - ./data/auth:/auth
     environment:
-      REGISTRY_HTTP_ADDR: 0.0.0.0:${REGISTRY_PORT}
+      - REGISTRY_HTTP_ADDR=0.0.0.0:${REGISTRY_PORT}
       # Basic Authentication
-      REGISTRY_AUTH: htpasswd
-      REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
-      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      - REGISTRY_AUTH=htpasswd
+      - REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm
+      - REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd
       # Enable the deletion of image blobs and manifests by digest (default: false)
-      # REGISTRY_STORAGE_DELETE_ENABLED: true
+      # - REGISTRY_STORAGE_DELETE_ENABLED=true
       # Filesystem storage
-      # REGISTRY_STORAGE: filesystem
-      # REGISRTY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
-      # REGISRTY_STORAGE_FILESYSTEM_MAXTHREADS: 100
-      # REGISTRY_HEALTH_STORAGEDRIVER_ENABLED: false
+      # - REGISTRY_STORAGE=filesystem
+      # - REGISRTY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/var/lib/registry
+      # - REGISRTY_STORAGE_FILESYSTEM_MAXTHREADS=100
+      # - REGISTRY_HEALTH_STORAGEDRIVER_ENABLED=false
       # S3 storage
-      REGISTRY_STORAGE: s3
-      REGISTRY_STORAGE_S3_ACCESSKEY: ${REGISTRY_STORAGE_S3_ACCESSKEY}
-      REGISTRY_STORAGE_S3_SECRETKEY: ${REGISTRY_STORAGE_S3_SECRETKEY}
-      REGISTRY_STORAGE_S3_BUCKET: ${REGISTRY_STORAGE_S3_BUCKET}
-      REGISTRY_STORAGE_S3_REGION: ${REGISTRY_STORAGE_S3_REGION}
-      REGISTRY_HEALTH_STORAGEDRIVER_ENABLED: false
+      - REGISTRY_STORAGE=s3
+      - REGISTRY_STORAGE_S3_ACCESSKEY=${REGISTRY_STORAGE_S3_ACCESSKEY}
+      - REGISTRY_STORAGE_S3_SECRETKEY=${REGISTRY_STORAGE_S3_SECRETKEY}
+      - REGISTRY_STORAGE_S3_BUCKET=${REGISTRY_STORAGE_S3_BUCKET}
+      - REGISTRY_STORAGE_S3_REGION=${REGISTRY_STORAGE_S3_REGION}
+      - REGISTRY_HEALTH_STORAGEDRIVER_ENABLED=false
       # LetsEncrypt TLS
-      # REGISTRY_HTTP_TLS_LETSENCRYPT: true
-      # REGISTRY_HTTP_TLS_LETSENCRYPT_CACHEFILE: /var/lib/registry/letsencrypt.cache
-      # REGISTRY_HTTP_TLS_LETSENCRYPT_EMAIL: ${REGISTRY_HTTP_TLS_LETSENCRYPT_EMAIL}
-      # REGISTRY_HTTP_TLS_LETSENCRYPT_HOST: ${REGISTRY_HTTP_TLS_LETSENCRYPT_HOST}
+      # - REGISTRY_HTTP_TLS_LETSENCRYPT=true
+      # - REGISTRY_HTTP_TLS_LETSENCRYPT_CACHEFILE=/var/lib/registry/letsencrypt.cache
+      # - REGISTRY_HTTP_TLS_LETSENCRYPT_EMAIL=${REGISTRY_HTTP_TLS_LETSENCRYPT_EMAIL}
+      # - REGISTRY_HTTP_TLS_LETSENCRYPT_HOST=${REGISTRY_HTTP_TLS_LETSENCRYPT_HOST}
       # Redis
-      REGISTRY_REDIS_ADDR: redis:6379
-      REGISTRY_REDIS_DB: 0
-      REGISTRY_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      - REGISTRY_REDIS_ADDR=redis:6379
+      - REGISTRY_REDIS_DB=0
+      - REGISTRY_REDIS_PASSWORD=${REDIS_PASSWORD}
     depends_on:
       - redis
 
+  # ui:
+  #   image: konradkleine/docker-registry-frontend:v2
+  #   restart: unless-stopped
+  #   environment:
+  #     - ENV_DOCKER_REGISTRY_HOST=registry
+  #     - ENV_DOCKER_REGISTRY_PORT=${REGISTRY_PORT}
+  #   depends_on:
+  #     - registry
+
+  # https://joxit.dev/docker-registry-ui/
   ui:
-    image: konradkleine/docker-registry-frontend:v2
+    image: joxit/docker-registry-ui:main
     restart: unless-stopped
     environment:
-      ENV_DOCKER_REGISTRY_HOST: registry
-      ENV_DOCKER_REGISTRY_PORT: ${REGISTRY_PORT}
+      - NGINX_PROXY_PASS_URL=http://registry:${REGISTRY_PORT}
+      - SINGLE_REGISTRY=true
+      - REGISTRY_TITLE=Docker Registry UI
+      - REGISTRY_SECURED=false
+      - DELETE_IMAGES=true
+      - SHOW_CONTENT_DIGEST=true
+      - SHOW_CATALOG_NB_TAGS=true
+      - CATALOG_ELEMENTS_LIMIT=1000
+      - CATALOG_MIN_BRANCHES=1
+      - CATALOG_MAX_BRANCHES=1
+      - TAGLIST_PAGE_SIZE=100
     depends_on:
       - registry
 
@@ -52,4 +71,4 @@ services:
     image: redis:alpine
     restart: unless-stopped
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
