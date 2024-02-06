@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  couchdb:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.couchdb.loadbalancer.server.port=5984'
+      # HTTPS Host
+      - 'traefik.http.routers.couchdb.rule=Host(`${COUCHDB_DOMAIN}`)'
+      - 'traefik.http.routers.couchdb.entrypoints=websecure'
+      - 'traefik.http.routers.couchdb.tls=true'
+      - 'traefik.http.routers.couchdb.tls.certResolver=webcert'
+      - 'traefik.http.routers.couchdb.service=couchdb'
+
+networks:
+  traefik:
+    external: true

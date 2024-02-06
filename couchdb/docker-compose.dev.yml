@@ -1,0 +1,6 @@
+version: '3.8'
+
+services:
+  couchdb:
+    ports:
+      - 5984:5984

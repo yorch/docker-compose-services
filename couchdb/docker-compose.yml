@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  couchdb:
+    image: couchdb:3
+    volumes:
+      - ./data/couchdb:/opt/couchdb/data
+    environment:
+      - COUCHDB_USER=${COUCHDB_USER}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
