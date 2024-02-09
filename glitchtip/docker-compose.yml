@@ -2,7 +2,7 @@ version: '3.8'
 
 x-environment:
   &default-environment
-  - DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres
+  - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
   - SECRET_KEY=${SECRET_KEY}
   - PORT=${GLITCHTIP_PORT:-8000}
   - GLITCHTIP_DOMAIN=${GLITCHTIP_URL}
@@ -20,22 +20,37 @@ x-environment:
 
 x-depends_on:
   &default-depends_on
-  - postgres
-  - redis
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
 
 services:
   postgres:
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
-      # Consider removing this and setting a password
-      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGUSER=${POSTGRES_USER}
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   redis:
     image: redis:alpine
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
 
   web:
     image: glitchtip/glitchtip
