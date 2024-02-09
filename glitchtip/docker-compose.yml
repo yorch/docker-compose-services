@@ -16,6 +16,14 @@ x-environment:
   # Scale between 1 and 3 to prevent excessive memory usage. Change it or remove to set it to the number of cpu cores.
   # - CELERY_WORKER_AUTOSCALE="1,3"
   - CELERY_WORKER_MAX_TASKS_PER_CHILD=${CELERY_WORKER_MAX_TASKS_PER_CHILD:-100}
+  # (Default 90) Events and associated data older than this will be deleted.
+  - GLITCHTIP_MAX_EVENT_LIFE_DAYS=${GLITCHTIP_MAX_EVENT_LIFE_DAYS:-90}
+  # (Default to max event life days) Transaction events older than this will be deleted.
+  - GLITCHTIP_MAX_TRANSACTION_EVENT_LIFE_DAYS=${GLITCHTIP_MAX_TRANSACTION_EVENT_LIFE_DAYS:-90}
+  # (Defaults to 2 * max event life days) Files older than this will be deleted. Files with any
+  # reference to a recent event are excluded. For example, a year old file that is used for an
+  # active release with event data, will not be deleted.
+  - GLITCHTIP_MAX_TRANSACTION_LIFE_DAYS=${GLITCHTIP_MAX_TRANSACTION_LIFE_DAYS:-180}
 
 x-depends_on:
   &default-depends_on
