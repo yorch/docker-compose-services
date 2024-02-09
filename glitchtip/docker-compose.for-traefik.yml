@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  web:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.glitchtip.loadbalancer.server.port=${GLITCHTIP_PORT}'
+      # HTTPS Host
+      - 'traefik.http.routers.glitchtip.rule=Host(`${GLITCHTIP_DOMAIN}`)'
+      - 'traefik.http.routers.glitchtip.entrypoints=websecure'
+      - 'traefik.http.routers.glitchtip.tls=true'
+      - 'traefik.http.routers.glitchtip.tls.certResolver=webcert'
+      - 'traefik.http.routers.glitchtip.service=glitchtip'
+
+networks:
+  traefik:
+    external: true

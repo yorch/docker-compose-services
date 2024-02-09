@@ -1,0 +1,6 @@
+version: '3.8'
+
+services:
+  web:
+    ports:
+      - 8000:${GLITCHTIP_PORT}
