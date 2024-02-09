@@ -7,9 +7,18 @@ x-environment:
   - PORT=${GLITCHTIP_PORT:-8000}
   - GLITCHTIP_DOMAIN=${GLITCHTIP_URL}
   - DEFAULT_FROM_EMAIL=${EMAIL_FROM}
-  # Example smtp://email:password@smtp_url:port https://glitchtip.com/documentation/install#configuration
-  - EMAIL_URL=${EMAIL_URL}
+  # - EMAIL_URL=${EMAIL_URL}
+  - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+  - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+  - EMAIL_HOST=${EMAIL_HOST}
+  - EMAIL_PORT=${EMAIL_PORT}
+  - EMAIL_USE_TLS=${EMAIL_USE_TLS}
+  # (Default True) When True, any user will be able to register. When False, user self-signup is
+  # disabled after the first user is registered. Subsequent users must be created by a
+  # superuser on the backend and organization invitations may only be sent to existing users.
   - ENABLE_USER_REGISTRATION=${ENABLE_USER_REGISTRATION}
+  # (Default False) When False, only superusers will be able to create new organizations after
+  # the first. When True, any user can create a new organization.
   - ENABLE_ORGANIZATION_CREATION=${ENABLE_ORGANIZATION_CREATION}
   # Number of concurrent celery workers. Defaults to number of CPU cores. Highly recommended to change
   - CELERY_WORKER_CONCURRENCY=${CELERY_WORKER_CONCURRENCY:-2}
