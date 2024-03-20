@@ -3,8 +3,10 @@ version: '3.8'
 services:
   couchdb:
     image: couchdb:3
+    restart: unless-stopped
     volumes:
       - ./data/couchdb:/opt/couchdb/data
+      - ./config/couchdb:/opt/couchdb/etc/local.d
     environment:
       - COUCHDB_USER=${COUCHDB_USER}
       - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
