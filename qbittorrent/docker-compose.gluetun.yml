@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    restart: unless-stopped
+    volumes:
+      - ./data/gluetun:/gluetun
+    environment:
+      - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER}
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
+      - SERVER_CITIES=${SERVER_CITIES}
+    cap_add:
+      - NET_ADMIN
+    ports:
+      # Make sure to include these for qbittorrent to work
+      - ${TORRENTING_PORT}:${TORRENTING_PORT}/tcp
+      - ${TORRENTING_PORT}:${TORRENTING_PORT}/udp
+      - 6011:6011
+  qbittorrent:
+    # Gluetun VPN container name
+    network_mode: 'container:gluetun'
+    # You wont need the ports in this configuration file, you will need to include them in the Gluetun container
+    # ports:
+    #   - ${TORRENTING_PORT}:${TORRENTING_PORT}/tcp
+    #   - ${TORRENTING_PORT}:${TORRENTING_PORT}/udp
+    #   - 6011:6011
