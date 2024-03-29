@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:13.4-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_USER: ${DB_USER}
@@ -11,6 +11,7 @@ services:
 
   logflare:
     image: supabase/logflare:1.5.37
+    restart: unless-stopped
     hostname: 127.0.0.1
     environment:
       - DB_DATABASE=${DB_NAME}
