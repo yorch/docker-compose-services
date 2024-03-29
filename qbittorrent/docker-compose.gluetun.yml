@@ -24,7 +24,8 @@ services:
       - 6011:6011
   qbittorrent:
     # Gluetun VPN container name
-    network_mode: 'container:gluetun'
+    # network_mode: 'container:gluetun'
+    network_mode: 'service:gluetun'
     # You wont need the ports in this configuration file, you will need to include them in the Gluetun container
     # ports:
     #   - ${TORRENTING_PORT}:${TORRENTING_PORT}/tcp
