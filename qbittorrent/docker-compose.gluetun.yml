@@ -13,10 +13,12 @@ services:
       - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
       - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
       - SERVER_CITIES=${SERVER_CITIES}
+      - UPDATER_PERIOD=${UPDATER_PERIOD}
     cap_add:
       - NET_ADMIN
     ports:
       # Make sure to include these for qbittorrent to work
+      - ${WEBUI_PORT}:${WEBUI_PORT}
       - ${TORRENTING_PORT}:${TORRENTING_PORT}/tcp
       - ${TORRENTING_PORT}:${TORRENTING_PORT}/udp
       - 6011:6011
