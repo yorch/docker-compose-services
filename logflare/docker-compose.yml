@@ -20,6 +20,7 @@ services:
       - DB_PORT=5432
       - LOGFLARE_SINGLE_TENANT=true
       - LOGFLARE_API_KEY=${LOGFLARE_API_KEY}
+      - PHX_HTTP_PORT=${LOGFLARE_PORT}
 
       # Required for BigQuery backend
       # - GOOGLE_DATASET_ID_APPEND=${GOOGLE_DATASET_ID_APPEND}
@@ -30,10 +31,10 @@ services:
       - POSTGRES_BACKEND_URL=postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}
       - POSTGRES_BACKEND_SCHEMA=${DB_NAME}
     volumes:
-      - type: bind
-        source: ${PWD}/.env
-        target: /tmp/.secrets.env
-        read_only: true
+      # - type: bind
+      #   source: ${PWD}/.env
+      #   target: /tmp/.secrets.env
+      #   read_only: true
       - type: bind
         source: ${PWD}/data/gcloud.json
         target: /opt/app/rel/logflare/bin/gcloud.json

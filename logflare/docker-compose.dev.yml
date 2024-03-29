@@ -5,4 +5,4 @@ services:
 
   logflare:
     ports:
-      - ${LOGFLARE_PORT}:4000
+      - ${LOGFLARE_PORT}:${LOGFLARE_PORT}
