@@ -24,7 +24,9 @@ services:
       - 6011:6011
   qbittorrent:
     # Gluetun VPN container name
+    # If running in a different docker compose stack
     # network_mode: 'container:gluetun'
+    # If running in the same docker compose stack
     network_mode: 'service:gluetun'
     # You wont need the ports in this configuration file, you will need to include them in the Gluetun container
     # ports:
