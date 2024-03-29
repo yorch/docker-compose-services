@@ -1,0 +1,8 @@
+services:
+  db:
+    ports:
+      - ${DB_PORT}:5432
+
+  logflare:
+    ports:
+      - ${LOGFLARE_PORT}:4000

@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:13.4-alpine
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DATABASE: ${DB_NAME}
+    volumes:
+      - ./data/wal.sql:/docker-entrypoint-initdb.d/wal.sql
+      - ./data/postgres:/var/lib/postgresql/data
+
+  logflare:
+    image: supabase/logflare:1.0.1
+    hostname: 127.0.0.1
+    environment:
+      - DB_DATABASE=${DB_NAME}
+      - DB_PASSWORD=${DB_PASS}
+      - DB_USERNAME=${DB_USER}
+      - DB_HOSTNAME=db
+      - DB_PORT=5432
+      - LOGFLARE_SINGLE_TENANT=true
+      - LOGFLARE_API_KEY=${LOGFLARE_API_KEY}
+
+      # Required for BigQuery backend
+      # - GOOGLE_DATASET_ID_APPEND=${GOOGLE_DATASET_ID_APPEND}
+      # - GOOGLE_PROJECT_ID=${GOOGLE_PROJECT_ID}
+      # - GOOGLE_PROJECT_NUMBER=${GOOGLE_PROJECT_NUMBER}
+
+      # Required for Postgres backend
+      - POSTGRES_BACKEND_URL=postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}
+      - POSTGRES_BACKEND_SCHEMA=${DB_NAME}
+    volumes:
+      - type: bind
+        source: ${PWD}/.env
+        target: /tmp/.secrets.env
+        read_only: true
+      - type: bind
+        source: ${PWD}/data/gcloud.json
+        target: /opt/app/rel/logflare/bin/gcloud.json
+        read_only: true
+    depends_on:
+      - db
