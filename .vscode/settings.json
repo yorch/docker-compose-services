@@ -1,3 +1,6 @@
 {
-  "cSpell.words": ["traefik"]
+  "cSpell.words": ["traefik"],
+  "[dockercompose]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }
