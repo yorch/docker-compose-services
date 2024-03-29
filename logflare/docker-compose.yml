@@ -10,7 +10,7 @@ services:
       - ./data/postgres:/var/lib/postgresql/data
 
   logflare:
-    image: supabase/logflare:1.0.1
+    image: supabase/logflare:1.5.37
     hostname: 127.0.0.1
     environment:
       - DB_DATABASE=${DB_NAME}
