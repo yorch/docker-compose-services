@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_DB: ${DB_NAME}
     volumes:
-      - ./data/wal.sql:/docker-entrypoint-initdb.d/wal.sql
+      - ./setup.sql:/docker-entrypoint-initdb.d/setup.sql
       - ./data/postgres:/var/lib/postgresql/data
 
   logflare:
