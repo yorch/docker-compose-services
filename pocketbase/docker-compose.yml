@@ -1,0 +1,8 @@
+services:
+  app:
+    image: ghcr.io/yorch/pocketbase-docker:main
+    init: true
+    environment:
+      - PORT=${PORT}
+    volumes:
+      - ./data:/app/data

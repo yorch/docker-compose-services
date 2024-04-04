@@ -1,0 +1,18 @@
+services:
+  app:
+    networks:
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      # Service
+      - 'traefik.http.services.pocketbase.loadbalancer.server.port=${PORT}'
+      # HTTPS Host
+      - 'traefik.http.routers.pocketbase.rule=Host(`${HOST?Variable HOST not set}`)'
+      - 'traefik.http.routers.pocketbase.entrypoints=websecure'
+      - 'traefik.http.routers.pocketbase.tls=true'
+      - 'traefik.http.routers.pocketbase.tls.certResolver=webcert'
+      - 'traefik.http.routers.pocketbase.service=pocketbase'
+
+networks:
+  traefik:
+    external: true
