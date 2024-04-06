@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   auto_update:
     image: containrrr/watchtower:latest-dev
