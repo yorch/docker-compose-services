@@ -1,6 +1,6 @@
 services:
   influxdb:
-    image: influxdb:2.7.1-alpine
+    image: influxdb:2.7.5-alpine
     restart: unless-stopped
     environment:
       - DOCKER_INFLUXDB_INIT_MODE=${DOCKER_INFLUXDB_INIT_MODE}
