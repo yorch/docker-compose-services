@@ -23,6 +23,10 @@ services:
       - GITEA__server__HTTP_PORT=3000
       # - GITEA__server__CERT_FILE=cert.pem
       # - GITEA__server__KEY_FILE=key.pem
+      - GITEA__indexer__REPO_INDEXER_ENABLED=true
+      - GITEA__indexer__REPO_INDEXER_PATH=indexers/repos.bleve
+      - GITEA__indexer__MAX_FILE_SIZE=1048576
+      - GITEA__actions__ENABLED=true
 
   db:
     image: postgres:14-alpine
