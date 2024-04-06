@@ -9,7 +9,7 @@
 services:
   app:
     # image: joplin/server:latest
-    image: joplin/server:2.12-beta
+    image: joplin/server:2.14-beta
     depends_on:
       - db
     restart: unless-stopped
