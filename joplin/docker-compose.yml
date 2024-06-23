@@ -33,7 +33,7 @@ services:
       - MAILER_NOREPLY_EMAIL=${MAILER_NOREPLY_EMAIL}
 
   db:
-    image: postgres:13-alpine
+    image: postgres:16-alpine
     restart: unless-stopped
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
@@ -47,10 +47,10 @@ services:
     image: prodrigestivill/postgres-backup-local
     depends_on:
       - db
+    restart: unless-stopped
     # user: postgres:postgres
     volumes:
       - ./data/postgres-backups:/backups
-    restart: unless-stopped
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_DB=${POSTGRES_DATABASE}
