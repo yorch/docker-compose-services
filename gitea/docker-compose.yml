@@ -15,9 +15,9 @@ services:
       - USER_GID=1000
       - GITEA__database__DB_TYPE=postgres
       - GITEA__database__HOST=db:5432
-      - GITEA__database__NAME=${DATABASE_DB}
-      - GITEA__database__USER=${DATABASE_USER}
-      - GITEA__database__PASSWD=${DATABASE_PASS}
+      - GITEA__database__NAME=${POSTGRES_DATABASE}
+      - GITEA__database__USER=${POSTGRES_USER}
+      - GITEA__database__PASSWD=${POSTGRES_PASSWORD}
       - GITEA__server__PROTOCOL=http
       # - GITEA__server__ROOT_URL=https://${DOMAIN}/
       - GITEA__server__HTTP_PORT=3000
@@ -34,6 +34,28 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=${DATABASE_USER}
-      - POSTGRES_PASSWORD=${DATABASE_PASS}
-      - POSTGRES_DB=${DATABASE_DB}
+      - POSTGRES_DB=${POSTGRES_DATABASE}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+  dbbackups:
+    # https://github.com/prodrigestivill/docker-postgres-backup-local
+    image: prodrigestivill/postgres-backup-local
+    depends_on:
+      - db
+    restart: unless-stopped
+    # user: postgres:postgres
+    volumes:
+      - ./data/postgres-backups:/backups
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DATABASE}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      # - POSTGRES_PASSWORD_FILE=/run/secrets/db_password <-- alternative for POSTGRES_PASSWORD (to use with docker secrets)
+      - POSTGRES_EXTRA_OPTS=-Z6 --schema=public --blobs
+      - SCHEDULE=${DBBACKUPS_SCHEDULE}
+      - BACKUP_KEEP_DAYS=${DBBACKUPS_BACKUP_KEEP_DAYS}
+      - BACKUP_KEEP_WEEKS=${DBBACKUPS_BACKUP_KEEP_WEEKS}
+      - BACKUP_KEEP_MONTHS=${DBBACKUPS_BACKUP_KEEP_MONTHS}
+      - HEALTHCHECK_PORT=${DBBACKUPS_HEALTHCHECK_PORT}
