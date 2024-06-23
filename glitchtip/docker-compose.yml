@@ -51,7 +51,7 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-d", "${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready', '-d', '${POSTGRES_DB}']
       interval: 10s
       timeout: 10s
       retries: 5
@@ -61,7 +61,7 @@ services:
     image: redis:alpine
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 1s
       timeout: 3s
       retries: 30
@@ -87,4 +87,26 @@ services:
     image: glitchtip/glitchtip
     depends_on: *default-depends_on
     environment: *default-environment
-    command: "./manage.py migrate"
+    command: './manage.py migrate'
+
+  dbbackups:
+    # https://github.com/prodrigestivill/docker-postgres-backup-local
+    image: prodrigestivill/postgres-backup-local
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    # user: postgres:postgres
+    volumes:
+      - ./data/postgres-backups:/backups
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      # - POSTGRES_PASSWORD_FILE=/run/secrets/db_password <-- alternative for POSTGRES_PASSWORD (to use with docker secrets)
+      - POSTGRES_EXTRA_OPTS=-Z6 --schema=public --blobs
+      - SCHEDULE=${DBBACKUPS_SCHEDULE}
+      - BACKUP_KEEP_DAYS=${DBBACKUPS_BACKUP_KEEP_DAYS}
+      - BACKUP_KEEP_WEEKS=${DBBACKUPS_BACKUP_KEEP_WEEKS}
+      - BACKUP_KEEP_MONTHS=${DBBACKUPS_BACKUP_KEEP_MONTHS}
+      - HEALTHCHECK_PORT=${DBBACKUPS_HEALTHCHECK_PORT}
