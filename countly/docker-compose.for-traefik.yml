@@ -1,0 +1,20 @@
+services:
+  nginx:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.countly.loadbalancer.server.port=8080'
+      # HTTPS Host
+      - 'traefik.http.routers.countly.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.countly.entrypoints=websecure'
+      - 'traefik.http.routers.countly.tls=true'
+      - 'traefik.http.routers.countly.tls.certResolver=webcert'
+      - 'traefik.http.routers.countly.service=countly'
+
+networks:
+  traefik:
+    external: true

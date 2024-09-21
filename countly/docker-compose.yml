@@ -1,0 +1,51 @@
+services:
+  nginx:
+    image: bitnami/nginx
+    volumes:
+      - ./conf/nginx.server.conf:/opt/bitnami/nginx/conf/server_blocks/countly.conf:ro
+    depends_on:
+      - countly-api
+      - countly-frontend
+
+  countly-api:
+    image: countly/api:latest
+    environment:
+      - COUNTLY_PLUGINS=mobile,web,desktop,plugins,density,locale,browser,sources,views,logger,systemlogs,populator,reports,crashes,push,star-rating,slipping-away-users,compare,server-stats,dbviewer,times-of-day,compliance-hub,alerts,onboarding,consolidate,remote-config,hooks,dashboards,sdk,data-manager
+      - COUNTLY_CONFIG__MONGODB_HOST=mongo
+      - COUNTLY_CONFIG_API_API_WORKERS=2 # CPU core count
+      - COUNTLY_CONFIG__FILESTORAGE="gridfs"
+      - NODE_OPTIONS="--max-old-space-size=2048"
+    depends_on:
+      - mongo
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 400s
+
+  countly-frontend:
+    image: countly/frontend:latest
+    environment:
+      - COUNTLY_PLUGINS=mobile,web,desktop,plugins,density,locale,browser,sources,views,logger,systemlogs,populator,reports,crashes,push,star-rating,slipping-away-users,compare,server-stats,dbviewer,times-of-day,compliance-hub,alerts,onboarding,consolidate,remote-config,hooks,dashboards,sdk,data-manager
+      - COUNTLY_CONFIG__MONGODB_HOST=mongo
+      - NODE_OPTIONS="--max-old-space-size=2048"
+    depends_on:
+      - mongo
+    deploy:
+      # There is usually no need in multiple frontends, so throttling down resources for it
+      mode: global
+      resources:
+        limits:
+          cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 400s
+
+  mongo:
+    image: mongo:5-focal
+    restart: unless-stopped
+    volumes:
+      - ./data/mongo:/data/db
