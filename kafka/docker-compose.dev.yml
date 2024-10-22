@@ -1,0 +1,12 @@
+services:
+  broker-1:
+    ports:
+      - 29092:9092
+
+  broker-2:
+    ports:
+      - 39092:9092
+
+  broker-3:
+    ports:
+      - 49092:9092
