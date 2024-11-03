@@ -1,0 +1,9 @@
+services:
+  web:
+    image: ghcr.io/open-webui/open-webui:main
+    restart: unless-stopped
+    volumes:
+      - ./data/webui:/app/backend/data
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
