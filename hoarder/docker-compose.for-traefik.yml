@@ -1,6 +1,7 @@
 services:
   web:
     networks:
+      - default
       - traefik
     labels:
       - 'traefik.enable=true'
@@ -13,6 +14,14 @@ services:
       - 'traefik.http.routers.hoarder.tls=true'
       - 'traefik.http.routers.hoarder.tls.certResolver=webcert'
       - 'traefik.http.routers.hoarder.service=hoarder'
+
+  chrome:
+    networks:
+      - default
+
+  meilisearch:
+    networks:
+      - default
 
 networks:
   traefik:
