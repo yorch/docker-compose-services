@@ -1,0 +1,20 @@
+services:
+  app:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.flowise.loadbalancer.server.port=${PORT}'
+      # HTTPS Host
+      - 'traefik.http.routers.flowise.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.flowise.entrypoints=websecure'
+      - 'traefik.http.routers.flowise.tls=true'
+      - 'traefik.http.routers.flowise.tls.certResolver=webcert'
+      - 'traefik.http.routers.flowise.service=flowise'
+
+networks:
+  traefik:
+    external: true
