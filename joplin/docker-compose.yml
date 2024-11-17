@@ -41,6 +41,11 @@ services:
       - POSTGRES_DB=${POSTGRES_DATABASE}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DATABASE"
+      interval: 10s
+      timeout: 2s
+      retries: 10
 
   dbbackups:
     # https://github.com/prodrigestivill/docker-postgres-backup-local
