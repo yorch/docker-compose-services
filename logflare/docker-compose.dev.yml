@@ -1,8 +1,8 @@
 services:
+  app:
+    ports:
+      - ${LOGFLARE_PORT}:${LOGFLARE_PORT}
+
   db:
     ports:
       - ${DB_PORT}:5432
-
-  logflare:
-    ports:
-      - ${LOGFLARE_PORT}:${LOGFLARE_PORT}
