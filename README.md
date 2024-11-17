@@ -1,8 +1,23 @@
 # Collection of services running with `docker-compose`
 
+## Run a service
+
+```bash
+docker compose up -d
+```
+
+If a service needs to run for Traefik, use:
+
+```bash
+task run-for-traefik
+```
+
+This requires `Task` to be installed: <https://taskfile.dev/installation/>
+
 ## Services
 
 <!-- START SERVICES -->
+
 - Ackee
 - Auto Update
 - Couchdb

@@ -1,0 +1,45 @@
+version: '3'
+
+tasks:
+  docker-cmd:
+    internal: true
+    dir: '{{.USER_WORKING_DIR}}'
+    preconditions:
+      - sh: test -f docker-compose.yml
+        msg: 'docker-compose.yml not found'
+      - sh: test -f docker-compose.{{.EXTRA_DOCKER_COMPOSE_FILES}}.yml
+        msg: 'docker-compose.{{.EXTRA_DOCKER_COMPOSE_FILES}}.yml not found'
+      # If .env.sample exist, then .env should exist, if .env.sample does not exists, skip the check
+      - sh: '[ ! -f .env.sample ] || [ -f .env ]'
+        msg: '.env not found, copy it from .env.sample'
+    cmds:
+      - ${BASE_CMD} {{.CMD}}
+    env:
+      BASE_CMD: docker compose -f docker-compose.yml -f docker-compose.{{.EXTRA_DOCKER_COMPOSE_FILES}}.yml
+    requires:
+      vars: [CMD, EXTRA_DOCKER_COMPOSE_FILES]
+
+  cmd-for-traefik:
+    internal: true
+    cmds:
+      - task: docker-cmd
+        vars:
+          CMD: '{{.CMD}}'
+          EXTRA_DOCKER_COMPOSE_FILES: for-traefik
+    requires:
+      vars: [CMD]
+
+  run-for-traefik:
+    cmds:
+      - task: cmd-for-traefik
+        vars:
+          CMD: pull
+      - task: cmd-for-traefik
+        vars:
+          CMD: up -d
+
+  stop-for-traefik:
+    cmds:
+      - task: cmd-for-traefik
+        vars:
+          CMD: down
