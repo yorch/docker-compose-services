@@ -19,6 +19,31 @@ tasks:
     requires:
       vars: [CMD, EXTRA_DOCKER_COMPOSE_FILES]
 
+  cmd-dev:
+    internal: true
+    cmds:
+      - task: docker-cmd
+        vars:
+          CMD: '{{.CMD}}'
+          EXTRA_DOCKER_COMPOSE_FILES: dev
+    requires:
+      vars: [CMD]
+
+  run-dev:
+    cmds:
+      - task: cmd-dev
+        vars:
+          CMD: pull
+      - task: cmd-dev
+        vars:
+          CMD: up -d
+
+  stop-dev:
+    cmds:
+      - task: cmd-dev
+        vars:
+          CMD: down
+
   cmd-for-traefik:
     internal: true
     cmds:
