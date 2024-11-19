@@ -2,6 +2,8 @@ services:
   app:
     image: flowiseai/flowise
     restart: unless-stopped
+    volumes:
+      - ./data/flowise:/root/.flowise
     environment:
       - PORT=${PORT}
       - CORS_ORIGINS=${CORS_ORIGINS}
@@ -31,8 +33,6 @@ services:
       - GLOBAL_AGENT_HTTP_PROXY=${GLOBAL_AGENT_HTTP_PROXY}
       - GLOBAL_AGENT_HTTPS_PROXY=${GLOBAL_AGENT_HTTPS_PROXY}
       - GLOBAL_AGENT_NO_PROXY=${GLOBAL_AGENT_NO_PROXY}
-    volumes:
-      - ./data/flowise:/root/.flowise
     entrypoint: /bin/sh -c "sleep 3; flowise start"
     depends_on:
       - db

@@ -2,3 +2,7 @@ services:
   app:
     ports:
       - ${PORT}:${PORT}
+
+  db:
+    ports:
+      - 5432:5432
