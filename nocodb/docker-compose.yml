@@ -8,7 +8,7 @@ services:
     volumes:
       - ./data/nocodb:/usr/app/data
     environment:
-      NC_DB: 'pg://db:${POSTGRES_PORT}?u=${POSTGRES_USER}&p=${POSTGRES_PASSWORD}&d=${POSTGRES_DB}'
+      - NC_DB=pg://db:${POSTGRES_PORT}?u=${POSTGRES_USER}&p=${POSTGRES_PASSWORD}&d=${POSTGRES_DB}
 
   db:
     image: postgres:14-alpine
