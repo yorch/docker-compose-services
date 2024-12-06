@@ -1,0 +1,22 @@
+services:
+  wyze-bridge:
+    image: mrlt8/wyze-bridge:latest
+    restart: unless-stopped
+    ports:
+      - 1935:1935 # RTMP
+      - 8554:8554 # RTSP
+      - 8888:8888 # HLS
+      - 8889:8889 # WebRTC
+      - 8189:8189/udp # WebRTC/ICE
+      - 5000:5000 # Web-UI
+    environment:
+      - WYZE_EMAIL=${WYZE_EMAIL}
+      - WYZE_PASSWORD=${WYZE_PASSWORD}
+      - API_ID=${API_ID}
+      - API_KEY=${API_KEY}
+      # [OPTIONAL] IP Address of the host to enable WebRTC e.g.,:
+      # - WB_IP=192.168.1.122
+      # WebUI and Stream authentication:
+      - WB_AUTH=${WB_AUTH}
+      - WB_USERNAME=${WB_USERNAME}
+      - WB_PASSWORD=${WB_PASSWORD}
