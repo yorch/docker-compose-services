@@ -5,14 +5,14 @@ services:
     volumes:
       - ./data/web:/data
     environment:
-      BROWSER_WEB_URL: http://chrome:9222
-      DATA_DIR: /data
-      DISABLE_SIGNUPS: ${DISABLE_SIGNUPS:-false}
-      MEILI_ADDR: http://meilisearch:7700
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      NEXTAUTH_URL: ${NEXTAUTH_URL}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      - BROWSER_WEB_URL=http://chrome:9222
+      - DATA_DIR=/data
+      - DISABLE_SIGNUPS=${DISABLE_SIGNUPS:-false}
+      - MEILI_ADDR=http://meilisearch:7700
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
 
   chrome:
     image: gcr.io/zenika-hub/alpine-chrome:123
@@ -29,7 +29,7 @@ services:
     image: getmeili/meilisearch:v1.6
     restart: unless-stopped
     environment:
-      MEILI_NO_ANALYTICS: 'true'
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      - MEILI_NO_ANALYTICS=true
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
     volumes:
       - ./data/meilisearch:/meili_data
