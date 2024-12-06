@@ -1,5 +1,5 @@
 {
-  "cSpell.words": ["traefik"],
+  "cSpell.words": ["meili", "nextauth", "traefik", "wyze"],
   "[dockercompose]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
