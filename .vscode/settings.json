@@ -1,5 +1,13 @@
 {
-  "cSpell.words": ["meili", "nextauth", "traefik", "wyze"],
+  "cSpell.words": [
+    "meili",
+    "nextauth",
+    "rtsp",
+    "traefik",
+    "webrtc",
+    "webui",
+    "wyze"
+  ],
   "[dockercompose]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
