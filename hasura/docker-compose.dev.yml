@@ -1,0 +1,12 @@
+services:
+  graphql-engine:
+    ports:
+      - 8080:8080
+
+  data-connector-agent:
+    ports:
+      - 8081:8081
+
+  db:
+    ports:
+      - 5432:5432
