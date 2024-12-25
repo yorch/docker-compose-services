@@ -26,6 +26,10 @@ services:
       - NC_SMTP_PASSWORD=${NC_SMTP_PASSWORD}
       - NC_SMTP_SECURE=${NC_SMTP_SECURE}
       - NC_SMTP_IGNORE_TLS=${NC_SMTP_IGNORE_TLS}
+      - NC_S3_BUCKET_NAME=${NC_S3_BUCKET_NAME}
+      - NC_S3_REGION=${NC_S3_REGION}
+      - NC_S3_ACCESS_KEY=${NC_S3_ACCESS_KEY}
+      - NC_S3_ACCESS_SECRET=${NC_S3_ACCESS_SECRET}
     healthcheck:
       test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 10s
