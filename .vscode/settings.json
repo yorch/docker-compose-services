@@ -5,6 +5,7 @@
     "isready",
     "meili",
     "nextauth",
+    "postgresdb",
     "rtsp",
     "traefik",
     "webrtc",
