@@ -1,0 +1,24 @@
+services:
+  app:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.supertokens.loadbalancer.server.port=3567'
+      # HTTPS Host
+      - 'traefik.http.routers.supertokens.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.supertokens.entrypoints=websecure'
+      - 'traefik.http.routers.supertokens.tls=true'
+      - 'traefik.http.routers.supertokens.tls.certResolver=webcert'
+      - 'traefik.http.routers.supertokens.service=supertokens'
+
+  db:
+    networks:
+      - default
+
+networks:
+  traefik:
+    external: true

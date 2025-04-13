@@ -7,6 +7,7 @@
     "nextauth",
     "postgresdb",
     "rtsp",
+    "supertokens",
     "traefik",
     "webrtc",
     "webui",
