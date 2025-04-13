@@ -1,0 +1,18 @@
+services:
+  app:
+    networks:
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      # Service
+      - 'traefik.http.services.portainer.loadbalancer.server.port=9000'
+      # HTTPS Host
+      - 'traefik.http.routers.portainer.rule=Host(`${HOST?Variable HOST not set}`)'
+      - 'traefik.http.routers.portainer.entrypoints=websecure'
+      - 'traefik.http.routers.portainer.tls=true'
+      - 'traefik.http.routers.portainer.tls.certResolver=webcert'
+      - 'traefik.http.routers.portainer.service=portainer'
+
+networks:
+  traefik:
+    external: true
