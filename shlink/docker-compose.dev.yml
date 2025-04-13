@@ -1,0 +1,8 @@
+services:
+  app:
+    ports:
+      - 8080:8080
+
+  web:
+    ports:
+      - 8081:8080

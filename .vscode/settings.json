@@ -1,5 +1,6 @@
 {
   "cSpell.words": [
+    "geolite",
     "hasura",
     "healthcheck",
     "isready",
@@ -8,6 +9,8 @@
     "pocketbase",
     "postgresdb",
     "rtsp",
+    "shlink",
+    "shlinkio",
     "supertokens",
     "traefik",
     "webrtc",

@@ -1,0 +1,40 @@
+services:
+  app:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.shlink.loadbalancer.server.port=8080'
+      # HTTPS Host
+      - 'traefik.http.routers.shlink.rule=Host(`${SHLINK_DOMAIN?Variable SHLINK_DOMAIN not set}`)'
+      - 'traefik.http.routers.shlink.entrypoints=websecure'
+      - 'traefik.http.routers.shlink.tls=true'
+      - 'traefik.http.routers.shlink.tls.certResolver=webcert'
+      - 'traefik.http.routers.shlink.service=shlink'
+
+  web:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.shlink-web.loadbalancer.server.port=8081'
+      # HTTPS Host
+      - 'traefik.http.routers.shlink-web.rule=Host(`shlink.${SHLINK_DOMAIN?Variable SHLINK_DOMAIN not set}`)'
+      - 'traefik.http.routers.shlink-web.entrypoints=websecure'
+      - 'traefik.http.routers.shlink-web.tls=true'
+      - 'traefik.http.routers.shlink-web.tls.certResolver=webcert'
+      - 'traefik.http.routers.shlink-web.service=shlink-web'
+
+  db:
+    networks:
+      - default
+
+networks:
+  traefik:
+    external: true
