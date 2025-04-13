@@ -13,7 +13,9 @@
     "shlinkio",
     "supertokens",
     "traefik",
+    "webcert",
     "webrtc",
+    "websecure",
     "webui",
     "wyze"
   ],
