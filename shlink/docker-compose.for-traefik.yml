@@ -25,7 +25,7 @@ services:
       # Service
       - 'traefik.http.services.shlink-web.loadbalancer.server.port=8081'
       # HTTPS Host
-      - 'traefik.http.routers.shlink-web.rule=Host(`shlink.${SHLINK_DOMAIN?Variable SHLINK_DOMAIN not set}`)'
+      - 'traefik.http.routers.shlink-web.rule=Host(`web.${SHLINK_DOMAIN?Variable SHLINK_DOMAIN not set}`)'
       - 'traefik.http.routers.shlink-web.entrypoints=websecure'
       - 'traefik.http.routers.shlink-web.tls=true'
       - 'traefik.http.routers.shlink-web.tls.certResolver=webcert'
