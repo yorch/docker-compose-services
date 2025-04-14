@@ -5,4 +5,6 @@ services:
     environment:
       - PORT=${PORT}
     volumes:
+      # `data/pb_data`   -> Files for application data
+      # `data/pb_public` -> Files from this directory will be served by the web server
       - ./data:/app/data
