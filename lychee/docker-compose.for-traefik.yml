@@ -15,6 +15,10 @@ services:
       - 'traefik.http.routers.lychee.tls.certResolver=webcert'
       - 'traefik.http.routers.lychee.service=lychee'
 
+  db:
+    networks:
+      - default
+
 networks:
   traefik:
     external: true
