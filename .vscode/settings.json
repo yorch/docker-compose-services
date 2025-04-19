@@ -1,4 +1,6 @@
 {
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
   "cSpell.words": [
     "centurylinklabs",
     "geolite",
