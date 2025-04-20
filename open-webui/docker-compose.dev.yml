@@ -1,4 +1,4 @@
 services:
-  web:
+  app:
     ports:
       - 8095:8080
