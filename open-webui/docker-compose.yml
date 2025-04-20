@@ -1,5 +1,5 @@
 services:
-  web:
+  app:
     image: ghcr.io/open-webui/open-webui:main
     restart: unless-stopped
     volumes:
@@ -21,7 +21,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
-      - open-webui
+      - app
     environment:
       - WATCHTOWER_CLEANUP=true
       # - WATCHTOWER_REMOVE_VOLUMES=true
