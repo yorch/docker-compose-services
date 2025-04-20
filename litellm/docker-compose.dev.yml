@@ -1,0 +1,8 @@
+services:
+  litellm:
+    ports:
+      - 4000:4000
+
+  db:
+    ports:
+      - 5432:5432

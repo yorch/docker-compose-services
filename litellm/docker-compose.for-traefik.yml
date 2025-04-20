@@ -1,0 +1,24 @@
+services:
+  litellm:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.litellm.loadbalancer.server.port=4000'
+      # HTTPS Host
+      - 'traefik.http.routers.litellm.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.litellm.entrypoints=websecure'
+      - 'traefik.http.routers.litellm.tls=true'
+      - 'traefik.http.routers.litellm.tls.certResolver=webcert'
+      - 'traefik.http.routers.litellm.service=litellm'
+
+  db:
+    networks:
+      - default
+
+networks:
+  traefik:
+    external: true
