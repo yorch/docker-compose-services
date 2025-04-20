@@ -16,12 +16,13 @@ services:
       - STORE_MODEL_IN_DB=${STORE_MODEL_IN_DB}
     depends_on:
       - db
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:4000/health/liveliness']
-      interval: 30s
-      timeout: 10s # Health check command times out after 10 seconds
-      retries: 3 # Retry up to 3 times if health check fails
-      start_period: 40s # Wait 40 seconds after container start before beginning health checks
+    # Container doesn't have `curl` installed
+    # healthcheck:
+    #   test: ['CMD', 'curl', '-f', 'http://localhost:4000/health/liveliness']
+    #   interval: 30s
+    #   timeout: 10s # Health check command times out after 10 seconds
+    #   retries: 3 # Retry up to 3 times if health check fails
+    #   start_period: 40s # Wait 40 seconds after container start before beginning health checks
 
   db:
     image: postgres:17-alpine
