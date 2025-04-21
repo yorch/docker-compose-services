@@ -16,7 +16,7 @@ services:
       - TIMEZONE=${TIMEZONE}
       # - APP_NAME=Laravel
       # - APP_ENV=local
-      # - APP_FORCE_HTTPS=false
+      - APP_FORCE_HTTPS=true
       # - APP_DEBUG=true
       - APP_URL=http://${LYCHEE_DOMAIN}
       - DB_CONNECTION=pgsql
