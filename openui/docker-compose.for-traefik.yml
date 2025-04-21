@@ -1,0 +1,19 @@
+services:
+  app:
+    networks:
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.openui.loadbalancer.server.port=7878'
+      # HTTPS Host
+      - 'traefik.http.routers.openui.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.openui.entrypoints=websecure'
+      - 'traefik.http.routers.openui.tls=true'
+      - 'traefik.http.routers.openui.tls.certResolver=webcert'
+      - 'traefik.http.routers.openui.service=openui'
+
+networks:
+  traefik:
+    external: true
