@@ -1,0 +1,11 @@
+services:
+  app:
+    image: mintplexlabs/anythingllm:master
+    restart: unless-stopped
+    environment:
+      - STORAGE_DIR=/app/server/storage
+    volumes:
+      - ./data/app:/app/server/storage
+      - ./data/.env:/app/server/.env
+    cap_drop:
+      - SYS_ADMIN
