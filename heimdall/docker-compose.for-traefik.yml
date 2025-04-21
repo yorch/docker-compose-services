@@ -7,6 +7,7 @@ services:
     #   - 443:443
     labels:
       - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
       # HTTPS Host
       - 'traefik.http.routers.heimdall.rule=Host(`${HOST?Variable HOST not set}`)'
       - 'traefik.http.routers.heimdall.entrypoints=websecure'
