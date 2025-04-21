@@ -9,6 +9,7 @@ services:
       - ACKEE_USERNAME=${ACKEE_USERNAME}
       - ACKEE_PASSWORD=${ACKEE_PASSWORD}
       - ACKEE_TTL=${ACKEE_TTL}
+      - ACKEE_ALLOW_ORIGIN=${ACKEE_ALLOW_ORIGIN}
     depends_on:
       - mongo
 
