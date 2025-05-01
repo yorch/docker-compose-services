@@ -35,5 +35,5 @@ services:
       - ./data/meilisearch:/meili_data
 
   meilisearch-ui:
-    image: riccoxie/meilisearch-ui
+    image: riccoxie/meilisearch-ui:lite
     restart: unless-stopped
