@@ -23,6 +23,22 @@ services:
     networks:
       - default
 
+  meilisearch-ui:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.karakeep-meilisearch-ui.loadbalancer.server.port=24900'
+      # HTTPS Host
+      - 'traefik.http.routers.karakeep-meilisearch-ui.rule=Host(`meilisearch-ui.${DOMAIN}`)'
+      - 'traefik.http.routers.karakeep-meilisearch-ui.entrypoints=websecure'
+      - 'traefik.http.routers.karakeep-meilisearch-ui.tls=true'
+      - 'traefik.http.routers.karakeep-meilisearch-ui.tls.certResolver=webcert'
+      - 'traefik.http.routers.karakeep-meilisearch-ui.service=karakeep-meilisearch-ui'
+
 networks:
   traefik:
     external: true

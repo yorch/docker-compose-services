@@ -33,3 +33,7 @@ services:
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
     volumes:
       - ./data/meilisearch:/meili_data
+
+  meilisearch-ui:
+    image: riccoxie/meilisearch-ui
+    restart: unless-stopped
