@@ -1,0 +1,57 @@
+services:
+  app:
+    image: errbit/errbit:latest
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGO_URL: mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongo:27017/errbit
+      RAILS_ENV: ${RAILS_ENV}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      ERRBIT_HOST: ${DOMAIN}
+      ERRBIT_ADMIN_EMAIL: ${ERRBIT_ADMIN_EMAIL}
+      ERRBIT_ADMIN_PASSWORD: ${ERRBIT_ADMIN_PASSWORD}
+      ERRBIT_ADMIN_USER: ${ERRBIT_ADMIN_USER}
+      ERRBIT_CONFIRM_ERR_ACTIONS: ${ERRBIT_CONFIRM_ERR_ACTIONS}
+      ERRBIT_USER_HAS_USERNAME: ${ERRBIT_USER_HAS_USERNAME}
+      ERRBIT_USE_GRAVATAR: ${ERRBIT_USE_GRAVATAR}
+      ERRBIT_GRAVATAR_DEFAULT: ${ERRBIT_GRAVATAR_DEFAULT}
+      ERRBIT_EMAIL_FROM: ${ERRBIT_EMAIL_FROM}
+      EMAIL_DELIVERY_METHOD: ${EMAIL_DELIVERY_METHOD}
+      SMTP_SERVER: ${SMTP_SERVER}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_AUTHENTICATION: ${SMTP_AUTHENTICATION}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_DOMAIN: ${SMTP_DOMAIN}
+      SMTP_ENABLE_STARTTLS_AUTO: ${SMTP_ENABLE_STARTTLS_AUTO}
+
+  mongo:
+    image: mongo:8-noble
+    restart: unless-stopped
+    volumes:
+      - ./data/mongo:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  mongo-express:
+    image: mongo-express:latest
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
+      ME_CONFIG_BASICAUTH: true
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGODB_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGODB_PASSWORD}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongo:27017/

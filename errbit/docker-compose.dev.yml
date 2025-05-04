@@ -1,0 +1,12 @@
+services:
+  app:
+    ports:
+      - 3000:3000
+
+  mongo:
+    ports:
+      - 27017:27017
+
+  mongo-express:
+    ports:
+      - 8081:8081

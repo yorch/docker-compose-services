@@ -1,0 +1,35 @@
+services:
+  app:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.errbit.loadbalancer.server.port=3000'
+      # HTTPS Host
+      - 'traefik.http.routers.errbit.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.errbit.entrypoints=websecure'
+      - 'traefik.http.routers.errbit.tls=true'
+      - 'traefik.http.routers.errbit.tls.certResolver=webcert'
+      - 'traefik.http.routers.errbit.service=errbit'
+
+  mongo-express:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.errbit-mongo-express.loadbalancer.server.port=8081'
+      # HTTPS Host
+      - 'traefik.http.routers.errbit-mongo-express.rule=Host(`mongo-express.${DOMAIN}`)'
+      - 'traefik.http.routers.errbit-mongo-express.entrypoints=websecure'
+      - 'traefik.http.routers.errbit-mongo-express.tls=true'
+      - 'traefik.http.routers.errbit-mongo-express.tls.certResolver=webcert'
+      - 'traefik.http.routers.errbit-mongo-express.service=errbit-mongo-express'
+networks:
+  traefik:
+    external: true
