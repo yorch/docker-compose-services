@@ -1,0 +1,8 @@
+services:
+  app:
+    ports:
+      - 8080:8080
+
+  mariadb:
+    ports:
+      - 3306:3306

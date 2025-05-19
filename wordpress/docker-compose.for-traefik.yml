@@ -1,0 +1,19 @@
+services:
+  app:
+    networks:
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.wordpress.loadbalancer.server.port=8080'
+      # HTTPS Host
+      - 'traefik.http.routers.wordpress.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.wordpress.entrypoints=websecure'
+      - 'traefik.http.routers.wordpress.tls=true'
+      - 'traefik.http.routers.wordpress.tls.certResolver=webcert'
+      - 'traefik.http.routers.wordpress.service=wordpress'
+
+networks:
+  traefik:
+    external: true
