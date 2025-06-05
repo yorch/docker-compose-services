@@ -8,9 +8,9 @@ services:
       # Set public IP to ensure the correct one is chosen, defaulting to the IP give by ifconfig.me.
       - public_ip=${PUBLIC_IP}
       # Set the port WGDashboard will use for its web-server.
-      - wgd_port=${PORT}
+      - wgd_port=${PORT_WEB}
     ports:
-      - 10086:10086/tcp
+      # - ${PORT_WEB}:${PORT_WEB}/tcp
       - 51820:51820/udp
     volumes:
       - ./data/config:/etc/amnezia/amneziawg
