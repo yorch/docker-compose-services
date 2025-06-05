@@ -1,0 +1,19 @@
+services:
+  app:
+    networks:
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.wg-easy.loadbalancer.server.port=51821'
+      # HTTPS Host
+      - 'traefik.http.routers.wg-easy.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.wg-easy.entrypoints=websecure'
+      - 'traefik.http.routers.wg-easy.tls=true'
+      - 'traefik.http.routers.wg-easy.tls.certResolver=webcert'
+      - 'traefik.http.routers.wg-easy.service=wg-easy'
+
+networks:
+  traefik:
+    external: true

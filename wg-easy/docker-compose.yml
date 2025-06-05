@@ -1,5 +1,5 @@
 services:
-  wg-easy:
+  app:
     image: ghcr.io/wg-easy/wg-easy:15
     container_name: wg-easy
     restart: unless-stopped
@@ -9,7 +9,7 @@ services:
         ipv6_address: fdcc:ad94:bacf:61a3::2a
     ports:
       - '51820:51820/udp'
-      - '51821:51821/tcp'
+      # - '51821:51821/tcp'
     environment:
       - PORT=51821
       - HOST=0.0.0.0
