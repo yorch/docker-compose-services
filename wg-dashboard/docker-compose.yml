@@ -1,0 +1,20 @@
+services:
+  app:
+    image: donaldzou/wgdashboard:latest
+    restart: unless-stopped
+    environment:
+      # Set container timezone, default: Europe/Amsterdam.
+      - tz=America/New_York
+      # Set public IP to ensure the correct one is chosen, defaulting to the IP give by ifconfig.me.
+      - public_ip=${PUBLIC_IP}
+      # Set the port WGDashboard will use for its web-server.
+      - wgd_port=${PORT}
+    ports:
+      - 10086:10086/tcp
+      - 51820:51820/udp
+    volumes:
+      - ./data/config:/etc/amnezia/amneziawg
+      - ./data/etc:/etc/wireguard
+      - ./data/data:/data
+    cap_add:
+      - NET_ADMIN
