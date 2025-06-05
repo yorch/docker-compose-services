@@ -9,6 +9,8 @@ services:
       - public_ip=${PUBLIC_IP}
       # Set the port WGDashboard will use for its web-server.
       - wgd_port=${PORT_WEB}
+      # Default DNS for WireGuard clients.
+      - global_dns=${GLOBAL_DNS}
     ports:
       # - ${PORT_WEB}:${PORT_WEB}/tcp
       - 51820:51820/udp
