@@ -1,0 +1,20 @@
+services:
+  api:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.firecrawl.loadbalancer.server.port=3000'
+      # HTTPS Host
+      - 'traefik.http.routers.firecrawl.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.firecrawl.entrypoints=websecure'
+      - 'traefik.http.routers.firecrawl.tls=true'
+      - 'traefik.http.routers.firecrawl.tls.certResolver=webcert'
+      - 'traefik.http.routers.firecrawl.service=firecrawl'
+
+networks:
+  traefik:
+    external: true

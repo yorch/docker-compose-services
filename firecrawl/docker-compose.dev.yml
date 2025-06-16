@@ -1,0 +1,4 @@
+services:
+  api:
+    ports:
+      - '${PORT:-3002}:3000'
