@@ -1,5 +1,4 @@
-x-environment:
-  &default-environment
+x-environment: &default-environment
   - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
   - SECRET_KEY=${SECRET_KEY}
   - PORT=${GLITCHTIP_PORT:-8000}
@@ -32,8 +31,7 @@ x-environment:
   # active release with event data, will not be deleted.
   - GLITCHTIP_MAX_TRANSACTION_LIFE_DAYS=${GLITCHTIP_MAX_TRANSACTION_LIFE_DAYS:-180}
 
-x-depends_on:
-  &default-depends_on
+x-depends_on: &default-depends_on
   postgres:
     condition: service_healthy
   redis:
@@ -47,7 +45,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - PGUSER=${POSTGRES_USER}
+      - PGUSER=${POSTGRES_USER} # Needed?
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     healthcheck:
