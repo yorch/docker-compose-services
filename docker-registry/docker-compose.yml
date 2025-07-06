@@ -1,6 +1,6 @@
 services:
   registry:
-    image: registry:2
+    image: registry:3
     restart: unless-stopped
     volumes:
       - ./data/registry:/var/lib/registry
@@ -24,6 +24,7 @@ services:
       - REGISTRY_STORAGE_S3_SECRETKEY=${REGISTRY_STORAGE_S3_SECRETKEY}
       - REGISTRY_STORAGE_S3_BUCKET=${REGISTRY_STORAGE_S3_BUCKET}
       - REGISTRY_STORAGE_S3_REGION=${REGISTRY_STORAGE_S3_REGION}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
       - REGISTRY_HEALTH_STORAGEDRIVER_ENABLED=false
       # LetsEncrypt TLS
       # - REGISTRY_HTTP_TLS_LETSENCRYPT=true
