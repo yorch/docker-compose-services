@@ -1,0 +1,19 @@
+services:
+  simstudio:
+    networks:
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.simstudio.loadbalancer.server.port=3000'
+      # HTTPS Host
+      - 'traefik.http.routers.simstudio.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.simstudio.entrypoints=websecure'
+      - 'traefik.http.routers.simstudio.tls=true'
+      - 'traefik.http.routers.simstudio.tls.certResolver=webcert'
+      - 'traefik.http.routers.simstudio.service=simstudio'
+
+networks:
+  traefik:
+    external: true

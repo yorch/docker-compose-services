@@ -1,0 +1,12 @@
+services:
+  simstudio:
+    ports:
+      - 3000:3000
+
+  realtime:
+    ports:
+      - 3002:3002
+
+  db:
+    ports:
+      - 5432:5432
