@@ -19,6 +19,23 @@ services:
     networks:
       - default
 
+  adminer:
+    networks:
+      - default
+      - traefik
+    labels:
+      # Traefik
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.n8n-adminer.loadbalancer.server.port=8080'
+      # HTTPS Host
+      - 'traefik.http.routers.n8n-adminer.rule=Host(`${DOMAIN_ADMINER}`)'
+      - 'traefik.http.routers.n8n-adminer.entrypoints=websecure'
+      - 'traefik.http.routers.n8n-adminer.tls=true'
+      - 'traefik.http.routers.n8n-adminer.tls.certResolver=webcert'
+      - 'traefik.http.routers.n8n-adminer.service=n8n-adminer'
+
 networks:
   traefik:
     external: true

@@ -21,6 +21,9 @@ services:
       - WEBHOOK_URL=${WEBHOOK_URL}
     depends_on:
       - db
+    labels:
+      - 'com.centurylinklabs.watchtower.enable=true'
+      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
 
   db:
     image: postgres:17-alpine
@@ -36,3 +39,39 @@ services:
       interval: 10s
       timeout: 2s
       retries: 10
+    labels:
+      - 'com.centurylinklabs.watchtower.enable=true'
+      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    depends_on:
+      - db
+    labels:
+      - 'com.centurylinklabs.watchtower.enable=true'
+      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
+
+  auto-update:
+    image: containrrr/watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - app
+      - db
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      # - WATCHTOWER_REMOVE_VOLUMES=true
+      - WATCHTOWER_LOG_FORMAT=json
+      - WATCHTOWER_POLL_INTERVAL=1800
+      # - WATCHTOWER_DEBUG=true
+      - WATCHTOWER_INCLUDE_STOPPED=true
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      # Monitor and update containers that have a `com.centurylinklabs.watchtower.enable` label set to `true`
+      - WATCHTOWER_LABEL_ENABLE=true
+      # Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument. This enables running multiple instances.
+      - WATCHTOWER_SCOPE=${WATCHTOWER_SCOPE}
+    labels:
+      - 'com.centurylinklabs.watchtower.enable=true'
+      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
