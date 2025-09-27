@@ -29,7 +29,7 @@ services:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
       # Auth
-      - 'traefik.http.routers.karakeep-meilisearch.middlewares=karakeep@docker'
+      # - 'traefik.http.routers.karakeep-meilisearch.middlewares=karakeep@docker'
       # Service
       - 'traefik.http.services.karakeep-meilisearch.loadbalancer.server.port=7700'
       # HTTPS Host
