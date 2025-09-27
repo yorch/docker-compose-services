@@ -51,7 +51,7 @@ services:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
       # Auth
-      - 'traefik.http.routers.n8n.middlewares=n8n@docker'
+      - 'traefik.http.routers.n8n-redisinsight.middlewares=n8n@docker'
       # Service
       - 'traefik.http.services.n8n-redisinsight.loadbalancer.server.port=5540'
       # HTTPS Host
