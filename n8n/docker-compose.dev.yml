@@ -7,6 +7,14 @@ services:
     ports:
       - 5432:5432
 
+  redis:
+    ports:
+      - 6379:6379
+
   adminer:
     ports:
       - 8080:8080
+
+  redisinsight:
+    ports:
+      - 8001:8001

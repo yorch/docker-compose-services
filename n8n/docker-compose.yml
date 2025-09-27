@@ -43,11 +43,30 @@ services:
       - 'com.centurylinklabs.watchtower.enable=true'
       - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
 
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/redis:/data
+    command: ['redis-server', '--save', '60', '1']
+    labels:
+      - 'com.centurylinklabs.watchtower.enable=true'
+      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
+
   adminer:
     image: adminer:latest
     restart: unless-stopped
     depends_on:
       - db
+    labels:
+      - 'com.centurylinklabs.watchtower.enable=true'
+      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    restart: unless-stopped
+    volumes:
+      - ./data/redisinsight:/db
     labels:
       - 'com.centurylinklabs.watchtower.enable=true'
       - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'

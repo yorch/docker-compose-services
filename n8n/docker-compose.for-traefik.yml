@@ -7,7 +7,7 @@ services:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
       # Service
-      - 'traefik.http.services.n8n.loadbalancer.server.port=5678'
+      - 'traefik.http.services.n8n.loadbalancer.server.port=${N8N_PORT}'
       # HTTPS Host
       - 'traefik.http.routers.n8n.rule=Host(`${DOMAIN}`)'
       - 'traefik.http.routers.n8n.entrypoints=websecure'
@@ -16,6 +16,10 @@ services:
       - 'traefik.http.routers.n8n.service=n8n'
 
   db:
+    networks:
+      - default
+
+  redis:
     networks:
       - default
 
@@ -35,6 +39,23 @@ services:
       - 'traefik.http.routers.n8n-adminer.tls=true'
       - 'traefik.http.routers.n8n-adminer.tls.certResolver=webcert'
       - 'traefik.http.routers.n8n-adminer.service=n8n-adminer'
+
+  redisinsight:
+    networks:
+      - default
+      - traefik
+    labels:
+      # Traefik
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.n8n-redisinsight.loadbalancer.server.port=8001'
+      # HTTPS Host
+      - 'traefik.http.routers.n8n-redisinsight.rule=Host(`${DOMAIN_REDISINSIGHT}`)'
+      - 'traefik.http.routers.n8n-redisinsight.entrypoints=websecure'
+      - 'traefik.http.routers.n8n-redisinsight.tls=true'
+      - 'traefik.http.routers.n8n-redisinsight.tls.certResolver=webcert'
+      - 'traefik.http.routers.n8n-redisinsight.service=n8n-redisinsight'
 
 networks:
   traefik:
