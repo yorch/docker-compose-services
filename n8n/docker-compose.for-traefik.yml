@@ -6,6 +6,8 @@ services:
     labels:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
+      # Basic Auth Middleware
+      - 'traefik.http.middlewares.n8n.basicauth.users=${USERNAME?Variable USERNAME not set}:${HASHED_PASSWORD?Variable HASHED_PASSWORD not set}'
       # Service
       - 'traefik.http.services.n8n.loadbalancer.server.port=${N8N_PORT}'
       # HTTPS Host
@@ -48,6 +50,8 @@ services:
       # Traefik
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
+      # Auth
+      - 'traefik.http.routers.n8n.middlewares=n8n@docker'
       # Service
       - 'traefik.http.services.n8n-redisinsight.loadbalancer.server.port=5540'
       # HTTPS Host
