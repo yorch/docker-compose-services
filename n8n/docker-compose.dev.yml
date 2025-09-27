@@ -17,4 +17,4 @@ services:
 
   redisinsight:
     ports:
-      - 8001:8001
+      - 5540:5540

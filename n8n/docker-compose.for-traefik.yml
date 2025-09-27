@@ -49,7 +49,7 @@ services:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
       # Service
-      - 'traefik.http.services.n8n-redisinsight.loadbalancer.server.port=8001'
+      - 'traefik.http.services.n8n-redisinsight.loadbalancer.server.port=5540'
       # HTTPS Host
       - 'traefik.http.routers.n8n-redisinsight.rule=Host(`${DOMAIN_REDISINSIGHT}`)'
       - 'traefik.http.routers.n8n-redisinsight.entrypoints=websecure'
