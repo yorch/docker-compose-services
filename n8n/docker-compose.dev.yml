@@ -7,6 +7,10 @@ services:
     ports:
       - 5432:5432
 
+  qdrant:
+    ports:
+      - 6333:6333
+
   redis:
     ports:
       - 6379:6379

@@ -43,6 +43,15 @@ services:
       - 'com.centurylinklabs.watchtower.enable=true'
       - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
 
+  qdrant:
+    image: qdrant/qdrant
+    restart: unless-stopped
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    labels:
+      - 'com.centurylinklabs.watchtower.enable=true'
+      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
+
   redis:
     image: redis:8-alpine
     restart: unless-stopped
