@@ -7,7 +7,7 @@ services:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
       # Basic Auth Middleware
-      - 'traefik.http.middlewares.hoarder.basicauth.users=${USERNAME?Variable USERNAME not set}:${HASHED_PASSWORD?Variable HASHED_PASSWORD not set}'
+      - 'traefik.http.middlewares.karakeep.basicauth.users=${USERNAME?Variable USERNAME not set}:${HASHED_PASSWORD?Variable HASHED_PASSWORD not set}'
       # Service
       - 'traefik.http.services.karakeep.loadbalancer.server.port=3000'
       # HTTPS Host
@@ -29,7 +29,7 @@ services:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
       # Auth
-      - 'traefik.http.routers.hoarder.middlewares=hoarder@docker'
+      - 'traefik.http.routers.karakeep-meilisearch.middlewares=karakeep@docker'
       # Service
       - 'traefik.http.services.karakeep-meilisearch.loadbalancer.server.port=7700'
       # HTTPS Host
@@ -47,7 +47,7 @@ services:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
       # Auth
-      - 'traefik.http.routers.hoarder.middlewares=hoarder@docker'
+      - 'traefik.http.routers.karakeep-meilisearch-ui.middlewares=karakeep@docker'
       # Service
       - 'traefik.http.services.karakeep-meilisearch-ui.loadbalancer.server.port=24900'
       # HTTPS Host
