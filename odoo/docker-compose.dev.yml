@@ -1,0 +1,12 @@
+services:
+  app:
+    ports:
+      - 8069:8069
+
+  db:
+    ports:
+      - 5432:5432
+
+  adminer:
+    ports:
+      - 8080:8080

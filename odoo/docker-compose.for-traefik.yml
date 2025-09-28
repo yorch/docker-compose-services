@@ -1,0 +1,41 @@
+services:
+  app:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.odoo.loadbalancer.server.port=8069'
+      # HTTPS Host
+      - 'traefik.http.routers.odoo.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.odoo.entrypoints=websecure'
+      - 'traefik.http.routers.odoo.tls=true'
+      - 'traefik.http.routers.odoo.tls.certResolver=webcert'
+      - 'traefik.http.routers.odoo.service=odoo'
+
+  db:
+    networks:
+      - default
+
+  adminer:
+    networks:
+      - default
+      - traefik
+    labels:
+      # Traefik
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.odoo-adminer.loadbalancer.server.port=8080'
+      # HTTPS Host
+      - 'traefik.http.routers.odoo-adminer.rule=Host(`adminer.${DOMAIN}`)'
+      - 'traefik.http.routers.odoo-adminer.entrypoints=websecure'
+      - 'traefik.http.routers.odoo-adminer.tls=true'
+      - 'traefik.http.routers.odoo-adminer.tls.certResolver=webcert'
+      - 'traefik.http.routers.odoo-adminer.service=odoo-adminer'
+
+networks:
+  traefik:
+    external: true
