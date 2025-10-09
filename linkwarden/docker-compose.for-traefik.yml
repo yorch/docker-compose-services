@@ -1,0 +1,45 @@
+services:
+  app:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.linkwarden.loadbalancer.server.port=3000'
+      # HTTPS Host
+      - 'traefik.http.routers.linkwarden.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.linkwarden.entrypoints=websecure'
+      - 'traefik.http.routers.linkwarden.tls=true'
+      - 'traefik.http.routers.linkwarden.tls.certResolver=webcert'
+      - 'traefik.http.routers.linkwarden.service=linkwarden'
+
+  db:
+    networks:
+      - default
+
+  meilisearch:
+    networks:
+      - default
+
+  adminer:
+    networks:
+      - default
+      - traefik
+    labels:
+      # Traefik
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.linkwarden-adminer.loadbalancer.server.port=8080'
+      # HTTPS Host
+      - 'traefik.http.routers.linkwarden-adminer.rule=Host(`${DOMAIN_ADMINER}`)'
+      - 'traefik.http.routers.linkwarden-adminer.entrypoints=websecure'
+      - 'traefik.http.routers.linkwarden-adminer.tls=true'
+      - 'traefik.http.routers.linkwarden-adminer.tls.certResolver=webcert'
+      - 'traefik.http.routers.linkwarden-adminer.service=linkwarden-adminer'
+
+networks:
+  traefik:
+    external: true

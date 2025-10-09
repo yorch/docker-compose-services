@@ -1,0 +1,42 @@
+services:
+  app:
+    image: ghcr.io/linkwarden/linkwarden:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    volumes:
+      - ./data/app:/data/data
+    depends_on:
+      - db
+      - meilisearch
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 2s
+      retries: 10
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.13.3
+    restart: unless-stopped
+    environment:
+      - MEILI_NO_ANALYTICS=true
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+    volumes:
+      - ./data/meilisearch:/meili_data
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    depends_on:
+      - db

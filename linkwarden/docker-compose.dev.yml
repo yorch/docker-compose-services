@@ -1,0 +1,16 @@
+services:
+  app:
+    ports:
+      - 3000:3000
+
+  db:
+    ports:
+      - 5432:5432
+
+  meilisearch:
+    ports:
+      - 7700:7700
+
+  adminer:
+    ports:
+      - 8080:8080
