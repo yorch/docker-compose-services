@@ -4,7 +4,6 @@ services:
     restart: unless-stopped
     volumes:
       - ./data/app:/var/lib/plausible
-      - ./data/geoip:/geoip:ro
     environment:
       - TMPDIR=/var/lib/plausible/tmp
       # required: https://github.com/plausible/community-edition/wiki/configuration#required
@@ -12,7 +11,7 @@ services:
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
       # optional: https://github.com/plausible/community-edition/wiki/configuration#optional
       # registration: https://github.com/plausible/community-edition/wiki/configuration#registration
-      - TOTP_VAULT_KEY
+      - TOTP_VAULT_KEY=${TOTP_VAULT_KEY}
       - DISABLE_REGISTRATION=${DISABLE_REGISTRATION}
       - ENABLE_EMAIL_VERIFICATION=${ENABLE_EMAIL_VERIFICATION}
       # web: https://github.com/plausible/community-edition/wiki/configuration#web
