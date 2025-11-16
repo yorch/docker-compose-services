@@ -7,7 +7,7 @@ services:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
       # Service
-      - 'traefik.http.services.plausible.loadbalancer.server.port=${PORT}'
+      - 'traefik.http.services.plausible.loadbalancer.server.port=${HTTP_PORT}'
       # HTTPS Host
       - 'traefik.http.routers.plausible.rule=Host(`${DOMAIN}`)'
       - 'traefik.http.routers.plausible.entrypoints=websecure'
