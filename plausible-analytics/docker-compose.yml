@@ -1,33 +1,65 @@
 services:
   app:
-    image: plausible/analytics:latest
+    image: ghcr.io/plausible/community-edition:v3.1.0
     restart: unless-stopped
     volumes:
+      - ./data/app:/var/lib/plausible
       - ./data/geoip:/geoip:ro
     environment:
+      - TMPDIR=/var/lib/plausible/tmp
+      # required: https://github.com/plausible/community-edition/wiki/configuration#required
       - BASE_URL=${BASE_URL}
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
-      - PORT=${PORT}
-      - DATABASE_URL=${DATABASE_URL}
-      - CLICKHOUSE_DATABASE_URL=${CLICKHOUSE_DATABASE_URL}
+      # optional: https://github.com/plausible/community-edition/wiki/configuration#optional
+      # registration: https://github.com/plausible/community-edition/wiki/configuration#registration
+      - TOTP_VAULT_KEY
       - DISABLE_REGISTRATION=${DISABLE_REGISTRATION}
       - ENABLE_EMAIL_VERIFICATION=${ENABLE_EMAIL_VERIFICATION}
-      - GEOLITE2_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb
+      # web: https://github.com/plausible/community-edition/wiki/configuration#web
+      - HTTP_PORT=${HTTP_PORT}
+      - HTTPS_PORT
+      # databases: https://github.com/plausible/community-edition/wiki/configuration#database
+      - DATABASE_URL=${DATABASE_URL}
+      - CLICKHOUSE_DATABASE_URL=${CLICKHOUSE_DATABASE_URL}
+      # Google: https://github.com/plausible/community-edition/wiki/configuration#google
+      - GOOGLE_CLIENT_ID
+      - GOOGLE_CLIENT_SECRET
+      # geolocation: https://github.com/plausible/community-edition/wiki/configuration#ip-geolocation
+      - IP_GEOLOCATION_DB
+      - GEONAMES_SOURCE_FILE
+      - MAXMIND_LICENSE_KEY=${MAXMIND_LICENSE_KEY}
+      - MAXMIND_EDITION
+      # email: https://github.com/plausible/community-edition/wiki/configuration#email
+      - MAILER_ADAPTER
       - MAILER_EMAIL=${MAILER_EMAIL}
-      - MAILER_ADAPTER=Bamboo.PostmarkAdapter
+      - MAILER_NAME=${MAILER_NAME}
+      - SMTP_HOST_ADDR
+      - SMTP_HOST_PORT
+      - SMTP_USER_NAME
+      - SMTP_USER_PWD
+      - SMTP_HOST_SSL_ENABLED
       - POSTMARK_API_KEY=${POSTMARK_API_KEY}
+      - MAILGUN_API_KEY
+      - MAILGUN_DOMAIN
+      - MAILGUN_BASE_URI
+      - MANDRILL_API_KEY
+      - SENDGRID_API_KEY
+      # old, not sure if still used
       - SENTRY_DSN=${SENTRY_DSN}
       - HONEYCOMB_API_KEY=${HONEYCOMB_API_KEY}
       - HONEYCOMB_DATASET=${HONEYCOMB_DATASET}
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
     depends_on:
-      - db
-      - events_db
-      - geoip
-      # - mail
-    command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
+      db:
+        condition: service_healthy
+      events_db:
+        condition: service_healthy
+    command: sh -c "/entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
 
   db:
-    # Supported versions: 12, 13, and 14
     image: postgres:14-alpine
     restart: unless-stopped
     volumes:
@@ -36,6 +68,12 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 2s
+      timeout: 10s
+      retries: 5
+      start_period: 2s
 
   events_db:
     image: clickhouse/clickhouse-server:24.12-alpine
@@ -63,17 +101,3 @@ services:
           'wget --no-verbose --tries=1 -O - http://127.0.0.1:8123/ping || exit 1',
         ]
       start_period: 1m
-
-  geoip:
-    image: maxmindinc/geoipupdate
-    restart: unless-stopped
-    volumes:
-      - ./data/geoip:/usr/share/GeoIP
-    environment:
-      - GEOIPUPDATE_ACCOUNT_ID=${GEOIPUPDATE_ACCOUNT_ID}
-      - GEOIPUPDATE_LICENSE_KEY=${GEOIPUPDATE_LICENSE_KEY}
-      - GEOIPUPDATE_EDITION_IDS=GeoLite2-Country
-      - GEOIPUPDATE_FREQUENCY=168 # Update every 7 days
-  # mail:
-  #   image: bytemark/smtp
-  #   restart: unless-stopped
