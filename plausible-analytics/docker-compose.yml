@@ -27,7 +27,7 @@ services:
       - IP_GEOLOCATION_DB
       - GEONAMES_SOURCE_FILE
       - MAXMIND_LICENSE_KEY=${MAXMIND_LICENSE_KEY}
-      - MAXMIND_EDITION
+      - MAXMIND_EDITION=${MAXMIND_EDITION}
       # email: https://github.com/plausible/community-edition/wiki/configuration#email
       - MAILER_ADAPTER
       - MAILER_EMAIL=${MAILER_EMAIL}
