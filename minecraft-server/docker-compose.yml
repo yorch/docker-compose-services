@@ -9,7 +9,10 @@ services:
       - 25565:25565
     environment:
       EULA: 'TRUE'
-      MEMORY: '2G'
-      TYPE: 'FABRIC'
+      MEMORY: '4G'
+      # For full modding platform (but seems like it doesn't work in ONLINE_MODE FALSE)
+      # TYPE: 'FABRIC'
+      OVERRIDE_SERVER_PROPERTIES: 'TRUE'
+      ONLINE_MODE: 'FALSE'
     volumes:
       - ./data:/data
