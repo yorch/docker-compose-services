@@ -1,0 +1,15 @@
+services:
+  server:
+    image: itzg/minecraft-server
+    restart: unless-stopped
+    pull_policy: daily
+    tty: true
+    stdin_open: true
+    ports:
+      - 25565:25565
+    environment:
+      EULA: 'TRUE'
+      MEMORY: '2G'
+      TYPE: 'FABRIC'
+    volumes:
+      - ./data:/data
