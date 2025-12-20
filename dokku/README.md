@@ -29,7 +29,7 @@ docker compose up -d
 
 | Host Path              | Container Path         | Description      |
 | ---------------------- | ---------------------- | ---------------- |
-| `/var/lib/dokku`       | `/mnt/dokku`           | Application data |
+| `./data/dokku`         | `/mnt/dokku`           | Application data |
 | `/var/run/docker.sock` | `/var/run/docker.sock` | Docker socket    |
 
 ## Ports

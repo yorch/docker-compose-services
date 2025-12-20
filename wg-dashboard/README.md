@@ -18,24 +18,25 @@ docker compose up -d
 
 ## Environment Variables
 
-| Variable             | Description                | Default          |
-| -------------------- | -------------------------- | ---------------- |
-| `WG_CONF_DIR`        | WireGuard config directory | `/etc/wireguard` |
-| `WG_DEFAULT_DNS`     | Default DNS server         | `1.1.1.1`        |
-| `WG_DEFAULT_ADDRESS` | Default address range      | -                |
+| Variable     | Description             | Default            |
+| ------------ | ----------------------- | ------------------ |
+| `tz`         | Container timezone      | `Europe/Amsterdam` |
+| `public_ip`  | Public IP address       | ifconfig.me result |
+| `wgd_port`   | Dashboard web port      | -                  |
+| `global_dns` | Default DNS for clients | -                  |
 
 ## Volumes
 
-| Host Path  | Container Path   | Description       |
-| ---------- | ---------------- | ----------------- |
-| `./config` | `/etc/wireguard` | WireGuard configs |
-| `./data`   | `/data`          | Dashboard data    |
+| Host Path       | Container Path           | Description       |
+| --------------- | ------------------------ | ----------------- |
+| `./data/config` | `/etc/amnezia/amneziawg` | AmneziaWG configs |
+| `./data/etc`    | `/etc/wireguard`         | WireGuard configs |
+| `./data/data`   | `/data`                  | Dashboard data    |
 
 ## Ports
 
 | Port    | Description         |
 | ------- | ------------------- |
-| `10086` | Web UI              |
 | `51820` | WireGuard VPN (UDP) |
 
 ## Capabilities

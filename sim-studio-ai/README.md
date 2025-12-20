@@ -18,11 +18,12 @@ docker compose up -d
 
 ## Environment Variables
 
-| Variable          | Description               | Required |
-| ----------------- | ------------------------- | -------- |
-| `DATABASE_URL`    | PostgreSQL connection URL | Yes      |
-| `NEXTAUTH_SECRET` | NextAuth.js secret        | Yes      |
-| `NEXTAUTH_URL`    | Application URL           | Yes      |
+| Variable             | Description               | Required |
+| -------------------- | ------------------------- | -------- |
+| `DATABASE_URL`       | PostgreSQL connection URL | Yes      |
+| `BETTER_AUTH_SECRET` | Authentication secret     | Yes      |
+| `BETTER_AUTH_URL`    | Application URL           | Yes      |
+| `ENCRYPTION_KEY`     | Data encryption key       | Yes      |
 
 ### LLM Provider API Keys
 

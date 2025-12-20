@@ -19,12 +19,12 @@ docker compose up -d
 
 ## Ports
 
-| Port   | Description       |
-| ------ | ----------------- |
-| `9092` | Kafka API         |
-| `8081` | Schema Registry   |
-| `8082` | Pandaproxy (HTTP) |
-| `9644` | Admin API         |
+| Port    | Description       |
+| ------- | ----------------- |
+| `19092` | Kafka API         |
+| `18081` | Schema Registry   |
+| `18082` | Pandaproxy (HTTP) |
+| `19644` | Admin API         |
 
 ## Volumes
 

@@ -47,9 +47,10 @@ Access the web UI at `http://localhost:51821`
 
 ## Volumes
 
-| Host Path | Container Path   | Description       |
-| --------- | ---------------- | ----------------- |
-| `./data`  | `/etc/wireguard` | WireGuard configs |
+| Host Path      | Container Path    | Description       |
+| -------------- | ----------------- | ----------------- |
+| `./data/etc`   | `/etc/wireguard`  | WireGuard configs |
+| `/lib/modules` | `/lib/modules:ro` | Kernel modules    |
 
 ## Capabilities
 

@@ -20,38 +20,40 @@ Access WordPress at `http://localhost:8080`
 
 ## Services
 
-| Service     | Description            |
-| ----------- | ---------------------- |
-| `wordpress` | WordPress application  |
-| `db`        | MySQL/MariaDB database |
+| Service   | Description           |
+| --------- | --------------------- |
+| `app`     | WordPress application |
+| `mariadb` | MariaDB database      |
 
 ## Environment Variables
 
 ### WordPress
 
-| Variable                 | Description       | Required |
-| ------------------------ | ----------------- | -------- |
-| `WORDPRESS_DB_HOST`      | Database host     | Yes      |
-| `WORDPRESS_DB_USER`      | Database user     | Yes      |
-| `WORDPRESS_DB_PASSWORD`  | Database password | Yes      |
-| `WORDPRESS_DB_NAME`      | Database name     | Yes      |
-| `WORDPRESS_TABLE_PREFIX` | Table prefix      | -        |
+| Variable                      | Description       | Required |
+| ----------------------------- | ----------------- | -------- |
+| `WORDPRESS_DATABASE_HOST`     | Database host     | Yes      |
+| `WORDPRESS_DATABASE_USER`     | Database user     | Yes      |
+| `WORDPRESS_DATABASE_NAME`     | Database name     | Yes      |
+| `WORDPRESS_DATABASE_PASSWORD` | Database password | Yes      |
+| `WORDPRESS_USERNAME`          | Admin username    | Yes      |
+| `WORDPRESS_PASSWORD`          | Admin password    | Yes      |
+| `WORDPRESS_EMAIL`             | Admin email       | Yes      |
 
 ### Database
 
-| Variable              | Description         |
-| --------------------- | ------------------- |
-| `MYSQL_ROOT_PASSWORD` | MySQL root password |
-| `MYSQL_DATABASE`      | Database name       |
-| `MYSQL_USER`          | MySQL user          |
-| `MYSQL_PASSWORD`      | MySQL password      |
+| Variable                | Description           |
+| ----------------------- | --------------------- |
+| `MARIADB_ROOT_PASSWORD` | MariaDB root password |
+| `MARIADB_DATABASE`      | Database name         |
+| `MARIADB_USER`          | MariaDB user          |
+| `MARIADB_PASSWORD`      | MariaDB password      |
 
 ## Volumes
 
-| Host Path          | Container Path   | Description     |
-| ------------------ | ---------------- | --------------- |
-| `./data/wordpress` | `/var/www/html`  | WordPress files |
-| `./data/mysql`     | `/var/lib/mysql` | Database data   |
+| Host Path          | Container Path       | Description     |
+| ------------------ | -------------------- | --------------- |
+| `./data/wordpress` | `/bitnami/wordpress` | WordPress files |
+| `./data/mariadb`   | `/bitnami/mariadb`   | Database data   |
 
 ## First-Time Setup
 

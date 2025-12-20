@@ -25,11 +25,29 @@ This setup includes a full cluster with:
 
 ## Ports
 
+External listener ports (not exposed by default, add to docker-compose.yml):
+
 | Port    | Description                |
 | ------- | -------------------------- |
 | `29092` | Broker 1 external listener |
 | `39092` | Broker 2 external listener |
 | `49092` | Broker 3 external listener |
+
+To access from outside Docker network, add port mappings:
+
+```yaml
+broker-1:
+  ports:
+    - '29092:9092'
+
+broker-2:
+  ports:
+    - '39092:9092'
+
+broker-3:
+  ports:
+    - '49092:9092'
+```
 
 ## Environment Variables
 
