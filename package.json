@@ -12,5 +12,5 @@
     "prettier": "3.5.3",
     "tsx": "4.21.0"
   },
-  "packageManager": "yarn@4.9.1"
+  "packageManager": "yarn@4.12.0"
 }
