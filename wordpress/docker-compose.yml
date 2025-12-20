@@ -2,7 +2,7 @@ services:
   app:
     image: docker.io/bitnami/wordpress:6
     volumes:
-      - ./data/wordpress:/bitnami/wordpress'
+      - ./data/wordpress:/bitnami/wordpress
     depends_on:
       - mariadb
     environment:
