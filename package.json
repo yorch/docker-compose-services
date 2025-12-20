@@ -4,10 +4,13 @@
     "docker:base": "docker compose -f ${INIT_CWD}/docker-compose.yml",
     "docker:dev": "cd ${INIT_CWD} && run docker:base -f ${INIT_CWD}/docker-compose.dev.yml",
     "docker:for-traefik": "cd ${INIT_CWD} && run docker:base -f ${INIT_CWD}/docker-compose.for-traefik.yml",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "update-readme": "tsx update-readme.ts"
   },
   "devDependencies": {
-    "prettier": "3.5.3"
+    "@types/node": "22.19.3",
+    "prettier": "3.5.3",
+    "tsx": "4.21.0"
   },
   "packageManager": "yarn@4.9.1"
 }

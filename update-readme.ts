@@ -2,8 +2,12 @@
 // A service is a folder that contains a docker-compose.yml file.
 // The README file is updated with a table of services and their descriptions.
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const services = fs.readdirSync(__dirname);
 
@@ -11,17 +15,23 @@ const readme = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
 const start = readme.indexOf('<!-- START SERVICES -->');
 const end = readme.indexOf('<!-- END SERVICES -->');
 
-const buildDockerComposeFilePath = (service) =>
+const buildDockerComposeFilePath = (service: string): string =>
   path.join(__dirname, service, 'docker-compose.yml');
 
-const buildReadmeFilePath = (service) =>
+const buildReadmeFilePath = (service: string): string =>
   path.join(__dirname, service, 'README.md');
+
+interface ServiceEntry {
+  name: string;
+  folder: string;
+  description: string;
+}
 
 /**
  * Extract description from a service's README.md
  * The description is the first non-empty line after the title (# heading)
  */
-const getServiceDescription = (service) => {
+const getServiceDescription = (service: string): string => {
   const readmePath = buildReadmeFilePath(service);
   if (!fs.existsSync(readmePath)) {
     return '';
@@ -45,21 +55,22 @@ const getServiceDescription = (service) => {
       }
     }
   } catch (err) {
-    console.warn(
-      `Warning: Could not read README for ${service}: ${err.message}`,
-    );
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`Warning: Could not read README for ${service}: ${message}`);
   }
 
   return '';
 };
 
-const serviceEntries = services
-  .filter((service) => fs.existsSync(buildDockerComposeFilePath(service)))
-  .map((service) => {
+const serviceEntries: ServiceEntry[] = services
+  .filter((service: string) =>
+    fs.existsSync(buildDockerComposeFilePath(service)),
+  )
+  .map((service: string) => {
     // Convert to title case
     const title = service
       .replace(/-/g, ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+      .replace(/\b\w/g, (char: string) => char.toUpperCase());
 
     const description = getServiceDescription(service);
 
