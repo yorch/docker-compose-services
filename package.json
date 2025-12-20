@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@types/node": "22.19.3",
-    "prettier": "3.5.3",
+    "prettier": "3.7.4",
     "tsx": "4.21.0"
   },
   "packageManager": "yarn@4.12.0"
