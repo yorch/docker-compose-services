@@ -1,6 +1,6 @@
 // Update the README file with the list of services in this repository.
 // A service is a folder that contains a docker-compose.yml file.
-// The README file is updated with the list of services.
+// The README file is updated with a table of services and their descriptions.
 
 const fs = require('fs');
 const path = require('path');
@@ -14,7 +14,46 @@ const end = readme.indexOf('<!-- END SERVICES -->');
 const buildDockerComposeFilePath = (service) =>
   path.join(__dirname, service, 'docker-compose.yml');
 
-const servicesList = services
+const buildReadmeFilePath = (service) =>
+  path.join(__dirname, service, 'README.md');
+
+/**
+ * Extract description from a service's README.md
+ * The description is the first non-empty line after the title (# heading)
+ */
+const getServiceDescription = (service) => {
+  const readmePath = buildReadmeFilePath(service);
+  if (!fs.existsSync(readmePath)) {
+    return '';
+  }
+
+  try {
+    const content = fs.readFileSync(readmePath, 'utf8');
+    const lines = content.split('\n');
+
+    // Find the first non-empty line after the title
+    let foundTitle = false;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('# ')) {
+        foundTitle = true;
+        continue;
+      }
+      if (foundTitle && trimmed && !trimmed.startsWith('#')) {
+        // Remove any markdown formatting and return
+        return trimmed.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+      }
+    }
+  } catch (err) {
+    console.warn(
+      `Warning: Could not read README for ${service}: ${err.message}`,
+    );
+  }
+
+  return '';
+};
+
+const serviceEntries = services
   .filter((service) => fs.existsSync(buildDockerComposeFilePath(service)))
   .map((service) => {
     // Convert to title case
@@ -22,13 +61,25 @@ const servicesList = services
       .replace(/-/g, ' ')
       .replace(/\b\w/g, (char) => char.toUpperCase());
 
-    return `- ${title}`;
-  })
+    const description = getServiceDescription(service);
+
+    return { name: title, folder: service, description };
+  });
+
+// Build table
+const tableHeader = '| Service | Description |\n| --- | --- |';
+const tableRows = serviceEntries
+  .map(
+    ({ name, folder, description }) =>
+      `| [${name}](./${folder}) | ${description} |`,
+  )
   .join('\n');
 
+const servicesTable = `\n${tableHeader}\n${tableRows}\n`;
+
 const newReadme =
-  readme.substring(0, start + 24) + servicesList + '\n' + readme.substring(end);
+  readme.substring(0, start + 23) + servicesTable + readme.substring(end);
 
 fs.writeFileSync(path.join(__dirname, 'README.md'), newReadme);
 
-console.log('README updated');
+console.log(`README updated with ${serviceEntries.length} services`);
