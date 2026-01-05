@@ -4,8 +4,7 @@ services:
     image: siglens/siglens:1.0.57
     restart: unless-stopped
     ports:
-      - 8081:8081
-      # UI Port
+      - ${INGEST_PORT}:8081
       - ${UI_PORT}:5122
     volumes:
       - ./data:/siglens/data
