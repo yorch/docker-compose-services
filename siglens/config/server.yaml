@@ -1,0 +1,56 @@
+---
+## IP and port for SigLens ingestion server
+ingestListenIP: '[::]'
+ingestPort: 8081
+
+## IP and port for SigLens query server, including UI
+queryListenIP: '[::]'
+queryPort: 5122
+
+## Location for storing local node data
+dataPath: data/
+
+## field name to use as a timestamp key
+timestampKey: timestamp
+
+pqsEnabled: true
+
+## Elasticsearch Version for kibana integration
+esVersion: '7.9.3'
+
+## Number of hours data will be stored/retained on persistent storage.
+# retentionHours: 360
+
+## For ephemeral servers (docker, k8s) set this variable to unique container name to persist data across restarts:
+# the default ssInstanceName is "sigsingle"
+ssInstanceName: 'sigsingle'
+
+log:
+  logPrefix: ./logs/
+
+  ## Maximum size of siglens.log file in megabytes
+  # logFileRotationSizeMB: 100
+
+  ## Compress log file
+  # compressLogFile: false
+
+# TLS configuration
+tls:
+  enabled: false # Set to true to enable TLS
+  certificatePath: '' # Path to the certificate file
+  privateKeyPath: '' # Path to the private key file
+  mtlsEnabled: false
+  clientCaPath: '' # Path to the client Certificate Authority file. Required for mTLS.
+
+# SigLens server hostname
+queryHostname: ''
+
+queryTimeoutSecs: 300 # 5 minutes default
+
+
+# memoryLimits:
+#   lowMemoryMode: true  # Set to true to enable low memory mode
+#   maxUsagePercent: 80  # Percent of available RAM that siglens will occupy
+
+## Pause SigLens from starting up.
+#pauseMode: true

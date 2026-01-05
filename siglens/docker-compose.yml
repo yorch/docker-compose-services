@@ -1,0 +1,14 @@
+services:
+  siglens:
+    # image: siglens/siglens:latest
+    image: siglens/siglens:1.0.57
+    restart: unless-stopped
+    ports:
+      - 8081:8081
+      # UI Port
+      - ${UI_PORT}:5122
+    volumes:
+      - ./data:/siglens/data
+      - ./logs:/siglens/logs
+      - ./config/server.yaml:/siglens/config.yaml
+    command: ['./siglens', '--config', './config.yaml']
