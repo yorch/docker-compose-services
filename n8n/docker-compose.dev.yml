@@ -1,5 +1,5 @@
 services:
-  app:
+  main:
     ports:
       - ${N8N_PORT}:${N8N_PORT}
 

@@ -1,43 +1,69 @@
+x-common-env: &common-env
+  DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+  DB_POSTGRESDB_HOST: db
+  DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+  DB_POSTGRESDB_USER: ${POSTGRES_USER}
+  DB_TYPE: postgresdb
+  EXECUTIONS_MODE: queue
+  GENERIC_TIMEZONE: ${GENERIC_TIMEZONE}
+  N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+  N8N_RUNNERS_ENABLED: true
+  N8N_RUNNERS_MODE: external
+  NODE_ENV: ${NODE_ENV}
+  QUEUE_BULL_REDIS_HOST: redis
+  TZ: ${TZ}
+
 services:
-  app:
+  main:
     image: n8nio/n8n:stable
     restart: unless-stopped
     volumes:
       - ./data/n8n:/home/node/.n8n
       - ./data/files:/files
     environment:
-      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
-      - DB_POSTGRESDB_HOST=db
-      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
-      - DB_POSTGRESDB_USER=${POSTGRES_USER}
-      - DB_TYPE=postgresdb
-      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
-      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=${N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS}
-      - N8N_HOST=${N8N_HOST}
-      - N8N_NATIVE_PYTHON_RUNNER=true
-      - N8N_PORT=${N8N_PORT}
-      - N8N_PROTOCOL=${N8N_PROTOCOL}
-      - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN}
-      - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
-      - N8N_RUNNERS_ENABLED=true
-      - N8N_RUNNERS_MODE=external
-      - NODE_ENV=${NODE_ENV}
-      - TZ=${TZ}
-      - WEBHOOK_URL=${WEBHOOK_URL}
+      <<: *common-env
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: ${N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS}
+      N8N_HOST: ${N8N_HOST}
+      # N8N_NATIVE_PYTHON_RUNNER: true
+      N8N_PORT: ${N8N_PORT}
+      N8N_PROTOCOL: ${N8N_PROTOCOL}
+      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN}
+      N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
+      OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: true
+      WEBHOOK_URL: ${WEBHOOK_URL}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     labels:
       - 'com.centurylinklabs.watchtower.enable=true'
       - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
 
-  task-runners:
+  worker:
+    image: n8nio/n8n:stable
+    restart: unless-stopped
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+      - ./data/files:/files
+    environment:
+      <<: *common-env
+      QUEUE_HEALTH_CHECK_ACTIVE: ${QUEUE_HEALTH_CHECK_ACTIVE}
+    depends_on:
+      - main
+    command: worker
+    labels:
+      - 'com.centurylinklabs.watchtower.enable=true'
+      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
+
+  runners:
     image: n8nio/runners:stable
-    container_name: n8n-runners
+    restart: unless-stopped
     environment:
       - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN}
-      - N8N_RUNNERS_TASK_BROKER_URI=http://app:5679
+      - N8N_RUNNERS_TASK_BROKER_URI=http://main:5679
     depends_on:
-      - app
+      - main
     labels:
       - 'com.centurylinklabs.watchtower.enable=true'
       - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
@@ -75,6 +101,11 @@ services:
     volumes:
       - ./data/redis:/data
     command: ['redis-server', '--save', '60', '1']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 10s
+      retries: 10
     labels:
       - 'com.centurylinklabs.watchtower.enable=true'
       - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
