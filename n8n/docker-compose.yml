@@ -1,9 +1,10 @@
 services:
   app:
-    image: n8nio/n8n:latest
+    image: n8nio/n8n:stable
     restart: unless-stopped
     volumes:
       - ./data/n8n:/home/node/.n8n
+      - ./data/files:/files
     environment:
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=db
