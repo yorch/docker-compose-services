@@ -61,6 +61,7 @@ This requires `Task` to be installed: <https://taskfile.dev/installation/>
 | [Portainer](./portainer) | Docker and Kubernetes management GUI. |
 | [Redpanda](./redpanda) | Kafka-compatible streaming data platform - no ZooKeeper required. |
 | [Shlink](./shlink) | Self-hosted URL shortener. |
+| [Siglens](./siglens) | High-performance log aggregation and observability platform with 100x lower storage costs than Elasticsearch. |
 | [Sim Studio Ai](./sim-studio-ai) | AI simulation and workflow studio platform. |
 | [Supertokens](./supertokens) | Open-source authentication solution. |
 | [Telegraf](./telegraf) | Plugin-driven server agent for collecting and reporting metrics. |
