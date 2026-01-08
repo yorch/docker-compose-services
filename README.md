@@ -68,6 +68,7 @@ This requires `Task` to be installed: <https://taskfile.dev/installation/>
 | [Traefik](./traefik) | Modern HTTP reverse proxy and load balancer (v2.x). |
 | [Traefik3](./traefik3) | Modern HTTP reverse proxy and load balancer (v3.x). |
 | [Vaultwarden](./vaultwarden) | Lightweight Bitwarden-compatible password manager server. |
+| [Waha](./waha) | WhatsApp HTTP API - Open-source WhatsApp API that connects to WhatsApp via web interface. |
 | [Watchtower](./watchtower) | Automated Docker container updates. |
 | [Wg Dashboard](./wg-dashboard) | Web-based dashboard for WireGuard VPN management. |
 | [Wg Easy](./wg-easy) | Easy-to-use WireGuard VPN with web UI. |

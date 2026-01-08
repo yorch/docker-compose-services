@@ -1,0 +1,20 @@
+services:
+  app:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.waha.loadbalancer.server.port=3000'
+      # HTTPS Host
+      - 'traefik.http.routers.waha.rule=Host(`${DOMAIN?Variable DOMAIN not set}`)'
+      - 'traefik.http.routers.waha.entrypoints=websecure'
+      - 'traefik.http.routers.waha.tls=true'
+      - 'traefik.http.routers.waha.tls.certResolver=webcert'
+      - 'traefik.http.routers.waha.service=waha'
+
+networks:
+  traefik:
+    external: true
