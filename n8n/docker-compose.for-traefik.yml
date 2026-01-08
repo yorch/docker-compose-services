@@ -17,7 +17,7 @@ services:
       - 'traefik.http.routers.n8n.tls.certResolver=webcert'
       - 'traefik.http.routers.n8n.service=n8n'
 
-  workers:
+  worker:
     networks:
       - default
 
