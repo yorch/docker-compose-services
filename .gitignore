@@ -11,3 +11,6 @@ node_modules/
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# AI
+.claude/settings.local.json

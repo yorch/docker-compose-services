@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__context7",
+      "mcp__git",
+      "mcp__memory",
+      "mcp__sequential-thinking",
+      "mcp__serena",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebSearch"
+    ]
+  }
+}
