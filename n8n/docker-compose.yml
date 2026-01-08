@@ -31,7 +31,7 @@ services:
       - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
 
   task-runners:
-    image: n8nio/runners:1.111.0
+    image: n8nio/runners:stable
     container_name: n8n-runners
     environment:
       - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN}
