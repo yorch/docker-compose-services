@@ -6,22 +6,38 @@ services:
       - ./data/n8n:/home/node/.n8n
       - ./data/files:/files
     environment:
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=db
       - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
-      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_HOST=db
       - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_TYPE=postgresdb
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
-      - TZ=${TZ}
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=${N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS}
       - N8N_HOST=${N8N_HOST}
+      - N8N_NATIVE_PYTHON_RUNNER=true
       - N8N_PORT=${N8N_PORT}
       - N8N_PROTOCOL=${N8N_PROTOCOL}
-      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=${N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS}
-      - N8N_RUNNERS_ENABLED=${N8N_RUNNERS_ENABLED}
+      - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN}
+      - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_RUNNERS_MODE=external
       - NODE_ENV=${NODE_ENV}
+      - TZ=${TZ}
       - WEBHOOK_URL=${WEBHOOK_URL}
     depends_on:
       - db
+    labels:
+      - 'com.centurylinklabs.watchtower.enable=true'
+      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
+
+  task-runners:
+    image: n8nio/runners:1.111.0
+    container_name: n8n-runners
+    environment:
+      - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN}
+      - N8N_RUNNERS_TASK_BROKER_URI=http://app:5679
+    depends_on:
+      - app
     labels:
       - 'com.centurylinklabs.watchtower.enable=true'
       - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
