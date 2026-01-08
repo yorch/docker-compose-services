@@ -3,6 +3,10 @@ services:
     ports:
       - 3000:3000
 
+  meilisearch:
+    ports:
+      - 7700:7700
+
   meilisearch-ui:
     ports:
       - 3001:24900
