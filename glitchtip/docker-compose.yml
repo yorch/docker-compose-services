@@ -10,26 +10,24 @@ x-environment: &default-environment
   - EMAIL_HOST=${EMAIL_HOST}
   - EMAIL_PORT=${EMAIL_PORT}
   - EMAIL_USE_TLS=${EMAIL_USE_TLS}
-  # (Default True) When True, any user will be able to register. When False, user self-signup is
-  # disabled after the first user is registered. Subsequent users must be created by a
-  # superuser on the backend and organization invitations may only be sent to existing users.
   - ENABLE_USER_REGISTRATION=${ENABLE_USER_REGISTRATION}
-  # (Default False) When False, only superusers will be able to create new organizations after
-  # the first. When True, any user can create a new organization.
   - ENABLE_ORGANIZATION_CREATION=${ENABLE_ORGANIZATION_CREATION}
-  # Number of concurrent celery workers. Defaults to number of CPU cores. Highly recommended to change
-  - CELERY_WORKER_CONCURRENCY=${CELERY_WORKER_CONCURRENCY:-2}
-  # Scale between 1 and 3 to prevent excessive memory usage. Change it or remove to set it to the number of cpu cores.
-  # - CELERY_WORKER_AUTOSCALE="1,3"
-  - CELERY_WORKER_MAX_TASKS_PER_CHILD=${CELERY_WORKER_MAX_TASKS_PER_CHILD:-100}
-  # (Default 90) Events and associated data older than this will be deleted.
-  - GLITCHTIP_MAX_EVENT_LIFE_DAYS=${GLITCHTIP_MAX_EVENT_LIFE_DAYS:-90}
-  # (Default to max event life days) Transaction events older than this will be deleted.
-  - GLITCHTIP_MAX_TRANSACTION_EVENT_LIFE_DAYS=${GLITCHTIP_MAX_TRANSACTION_EVENT_LIFE_DAYS:-90}
-  # (Defaults to 2 * max event life days) Files older than this will be deleted. Files with any
-  # reference to a recent event are excluded. For example, a year old file that is used for an
-  # active release with event data, will not be deleted.
-  - GLITCHTIP_MAX_TRANSACTION_LIFE_DAYS=${GLITCHTIP_MAX_TRANSACTION_LIFE_DAYS:-180}
+  - GLITCHTIP_RETENTION_DAYS=${GLITCHTIP_RETENTION_DAYS}
+  - GLITCHTIP_EVENT_RETENTION_DAYS=${GLITCHTIP_EVENT_RETENTION_DAYS}
+  - GLITCHTIP_EVENT_HOT_DAYS=${GLITCHTIP_EVENT_HOT_DAYS}
+  - GLITCHTIP_TRANSACTION_RETENTION_DAYS=${GLITCHTIP_TRANSACTION_RETENTION_DAYS}
+  - GLITCHTIP_LOG_RETENTION_DAYS=${GLITCHTIP_LOG_RETENTION_DAYS}
+  - GLITCHTIP_LOG_HOT_DAYS=${GLITCHTIP_LOG_HOT_DAYS}
+  - GLITCHTIP_UPTIME_RETENTION_DAYS=${GLITCHTIP_UPTIME_RETENTION_DAYS}
+  - GLITCHTIP_FILE_RETENTION_DAYS=${GLITCHTIP_FILE_RETENTION_DAYS}
+  - GLITCHTIP_RELEASE_RETENTION_DAYS=${GLITCHTIP_RELEASE_RETENTION_DAYS}
+  - GLITCHTIP_ENABLE_DUCKDB=${GLITCHTIP_ENABLE_DUCKDB:-false}
+  - GLITCHTIP_COLD_STORAGE_BUCKET=${GLITCHTIP_COLD_STORAGE_BUCKET}
+  - GLITCHTIP_COLD_STORAGE_DIR=${GLITCHTIP_COLD_STORAGE_DIR}
+  - DUCKDB_MEMORY_LIMIT=${DUCKDB_MEMORY_LIMIT}
+  - DUCKDB_TEMP_DIRECTORY=${DUCKDB_TEMP_DIRECTORY}
+  - DUCKDB_EXTENSION_DIRECTORY=${DUCKDB_EXTENSION_DIRECTORY:-}
+  - GLITCHTIP_COLD_STORAGE_CLEANUP_ENABLED=${GLITCHTIP_COLD_STORAGE_CLEANUP_ENABLED}
 
 x-depends_on: &default-depends_on
   postgres:
@@ -60,9 +58,9 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
-      interval: 1s
+      interval: 3s
       timeout: 3s
-      retries: 30
+      retries: 10
 
   web:
     image: glitchtip/glitchtip
@@ -79,7 +77,7 @@ services:
     environment: *default-environment
     volumes:
       - ./data/uploads:/code/uploads
-    command: ./bin/run-celery-with-beat.sh
+    command: ./bin/run-worker.sh
 
   migrate:
     image: glitchtip/glitchtip
