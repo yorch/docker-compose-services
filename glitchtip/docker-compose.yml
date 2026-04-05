@@ -1,10 +1,13 @@
 x-environment: &default-environment
   - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  - VALKEY_URL=redis://valkey:6379
   - SECRET_KEY=${SECRET_KEY}
   - PORT=${GLITCHTIP_PORT:-8000}
+  # - EMAIL_URL=${EMAIL_URL}
   - GLITCHTIP_DOMAIN=${GLITCHTIP_URL}
   - DEFAULT_FROM_EMAIL=${EMAIL_FROM}
-  # - EMAIL_URL=${EMAIL_URL}
+  - ENABLE_ADMIN=${ENABLE_ADMIN}
+  - ENABLE_OPENAPI=${ENABLE_OPENAPI}
   - EMAIL_HOST_USER=${EMAIL_HOST_USER}
   - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
   - EMAIL_HOST=${EMAIL_HOST}
@@ -32,7 +35,7 @@ x-environment: &default-environment
 x-depends_on: &default-depends_on
   postgres:
     condition: service_healthy
-  redis:
+  valkey:
     condition: service_healthy
 
 services:
@@ -53,11 +56,11 @@ services:
       retries: 5
       start_period: 30s
 
-  redis:
-    image: redis:alpine
+  valkey:
+    image: valkey/valkey:9-alpine
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ['CMD', 'valkey-cli', '--raw', 'incr', 'ping']
       interval: 3s
       timeout: 3s
       retries: 10
