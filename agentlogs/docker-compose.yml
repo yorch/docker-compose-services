@@ -1,0 +1,23 @@
+services:
+  app:
+    image: ghcr.io/agentlogs/agentlogs:latest
+    restart: unless-stopped
+    environment:
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - WEB_URL=${WEB_URL}
+      - WAITLIST_ENABLED=${WAITLIST_ENABLED}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - GITLAB_CLIENT_ID=${GITLAB_CLIENT_ID}
+      - GITLAB_CLIENT_SECRET=${GITLAB_CLIENT_SECRET}
+      - GITLAB_ISSUER=${GITLAB_ISSUER}
+      # - DB_LOCAL_PATH=.data/db.sqlite
+      # - STORAGE_DIR=.data/storage
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - EMAIL_SENDER=${EMAIL_SENDER}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AI_BASE_URL=${AI_BASE_URL}
+      - AI_MODEL=${AI_MODEL}
+      - AI_API_KEY=${AI_API_KEY}
+    volumes:
+      - ./data/app:/app/.data

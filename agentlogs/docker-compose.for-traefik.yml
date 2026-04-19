@@ -1,0 +1,20 @@
+services:
+  app:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.agentlogs.loadbalancer.server.port=3000'
+      # HTTPS Host
+      - 'traefik.http.routers.agentlogs.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.agentlogs.entrypoints=websecure'
+      - 'traefik.http.routers.agentlogs.tls=true'
+      - 'traefik.http.routers.agentlogs.tls.certResolver=webcert'
+      - 'traefik.http.routers.agentlogs.service=agentlogs'
+
+networks:
+  traefik:
+    external: true
