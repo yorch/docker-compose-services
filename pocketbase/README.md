@@ -39,7 +39,7 @@ Access the admin UI at `http://localhost:8080/_/`
 
 ### Data Directory Structure
 
-```
+```text
 data/
 ├── pb_data/         # Database and internal files
 └── pb_public/       # Public static files

@@ -31,7 +31,7 @@ Access WordPress at `http://localhost:8080`
 
 ## Environment Variables
 
-### WordPress
+### Application
 
 | Variable                      | Description       | Required |
 | ----------------------------- | ----------------- | -------- |

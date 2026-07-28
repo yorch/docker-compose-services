@@ -81,7 +81,7 @@ git clone ssh://git@your-server:222/user/repo.git
 
 Or add to `~/.ssh/config`:
 
-```
+```text
 Host gitea
     HostName your-server
     Port 222
