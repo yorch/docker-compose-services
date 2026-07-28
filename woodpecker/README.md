@@ -30,12 +30,9 @@ also the OAuth callback host — a mismatch fails login after the GitHub redirec
 
 The UI is then at `http://localhost:8000`; sign in with GitHub.
 
-On macOS, create the data directory before the first run — Docker Desktop
-otherwise creates `./data/postgres` with ownership Postgres rejects:
-
-```bash
-mkdir -p data
-```
+On macOS with Docker Desktop, Postgres 18 will not start against a bind mount —
+see [Storage](#storage) for the one-line `PGDATA` override that fixes local
+development. Linux hosts need no change.
 
 ## Services
 
@@ -47,7 +44,7 @@ mkdir -p data
 
 Both images are pinned to the `v3` tag, which currently resolves to the same
 digest as `v3.16.0`. The agent logs its version as `next-<sha>` rather than a
-release number — that is upstream build metadata, not a mispinned image.
+release number — that is upstream build metadata, not a wrongly pinned image.
 
 ## Setup
 
@@ -99,11 +96,63 @@ registration stays closed — with it enabled, any GitHub account can sign in.
 
 ## Volumes
 
-| Host Path         | Container Path             | Description                                                              |
-| ----------------- | -------------------------- | ------------------------------------------------------------------------ |
-| `./data/server`   | `/var/lib/woodpecker`      | Unused with the Postgres driver; holds the SQLite database if you switch |
-| `./data/agent`    | `/etc/woodpecker`          | Agent registration details                                               |
-| `./data/postgres` | `/var/lib/postgresql/data` | Database data                                                            |
+| Host Path         | Container Path        | Description                                                              |
+| ----------------- | --------------------- | ------------------------------------------------------------------------ |
+| `./data/server`   | `/var/lib/woodpecker` | Unused with the Postgres driver; holds the SQLite database if you switch |
+| `./data/agent`    | `/etc/woodpecker`     | Agent registration details                                               |
+| `./data/postgres` | `/var/lib/postgresql` | Database data (see Storage below)                                        |
+
+## Storage
+
+This service runs `postgres:18-alpine`. **Postgres 18 changed where the image
+keeps its data**: the image's `VOLUME` moved from `/var/lib/postgresql/data` to
+`/var/lib/postgresql`, and `PGDATA` is now `/var/lib/postgresql/18/docker`.
+
+Mounting the pre-18 path against this image does not fail — Docker just creates
+an anonymous volume at `/var/lib/postgresql`, writes the real database there, and
+leaves your bind mount empty. The loss only surfaces at
+`docker compose down -v` or `docker volume prune`. Verify with:
+
+```bash
+docker inspect postgres:18-alpine | jq '.[0].Config.Volumes'
+```
+
+On **macOS with Docker Desktop**, Postgres 18 will not start against this mount —
+it exits with `data directory "/var/lib/postgresql/18/docker" has wrong
+ownership`, because it must create and own a subdirectory inside the bind mount.
+Linux hosts are unaffected.
+
+For local development on macOS, put the database back on the pre-18 layout with
+an extra overlay file:
+
+```yaml
+# docker-compose.macos.yml
+services:
+  postgres:
+    environment:
+      - PGDATA=/var/lib/postgresql/data
+    volumes: !override
+      - ./data/postgres:/var/lib/postgresql/data
+```
+
+```bash
+mkdir -p data/postgres
+docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+  -f docker-compose.macos.yml up -d
+```
+
+Three details, each of which breaks it if omitted:
+
+- **`!override` is required.** A plain `volumes:` key merges with the base file
+  instead of replacing it, leaving the mount on `/var/lib/postgresql` and the
+  override silently ineffective. Needs Compose v2.24 or newer.
+- **`PGDATA` and the mount must change together.** The mount without `PGDATA`
+  sends the database to an anonymous volume with no error.
+- **Pre-create `data/postgres`.** If Docker Desktop creates it, ownership is
+  wrong and Postgres exits.
+
+Postgres 18 data is not backward compatible with 17 or earlier. Moving between
+major versions needs `pg_dumpall` and a restore, not just a remount.
 
 ## Security
 

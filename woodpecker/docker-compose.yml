@@ -41,10 +41,14 @@ services:
       - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      # Postgres 18 moved its VOLUME to /var/lib/postgresql (PGDATA is now
+      # /var/lib/postgresql/18/docker). Mounting the old /var/lib/postgresql/data
+      # path here would send the real data to an anonymous volume instead, with
+      # no error - see the Storage section of the README.
+      - ./data/postgres:/var/lib/postgresql
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}

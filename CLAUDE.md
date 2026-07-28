@@ -148,6 +148,25 @@ documented in `.env.sample`. `.env` is gitignored — never create or commit one
 never named volumes — no service in the repo declares a top-level `volumes:` block.
 `data/` is gitignored.
 
+**Postgres mount paths differ by major version — getting this wrong loses data
+silently.** Postgres 18 moved the image's `VOLUME` and `PGDATA`:
+
+| Image                     | Mount the bind mount at    |
+| ------------------------- | -------------------------- |
+| `postgres:17` and earlier | `/var/lib/postgresql/data` |
+| `postgres:18` and later   | `/var/lib/postgresql`      |
+
+Mounting the wrong path produces **no error**. Docker creates an anonymous volume at
+the image's declared `VOLUME`, the database writes there, and the bind mount stays
+empty — discovered only at `docker compose down -v` or `docker volume prune`. When
+bumping a Postgres major version anywhere in this repo, change the mount path in the
+same commit, and confirm with
+`docker inspect postgres:<tag> | jq '.[0].Config.Volumes'`.
+
+Major versions are not on-disk compatible: moving 17 → 18 needs `pg_dumpall` and a
+restore, never just a remount. Services currently on `postgres:16-alpine` — `gitea`,
+`glitchtip` and others — each carry this migration when they are upgraded.
+
 **Shared config in multi-container stacks.** Use YAML anchors at the top of the file
 (`x-environment: &default-environment`, `x-depends_on: &default-depends_on`) rather than
 repeating env blocks per container — see `glitchtip/docker-compose.yml`.
@@ -189,7 +208,7 @@ is generated. Never hand-edit it; run `yarn update-readme`.
 2. Add `docker-compose.dev.yml` publishing ports, and `docker-compose.for-traefik.yml` with the Traefik template above.
 3. Add `.env.sample` documenting **every** `${VAR}` the compose files reference. A var
    used without a `:-default` and missing from the sample means anyone copying it gets an
-   empty value — which is how `gitea` shipped an unstartable database.
+   empty value — which is how `gitea` shipped a database that could not start.
 4. Add `run-for-traefik.sh` (copy from any existing service) if the stack needs a non-default `-f` combination.
 5. Write `README.md` — the line right after the `# Title` becomes the root README
    description, and the Quick Start block must show every applicable `-f` combination.
