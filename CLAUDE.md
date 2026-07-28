@@ -92,6 +92,42 @@ Yarn 4 (`packageManager: yarn@4.12.0`). There are no tests, no build, and no lin
 "Quality gate" here means: `yarn format`, `yarn update-readme`, and `docker compose config`
 parsing cleanly for any compose file you touched.
 
+## Commits and pull requests
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) for **every commit
+message and PR title**:
+
+```text
+<type>(<scope>): <description>
+```
+
+**Type** — `feat` (new service or capability), `fix`, `docs`, `chore` (image bumps,
+tooling, editor config), `refactor`, `build`, `ci`.
+
+**Scope** — the service folder name. Omit the scope for repo-wide changes.
+
+```text
+feat(agentlogs): add service with Traefik and dev overlays
+chore(grafana): bump grafana-oss to 11.4.0
+fix(glitchtip): drop default for GLITCHTIP_ENABLE_DUCKDB
+docs(siglens): document INGEST_PORT
+chore: upgrade yarn to v4.12.0
+```
+
+Rules:
+
+- Description in imperative mood, lowercase, no trailing period.
+- **One service per commit** where practical. The stacks are independent, so a commit
+  spanning several services is almost always separable and makes history harder to read.
+- Breaking or operator-action-required changes (renamed volume path, changed env var
+  name, major image upgrade) get a `!` before the colon — `feat(traefik)!: migrate to v3`
+  — and an explanatory commit body.
+- Regenerating the root README belongs in the same commit as the service it describes,
+  not a follow-up.
+
+PR titles follow the identical format. Note that history predating this convention is
+mixed sentence-case; match the convention above, not the older commits.
+
 ## Conventions
 
 **Env vars.** Every configurable value goes through `${VAR}` in the compose file and is
