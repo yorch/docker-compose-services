@@ -13,7 +13,8 @@ Web-based dashboard for WireGuard VPN management.
 ## Quick Start
 
 ```bash
-docker compose up -d
+# Behind Traefik - HTTPS through the reverse proxy
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
 ## Environment Variables

@@ -13,7 +13,14 @@ Self-hosted sync server for Joplin, an open-source note-taking application.
 ## Quick Start
 
 ```bash
-docker compose up -d
+# Dev - publishes ports on localhost
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Behind Traefik - HTTPS through the reverse proxy
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
+
+# Other setups:
+./run-manual-db-backup.sh
 ```
 
 ## Services

@@ -13,7 +13,11 @@ Apache CouchDB - a NoSQL document database with HTTP API and built-in replicatio
 ## Quick Start
 
 ```bash
-docker compose up -d
+# Dev - publishes ports on localhost
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Behind Traefik - HTTPS through the reverse proxy
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
 Access Fauxton web interface at `http://localhost:5984/_utils`

@@ -13,7 +13,11 @@ Workflow automation platform - open-source alternative to Zapier/Make.
 ## Quick Start
 
 ```bash
-docker compose up -d
+# Dev - publishes ports on localhost
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Behind Traefik - HTTPS through the reverse proxy
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
 Access n8n at `http://localhost:5678`
@@ -95,14 +99,14 @@ This setup uses n8n's **queue mode** with external task runners for scalable wor
 
 ## Volumes
 
-| Host Path            | Container Path             | Description      |
-| -------------------- | -------------------------- | ---------------- |
-| `./data/n8n`         | `/home/node/.n8n`          | n8n data         |
-| `./data/files`       | `/files`                   | Shared files     |
-| `./data/postgres`    | `/var/lib/postgresql/data` | Database data    |
-| `./data/qdrant`      | `/qdrant/storage`          | Vector data      |
-| `./data/redis`       | `/data`                    | Redis data       |
-| `./data/redisinsight`| `/data`                    | RedisInsight data|
+| Host Path             | Container Path             | Description       |
+| --------------------- | -------------------------- | ----------------- |
+| `./data/n8n`          | `/home/node/.n8n`          | n8n data          |
+| `./data/files`        | `/files`                   | Shared files      |
+| `./data/postgres`     | `/var/lib/postgresql/data` | Database data     |
+| `./data/qdrant`       | `/qdrant/storage`          | Vector data       |
+| `./data/redis`        | `/data`                    | Redis data        |
+| `./data/redisinsight` | `/data`                    | RedisInsight data |
 
 ## AI Features
 

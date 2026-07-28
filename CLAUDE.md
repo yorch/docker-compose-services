@@ -26,9 +26,18 @@ The central convention. A service's compose files are **merged** by passing mult
 Some services deviate with extra overlays for optional components
 (`qbittorrent/docker-compose.gluetun.yml`, `jaeger/docker-compose.hotrod.yml`,
 `traefik/docker-compose.http-auth.yml`, `*.ports.yml`). When they do, a matching
-`run-*.sh` script in the service folder documents the exact `-f` combination.
+`run-*.sh` script in the service folder documents the exact `-f` combination — treat
+that script as the source of truth for which files a setup needs. `qbittorrent` is the
+one case where the Traefik setup still needs `docker-compose.ports.yml`, because Traefik
+proxies only the web UI and the torrenting port must stay published.
 
 Keep new overlays additive: never duplicate keys already set in `docker-compose.yml`.
+
+**The base file must be named `docker-compose.yml`.** `update-readme.ts` decides what
+counts as a service by testing for that exact filename, so naming it anything else
+(`docker-compose.base.yml`, say) silently removes the service from the generated table
+with no error — and no amount of regeneration brings it back. Put deviations in
+overlays, never in the base file's name.
 
 ### Traefik overlay shape
 
@@ -145,9 +154,28 @@ repeating env blocks per container — see `glitchtip/docker-compose.yml`.
 
 **Service README.md.** Required for every service, and its shape is load-bearing:
 `update-readme.ts` takes the **first non-empty, non-heading line after the `# Title`**
-as the description in the root README table. Follow the existing layout: title,
-one-line description, Features, Quick Start, Environment Variables table, Volumes table,
-Links.
+as the description in the root README table. A README that opens with a badge, an image,
+or a `##` section yields a blank description cell rather than an error. Follow the
+existing layout: title, one-line description, Features, Quick Start, Environment
+Variables table, Volumes table, Links.
+
+**Quick Start blocks use raw `docker compose -f` commands**, not `task` / `just` /
+`yarn` shortcuts, so they stay correct regardless of which runner the repo uses. Show
+every applicable setup — dev and Traefik are separate invocations:
+
+````markdown
+```bash
+# Dev - publishes ports on localhost
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Behind Traefik - HTTPS through the reverse proxy
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
+```
+````
+
+Never document a bare `docker compose up -d` for a service whose ports live in an
+overlay: it starts a container with nothing published, so any `localhost:PORT` the
+README promises is unreachable. Only services with no overlays get the bare form.
 
 **Root README.** The region between `<!-- START SERVICES -->` and `<!-- END SERVICES -->`
 is generated. Never hand-edit it; run `yarn update-readme`.
@@ -159,8 +187,23 @@ is generated. Never hand-edit it; run `yarn update-readme`.
 
 1. Create `<service>/` with `docker-compose.yml` (image, restart policy, env vars, `./data` mounts).
 2. Add `docker-compose.dev.yml` publishing ports, and `docker-compose.for-traefik.yml` with the Traefik template above.
-3. Add `.env.sample` documenting every `${VAR}` used.
+3. Add `.env.sample` documenting **every** `${VAR}` the compose files reference. A var
+   used without a `:-default` and missing from the sample means anyone copying it gets an
+   empty value — which is how `gitea` shipped an unstartable database.
 4. Add `run-for-traefik.sh` (copy from any existing service) if the stack needs a non-default `-f` combination.
-5. Write `README.md` — the line right after the `# Title` becomes the root README description.
+5. Write `README.md` — the line right after the `# Title` becomes the root README
+   description, and the Quick Start block must show every applicable `-f` combination.
 6. Run `yarn update-readme` and `yarn format`.
 7. Add any new proper nouns to `cSpell.words`.
+
+Before committing docs changes, these two checks catch the mistakes that have actually
+happened here — a service invisible to the table, and a `${VAR}` no `.env.sample`
+defines:
+
+```bash
+# Every service folder the generator can see
+ls */docker-compose.yml | wc -l
+
+# Active vars missing from a service's .env.sample
+cat <service>/docker-compose*.yml | sed 's/#.*//' | grep -oE '\$\{[A-Z0-9_]+' | sed 's/\${//' | sort -u
+```
