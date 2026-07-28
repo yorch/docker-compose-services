@@ -68,7 +68,7 @@ cap_add:
   - SYS_MODULE
 ```
 
-## Features
+## Feature Details
 
 ### User Management
 

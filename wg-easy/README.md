@@ -13,7 +13,8 @@ Easy-to-use WireGuard VPN with web UI.
 ## Quick Start
 
 ```bash
-docker compose up -d
+# Behind Traefik - HTTPS through the reverse proxy
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
 Access the web UI at `http://localhost:51821`

@@ -16,7 +16,11 @@ Provides a real-time database, authentication, and file storage. It is designed 
 ## Quick Start
 
 ```bash
-docker compose up -d
+# Dev - publishes ports on localhost
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Behind Traefik - HTTPS through the reverse proxy
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
 Access the admin UI at `http://localhost:8080/_/`
@@ -35,7 +39,7 @@ Access the admin UI at `http://localhost:8080/_/`
 
 ### Data Directory Structure
 
-```
+```text
 data/
 ├── pb_data/         # Database and internal files
 └── pb_public/       # Public static files

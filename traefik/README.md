@@ -14,7 +14,9 @@ Modern HTTP reverse proxy and load balancer (v2.x).
 ## Quick Start
 
 ```bash
-docker compose up -d
+# Other setups:
+./run-with-forward-auth.sh
+./run-with-http-auth.sh
 ```
 
 Access the dashboard at `http://localhost:8080`

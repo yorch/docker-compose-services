@@ -16,7 +16,8 @@ Docker-powered PaaS that helps you build and manage the lifecycle of application
 See [SETUP.md](SETUP.md) for detailed setup and configuration instructions.
 
 ```bash
-docker compose up -d
+# Dev - publishes ports on localhost
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
 ## Environment Variables

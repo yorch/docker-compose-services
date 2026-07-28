@@ -14,7 +14,8 @@ Instant GraphQL APIs over PostgreSQL and other databases.
 ## Quick Start
 
 ```bash
-docker compose up -d
+# Dev - publishes ports on localhost
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
 Access the Hasura Console at `http://localhost:8080`

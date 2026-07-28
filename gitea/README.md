@@ -14,7 +14,11 @@ Self-hosted Git service similar to GitHub/GitLab with a lightweight footprint.
 ## Quick Start
 
 ```bash
-docker compose up -d
+# Dev - publishes ports on localhost
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Behind Traefik - HTTPS through the reverse proxy
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
 ## Services
@@ -26,6 +30,23 @@ docker compose up -d
 | `dbbackups` | Automated database backups |
 
 ## Environment Variables
+
+Set these in `.env` (copy from `.env.sample`). All are required — the database
+containers fail to start if `POSTGRES_PASSWORD` is empty.
+
+| Variable                       | Description                                 | Default  |
+| ------------------------------ | ------------------------------------------- | -------- |
+| `GITEA_DOMAIN`                 | Public hostname, used by the Traefik router | -        |
+| `POSTGRES_DATABASE`            | Database name                               | `gitea`  |
+| `POSTGRES_USER`                | Database user                               | `gitea`  |
+| `POSTGRES_PASSWORD`            | Database password                           | `gitea`  |
+| `DBBACKUPS_SCHEDULE`           | Backup cron schedule                        | `@daily` |
+| `DBBACKUPS_BACKUP_KEEP_DAYS`   | Daily backups to retain                     | `7`      |
+| `DBBACKUPS_BACKUP_KEEP_WEEKS`  | Weekly backups to retain                    | `4`      |
+| `DBBACKUPS_BACKUP_KEEP_MONTHS` | Monthly backups to retain                   | `6`      |
+| `DBBACKUPS_HEALTHCHECK_PORT`   | Backup container healthcheck port           | `8080`   |
+
+Set directly in `docker-compose.yml` rather than `.env`:
 
 | Variable                               | Description                   | Default    |
 | -------------------------------------- | ----------------------------- | ---------- |
@@ -60,7 +81,7 @@ git clone ssh://git@your-server:222/user/repo.git
 
 Or add to `~/.ssh/config`:
 
-```
+```text
 Host gitea
     HostName your-server
     Port 222

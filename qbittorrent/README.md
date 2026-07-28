@@ -14,7 +14,16 @@ Open-source BitTorrent client with web UI.
 ## Quick Start
 
 ```bash
-docker compose up -d
+# Dev - publishes ports on localhost
+docker compose -f docker-compose.yml -f docker-compose.ports.yml up -d
+
+# Behind Traefik - HTTPS for the web UI.
+# The ports overlay is still needed: Traefik proxies only the UI,
+# so the torrenting port must stay published on the host.
+docker compose -f docker-compose.yml -f docker-compose.ports.yml -f docker-compose.for-traefik.yml up -d
+
+# Other setups:
+./run-with-gluetun.sh
 ```
 
 Access the web UI at `http://localhost:8080`

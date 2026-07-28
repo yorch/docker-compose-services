@@ -13,7 +13,11 @@ Popular content management system (CMS) for websites and blogs.
 ## Quick Start
 
 ```bash
-docker compose up -d
+# Dev - publishes ports on localhost
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Behind Traefik - HTTPS through the reverse proxy
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
 Access WordPress at `http://localhost:8080`
@@ -27,7 +31,7 @@ Access WordPress at `http://localhost:8080`
 
 ## Environment Variables
 
-### WordPress
+### Application
 
 | Variable                      | Description       | Required |
 | ----------------------------- | ----------------- | -------- |
