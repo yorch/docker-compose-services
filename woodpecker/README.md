@@ -204,6 +204,27 @@ three are worth leaving as they are:
 Relaxing any of the three widens the blast radius to the host, so treat marking
 a repository trusted as the significant decision it is.
 
+## Remote Agents
+
+The bundled `agent` container reaches the server at `server:9000` over the
+internal network, and port 9000 is never published. Agents on **other hosts**
+therefore have nothing to connect to until you expose gRPC.
+
+`docker-compose.grpc.yml` adds a second Traefik router for it:
+
+```bash
+./run-for-traefik-with-grpc.sh
+```
+
+Set `GRPC_DOMAIN` to a hostname distinct from `DOMAIN` — gRPC gets its own
+router rather than sharing one with the web UI. The backend speaks plaintext
+HTTP/2, so the route uses Traefik's `h2c` scheme; without that, Traefik
+downgrades the connection and agents fail to register.
+
+Remote agents then set `WOODPECKER_SERVER=${GRPC_DOMAIN}:443` with
+`WOODPECKER_GRPC_SECURE=true`. See the
+[`woodpecker-agent`](../woodpecker-agent) service.
+
 ## Using Traefik
 
 The `server` container joins both the `default` and `traefik` networks. Both are

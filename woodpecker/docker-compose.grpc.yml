@@ -1,0 +1,15 @@
+# Publishes the gRPC endpoint so agents on other hosts can connect.
+# Layer this on top of docker-compose.for-traefik.yml, which supplies the
+# traefik network and the HTTP router - see run-for-traefik-with-grpc.sh.
+services:
+  server:
+    labels:
+      # gRPC on a hostname of its own, so it does not share a router with the
+      # web UI. The backend speaks plaintext HTTP/2, hence scheme=h2c.
+      - 'traefik.http.services.woodpecker-grpc.loadbalancer.server.port=9000'
+      - 'traefik.http.services.woodpecker-grpc.loadbalancer.server.scheme=h2c'
+      - 'traefik.http.routers.woodpecker-grpc.rule=Host(`${GRPC_DOMAIN:?hostname for the gRPC endpoint, e.g. ci-grpc.example.com}`)'
+      - 'traefik.http.routers.woodpecker-grpc.entrypoints=websecure'
+      - 'traefik.http.routers.woodpecker-grpc.tls=true'
+      - 'traefik.http.routers.woodpecker-grpc.tls.certResolver=webcert'
+      - 'traefik.http.routers.woodpecker-grpc.service=woodpecker-grpc'
