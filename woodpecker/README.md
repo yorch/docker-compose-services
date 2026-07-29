@@ -23,12 +23,26 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
+The Traefik overlay joins an external network that must already exist. Create it
+once per host:
+
+```bash
+../traefik3/setup.sh   # docker network create traefik
+```
+
 `WOODPECKER_HOST` must match how you actually reach the server, because it is
 also the OAuth callback host — a mismatch fails login after the GitHub redirect.
-`.env.sample` ships the Traefik value, so **for the dev overlay change it to
-`http://localhost:8000`** and register that as the callback URL on the OAuth app.
+Set it to match the overlay you are running, and register the same URL as the
+callback on the OAuth app:
 
-The UI is then at `http://localhost:8000`; sign in with GitHub.
+| Overlay | Reach the UI at         | `WOODPECKER_HOST`       |
+| ------- | ----------------------- | ----------------------- |
+| Dev     | `http://localhost:8000` | `http://localhost:8000` |
+| Traefik | `https://${DOMAIN}`     | `https://${DOMAIN}`     |
+
+`.env.sample` ships the Traefik value, so change it when using the dev overlay.
+The Traefik overlay publishes no ports, so `localhost:8000` is not reachable
+there. Sign in with GitHub once the UI loads.
 
 On macOS with Docker Desktop, Postgres 18 will not start against a bind mount —
 see [Storage](#storage) for the one-line `PGDATA` override that fixes local
