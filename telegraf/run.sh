@@ -1,4 +1,5 @@
 #!/bin/bash
+set -Eeuo pipefail
 
 # https://www.influxdata.com/blog/docker-run-telegraf-as-non-root/
 # https://github.com/influxdata/telegraf/issues/10050#issuecomment-968244937

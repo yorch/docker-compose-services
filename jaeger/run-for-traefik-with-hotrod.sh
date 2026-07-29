@@ -1,4 +1,5 @@
 #!/bin/bash
+set -Eeuo pipefail
 
 CMD="docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml -f docker-compose.hotrod.yml -f docker-compose.hotrod.for-traefik.yml"
 
