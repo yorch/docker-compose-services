@@ -141,8 +141,26 @@ mixed sentence-case; match the convention above, not the older commits.
 
 **Env vars.** Every configurable value goes through `${VAR}` in the compose file and is
 documented in `.env.sample`. `.env` is gitignored — never create or commit one. Use
-`${VAR?Variable VAR not set}` for values that must fail loudly (see `traefik3/`), and
-`${VAR:-default}` for optional ones.
+`${VAR:-default}` for optional values, and one of the two fail-fast forms for values
+with no safe default:
+
+| Form              | Fails when                | Use for                                             |
+| ----------------- | ------------------------- | --------------------------------------------------- |
+| `${VAR?message}`  | `VAR` is **unset**        | Values a user would omit entirely (see `traefik3/`) |
+| `${VAR:?message}` | unset **or empty string** | Anything `.env.sample` ships blank                  |
+
+**Prefer `:?`.** `.env.sample` files list secrets as `SECRET=` with no value, and
+copying that to `.env` leaves the variable _set but empty_ — which `${VAR?…}` does not
+catch. `woodpecker/` uses `:?` throughout; see it for the pattern.
+
+Never let the message contain a colon followed by a space. Inside an unquoted YAML
+sequence item that turns the entry into a mapping, and compose fails with
+`unexpected type map[string]interface {}` — an error that says nothing about your
+variable. Write `generate one with openssl rand -hex 32`, not `generate with: …`.
+
+Note that a service using `:?` cannot be validated with
+`docker compose --env-file .env.sample config` — that is the point, but it means the
+quality-gate check needs a filled `.env`.
 
 **Persistence.** Bind mounts under `./data` (e.g. `./data/postgres:/var/lib/postgresql/data`),
 never named volumes — no service in the repo declares a top-level `volumes:` block.

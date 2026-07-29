@@ -74,18 +74,31 @@ registration stays closed — with it enabled, any GitHub account can sign in.
 
 ## Environment Variables
 
-| Variable                   | Description                                         | Default      |
-| -------------------------- | --------------------------------------------------- | ------------ |
-| `DOMAIN`                   | Public hostname, used by the Traefik router         | -            |
-| `WOODPECKER_HOST`          | Full public URL, must match the OAuth callback host | -            |
-| `WOODPECKER_AGENT_SECRET`  | Shared server/agent secret                          | -            |
-| `WOODPECKER_ADMIN`         | Comma-separated GitHub logins granted admin         | -            |
-| `WOODPECKER_OPEN`          | Allow any GitHub user to register                   | `false`      |
-| `WOODPECKER_GITHUB_CLIENT` | GitHub OAuth app client ID                          | -            |
-| `WOODPECKER_GITHUB_SECRET` | GitHub OAuth app client secret                      | -            |
-| `POSTGRES_DB`              | Database name                                       | `woodpecker` |
-| `POSTGRES_USER`            | Database user                                       | `woodpecker` |
-| `POSTGRES_PASSWORD`        | Database password                                   | `woodpecker` |
+Everything marked required is declared required in `docker-compose.yml`. If one is
+missing or empty, `docker compose` stops before starting anything and names the
+variable — rather than launching a server that fails later at login or leaves the
+agent unable to authenticate.
+
+| Variable                   | Description                                         | Required     | Default      |
+| -------------------------- | --------------------------------------------------- | ------------ | ------------ |
+| `DOMAIN`                   | Public hostname, used by the Traefik router         | Traefik only | -            |
+| `WOODPECKER_HOST`          | Full public URL, must match the OAuth callback host | Yes          | -            |
+| `WOODPECKER_AGENT_SECRET`  | Shared server/agent secret                          | Yes          | -            |
+| `WOODPECKER_ADMIN`         | Comma-separated GitHub logins granted admin         | Yes          | -            |
+| `WOODPECKER_GITHUB_CLIENT` | GitHub OAuth app client ID                          | Yes          | -            |
+| `WOODPECKER_GITHUB_SECRET` | GitHub OAuth app client secret                      | Yes          | -            |
+| `POSTGRES_DB`              | Database name                                       | Yes          | `woodpecker` |
+| `POSTGRES_USER`            | Database user                                       | Yes          | `woodpecker` |
+| `POSTGRES_PASSWORD`        | Database password                                   | Yes          | `woodpecker` |
+| `WOODPECKER_OPEN`          | Allow any GitHub user to register                   | No           | `false`      |
+
+Because `.env.sample` ships the secrets blank, validating against it directly
+fails by design:
+
+```bash
+cp .env.sample .env   # then fill it in
+docker compose --env-file .env -f docker-compose.yml config -q
+```
 
 ## Ports
 

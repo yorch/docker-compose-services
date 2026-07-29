@@ -11,18 +11,18 @@ services:
       # sqlite persists the database.
       - ./data/server:/var/lib/woodpecker
     environment:
-      - WOODPECKER_HOST=${WOODPECKER_HOST}
+      - WOODPECKER_HOST=${WOODPECKER_HOST:?set WOODPECKER_HOST to the public URL, e.g. https://woodpecker.example.com}
       # Keep registration closed on a private instance - without this any
       # GitHub user can log in.
       - WOODPECKER_OPEN=${WOODPECKER_OPEN:-false}
-      - WOODPECKER_ADMIN=${WOODPECKER_ADMIN}
-      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
+      - WOODPECKER_ADMIN=${WOODPECKER_ADMIN:?set WOODPECKER_ADMIN to your forge login, or nobody can administer the instance}
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET:?generate one with openssl rand -hex 32}
       # Forge: GitHub OAuth app with callback ${WOODPECKER_HOST}/authorize
       - WOODPECKER_GITHUB=true
-      - WOODPECKER_GITHUB_CLIENT=${WOODPECKER_GITHUB_CLIENT}
-      - WOODPECKER_GITHUB_SECRET=${WOODPECKER_GITHUB_SECRET}
+      - WOODPECKER_GITHUB_CLIENT=${WOODPECKER_GITHUB_CLIENT:?client ID from the GitHub OAuth app}
+      - WOODPECKER_GITHUB_SECRET=${WOODPECKER_GITHUB_SECRET:?client secret from the GitHub OAuth app}
       - WOODPECKER_DATABASE_DRIVER=postgres
-      - WOODPECKER_DATABASE_DATASOURCE=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      - WOODPECKER_DATABASE_DATASOURCE=postgres://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?set a database password}@postgres:5432/${POSTGRES_DB:?}?sslmode=disable
 
   agent:
     image: woodpeckerci/woodpecker-agent:v3
@@ -38,7 +38,7 @@ services:
     environment:
       # gRPC, not HTTP. Stays on the internal network and is never published.
       - WOODPECKER_SERVER=server:9000
-      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET:?generate one with openssl rand -hex 32}
 
   postgres:
     image: postgres:18-alpine
@@ -50,9 +50,9 @@ services:
       # no error - see the Storage section of the README.
       - ./data/postgres:/var/lib/postgresql
     environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:?}
+      - POSTGRES_USER=${POSTGRES_USER:?}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set a database password}
     healthcheck:
       test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 10s
