@@ -18,6 +18,13 @@ Product analytics platform for mobile, web, and desktop applications.
 docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
+The Traefik overlay joins an external network that must already exist. Create it
+once per host:
+
+```bash
+../traefik3/setup.sh   # docker network create traefik
+```
+
 ## Services
 
 | Service            | Description      |

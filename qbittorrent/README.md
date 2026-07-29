@@ -26,6 +26,13 @@ docker compose -f docker-compose.yml -f docker-compose.ports.yml -f docker-compo
 ./run-with-gluetun.sh
 ```
 
+The Traefik overlay joins an external network that must already exist. Create it
+once per host:
+
+```bash
+../traefik3/setup.sh   # docker network create traefik
+```
+
 Access the web UI at `http://localhost:8080`
 
 Default credentials: `admin` / Check logs for password

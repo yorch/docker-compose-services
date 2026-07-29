@@ -17,6 +17,13 @@ Easy-to-use WireGuard VPN with web UI.
 docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
+The Traefik overlay joins an external network that must already exist. Create it
+once per host:
+
+```bash
+../traefik3/setup.sh   # docker network create traefik
+```
+
 Access the web UI at `http://localhost:51821`
 
 ## Environment Variables
