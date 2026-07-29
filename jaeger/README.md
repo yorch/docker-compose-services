@@ -24,6 +24,13 @@ docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ./run-for-traefik-with-hotrod.sh  # behind Traefik
 ```
 
+The Traefik overlay joins an external network that must already exist. Create it
+once per host:
+
+```bash
+../traefik3/setup.sh   # docker network create traefik
+```
+
 Access the Jaeger UI at `http://localhost:16686`
 
 ## Ports
