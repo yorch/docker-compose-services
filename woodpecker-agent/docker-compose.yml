@@ -1,0 +1,22 @@
+services:
+  agent:
+    image: woodpeckerci/woodpecker-agent:v3
+    command: agent
+    restart: unless-stopped
+    volumes:
+      - ./data/agent:/etc/woodpecker
+      # Pipelines run as sibling containers on the host daemon. This grants the
+      # agent root-equivalent access to this host - see the README.
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      # The server's gRPC endpoint, not its web URL. Behind a reverse proxy
+      # this is usually the host on 443, e.g. ci.example.com:443.
+      - WOODPECKER_SERVER=${WOODPECKER_SERVER:?host and port of the server gRPC endpoint, e.g. ci.example.com:443}
+      # Must match the server's WOODPECKER_AGENT_SECRET exactly.
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET:?must match the value set on the server}
+      # Upstream defaults GRPC_SECURE to false. Anything crossing the public
+      # internet must set it true, or the secret travels in the clear.
+      - WOODPECKER_GRPC_SECURE=${WOODPECKER_GRPC_SECURE:-true}
+      - WOODPECKER_GRPC_VERIFY=${WOODPECKER_GRPC_VERIFY:-true}
+      # How many workflows this agent runs at once. Upstream default is 1.
+      - WOODPECKER_MAX_WORKFLOWS=${WOODPECKER_MAX_WORKFLOWS:-1}

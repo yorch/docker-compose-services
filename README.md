@@ -122,6 +122,7 @@ yarn update-readme   # regenerate the services table below
 | [Wg Easy](./wg-easy)                             | Easy-to-use WireGuard VPN with web UI.                                                                        |
 | [Wg Portal](./wg-portal)                         | Enterprise-grade WireGuard VPN management portal.                                                             |
 | [Woodpecker](./woodpecker)                       | Lightweight container-native CI/CD engine driven by a `.woodpecker.yaml` in each repository.                  |
+| [Woodpecker Agent](./woodpecker-agent)           | Standalone Woodpecker CI agent that adds build capacity to an existing Woodpecker server.                     |
 | [Wordpress](./wordpress)                         | Popular content management system (CMS) for websites and blogs.                                               |
 | [Wyze Bridge](./wyze-bridge)                     | RTSP bridge for Wyze cameras - view your cameras in any RTSP-compatible viewer.                               |
 

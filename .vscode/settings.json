@@ -27,6 +27,7 @@
     "glitchtip",
     "gluetun",
     "groq",
+    "grpc",
     "hasura",
     "healthcheck",
     "hotrod",
