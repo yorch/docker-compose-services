@@ -1,0 +1,22 @@
+services:
+  server:
+    # Must stay on `default` as well as `traefik` - the agent reaches the
+    # server over gRPC at server:9000 on the internal network.
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.woodpecker.loadbalancer.server.port=8000'
+      # HTTPS Host
+      - 'traefik.http.routers.woodpecker.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.woodpecker.entrypoints=websecure'
+      - 'traefik.http.routers.woodpecker.tls=true'
+      - 'traefik.http.routers.woodpecker.tls.certResolver=webcert'
+      - 'traefik.http.routers.woodpecker.service=woodpecker'
+
+networks:
+  traefik:
+    external: true
