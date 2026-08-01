@@ -92,19 +92,9 @@ empty.
 
 On macOS with Docker Desktop the documented mount does not start at all; it
 exits with `data directory "/var/lib/postgresql/18/docker" has wrong ownership`,
-because Postgres must create and own a subdirectory inside the bind mount. For
-local development, put the database back on the pre-18 layout with an extra
-overlay:
-
-```yaml
-# docker-compose.macos.yml
-services:
-  postgres:
-    environment:
-      - PGDATA=/var/lib/postgresql/data
-    volumes: !override
-      - ./data/postgres:/var/lib/postgresql/data
-```
+because Postgres must create and own a subdirectory inside the bind mount.
+`docker-compose.macos.yml` puts the database back on the pre-18 layout for local
+development:
 
 ```bash
 mkdir -p data/postgres
@@ -112,32 +102,46 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml \
   -f docker-compose.macos.yml up -d
 ```
 
-`!override` is required — a plain `volumes:` key merges with the base file and
-leaves the mount on `/var/lib/postgresql`. `PGDATA` and the mount must change
-together, and `data/postgres` must be pre-created or Docker Desktop creates it
-with the wrong ownership.
+Pre-creating `data/postgres` matters — if Docker Desktop creates it, ownership is
+wrong and Postgres exits. The overlay uses `!override` (Compose v2.24 or newer)
+because a plain `volumes:` key merges with the base file and would leave the
+mount on `/var/lib/postgresql`.
+
+Use this overlay on macOS only, and only for a fresh database. The two layouts
+are not interchangeable, so switching an existing `data/postgres` between them
+does not work.
 
 ## Environment Variables
 
 Everything marked required is declared required in `docker-compose.yml`. If one
 is missing or empty, `docker compose` stops before starting anything and names
-the variable.
+the variable. Nothing in the table has a compose-level default; the `Default`
+column is what the image falls back to. `.env.sample` pre-fills `POSTGRES_DB`
+and `POSTGRES_USER` with `openobserve`, so in practice only the two passwords
+and the admin email need filling in.
 
-| Variable                | Description                                    | Required     | Default       |
-| ----------------------- | ---------------------------------------------- | ------------ | ------------- |
-| `DOMAIN`                | Public hostname, used by the Traefik router    | Traefik only | -             |
-| `ZO_ROOT_USER_EMAIL`    | Initial admin login, created on first start    | Yes          | -             |
-| `ZO_ROOT_USER_PASSWORD` | Initial admin password                         | Yes          | -             |
-| `POSTGRES_DB`           | Database name                                  | Yes          | `openobserve` |
-| `POSTGRES_USER`         | Database user                                  | Yes          | `openobserve` |
-| `POSTGRES_PASSWORD`     | Database password                              | Yes          | -             |
-| `ZO_LOCAL_MODE_STORAGE` | Ingested data location — `disk` or `s3`        | No           | `disk`        |
-| `ZO_S3_PROVIDER`        | `aws`, `gcs`, `gcp`, `oss`, `minio` or `swift` | S3 only      | `s3`          |
-| `ZO_S3_SERVER_URL`      | Endpoint URL — leave empty for AWS S3          | S3 only      | -             |
-| `ZO_S3_REGION_NAME`     | Bucket region                                  | S3 only      | -             |
-| `ZO_S3_BUCKET_NAME`     | Bucket name                                    | S3 only      | -             |
-| `ZO_S3_ACCESS_KEY`      | Access key                                     | S3 only      | -             |
-| `ZO_S3_SECRET_KEY`      | Secret key                                     | S3 only      | -             |
+**`POSTGRES_PASSWORD` must be URL-safe.** It is interpolated into
+`ZO_META_POSTGRES_DSN` as a connection URL, so a `/` or `@` truncates the
+authority and the container dies at startup with
+`postgres connect options create failed: Configuration(InvalidPort)` — an error
+that names the port rather than the password. `openssl rand -base64` routinely
+emits `/`; use `openssl rand -hex 32` instead.
+
+| Variable                | Description                                        | Required     | Default |
+| ----------------------- | -------------------------------------------------- | ------------ | ------- |
+| `DOMAIN`                | Public hostname, used by the Traefik router        | Traefik only | -       |
+| `ZO_ROOT_USER_EMAIL`    | Initial admin login, created on first start        | Yes          | -       |
+| `ZO_ROOT_USER_PASSWORD` | Initial admin password                             | Yes          | -       |
+| `POSTGRES_DB`           | Database name                                      | Yes          | -       |
+| `POSTGRES_USER`         | Database user                                      | Yes          | -       |
+| `POSTGRES_PASSWORD`     | Database password, must be URL-safe                | Yes          | -       |
+| `ZO_LOCAL_MODE_STORAGE` | Ingested data location — `disk` or `s3`            | No           | `disk`  |
+| `ZO_S3_PROVIDER`        | `s3`, `aws`, `gcs`, `gcp`, `oss`, `minio`, `swift` | S3 only      | `s3`    |
+| `ZO_S3_SERVER_URL`      | Endpoint URL — leave empty for AWS S3              | S3 only      | -       |
+| `ZO_S3_REGION_NAME`     | Bucket region                                      | S3 only      | -       |
+| `ZO_S3_BUCKET_NAME`     | Bucket name                                        | S3 only      | -       |
+| `ZO_S3_ACCESS_KEY`      | Access key                                         | S3 only      | -       |
+| `ZO_S3_SECRET_KEY`      | Secret key                                         | S3 only      | -       |
 
 Because `.env.sample` ships secrets blank, validating against it directly fails
 by design:
