@@ -1,0 +1,20 @@
+services:
+  app:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.openobserve.loadbalancer.server.port=5080'
+      # HTTPS Host
+      - 'traefik.http.routers.openobserve.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.openobserve.entrypoints=websecure'
+      - 'traefik.http.routers.openobserve.tls=true'
+      - 'traefik.http.routers.openobserve.tls.certResolver=webcert'
+      - 'traefik.http.routers.openobserve.service=openobserve'
+
+networks:
+  traefik:
+    external: true

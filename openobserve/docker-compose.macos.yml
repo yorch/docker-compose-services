@@ -1,0 +1,22 @@
+# Local development on macOS with Docker Desktop only.
+#
+# Postgres 18 keeps PGDATA in a subdirectory of its volume, and cannot create
+# and own that subdirectory inside a Docker Desktop bind mount - it exits with
+# `data directory "/var/lib/postgresql/18/docker" has wrong ownership`. This
+# overlay puts the database back on the pre-18 layout so it starts.
+#
+# Do not use this on Linux, and do not use it with an existing data directory
+# written by the base file - the two layouts are not interchangeable.
+#
+#   mkdir -p data/postgres
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+#     -f docker-compose.macos.yml up -d
+#
+# `!override` is required: a plain volumes key merges with the base file and
+# would leave the mount on /var/lib/postgresql. Needs Compose v2.24 or newer.
+services:
+  postgres:
+    environment:
+      - PGDATA=/var/lib/postgresql/data
+    volumes: !override
+      - ./data/postgres:/var/lib/postgresql/data
