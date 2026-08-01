@@ -101,6 +101,7 @@ yarn update-readme   # regenerate the services table below
 | [Odoo](./odoo)                                   | Open-source ERP and business applications suite.                                                              |
 | [One Dev](./one-dev)                             | Self-hosted Git server with built-in CI/CD capabilities.                                                      |
 | [Open Webui](./open-webui)                       | Web interface for interacting with LLMs - ChatGPT-like UI for Ollama and OpenAI.                              |
+| [Openobserve](./openobserve)                     | Full-stack observability platform for logs, metrics and traces, with built-in dashboards and alerting.        |
 | [Openui](./openui)                               | AI-powered UI generation tool by Weights & Biases.                                                            |
 | [Plausible Analytics](./plausible-analytics)     | Privacy-friendly, lightweight website analytics.                                                              |
 | [Pocketbase](./pocketbase)                       | Open-source backend in a single file.                                                                         |

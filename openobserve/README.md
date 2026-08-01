@@ -1,92 +1,192 @@
-# Plausible Analytics
+# OpenObserve
 
-Privacy-friendly, lightweight website analytics.
+Full-stack observability platform for logs, metrics and traces, with built-in dashboards and alerting.
 
 ## Features
 
-- No cookies required
-- GDPR/CCPA compliant
-- Lightweight script (<1KB)
-- Real-time dashboard
-- Goal and event tracking
-- Email reports
+- Logs, metrics and traces in a single stack
+- Ingests OpenTelemetry, Fluent Bit, Vector, Filebeat and Elasticsearch-compatible data
+- SQL and PromQL queries over ingested streams
+- Dashboards, alerts and scheduled reports
+- Stores data as Parquet on local disk or any S3-compatible object store
+- Postgres-backed metadata for durability
 
 ## Quick Start
 
-1. Generate required keys:
+Copy `.env.sample` to `.env` and fill in the blank values first — the admin
+login and the database password have no defaults.
 
 ```bash
-# Generate SECRET_KEY_BASE
-openssl rand -base64 48
+# Dev - publishes ports on localhost
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
-# Generate TOTP_VAULT_KEY
-openssl rand -base64 32
+# Behind Traefik - HTTPS through the reverse proxy
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
-2. Configure environment variables
-3. Start the services:
+The Traefik overlay joins an external network that must already exist. Create it
+once per host:
 
 ```bash
-docker compose up -d
+../traefik3/setup.sh   # docker network create traefik
 ```
+
+With the dev overlay the UI is at `http://localhost:5080`; sign in with
+`ZO_ROOT_USER_EMAIL` and `ZO_ROOT_USER_PASSWORD`. The Traefik overlay publishes
+no ports, so reach it at `https://${DOMAIN}` instead.
+
+On **macOS with Docker Desktop**, Postgres 18 will not start against a bind
+mount — see [Storage](#storage) for the overlay that fixes local development.
+Linux hosts need no change.
 
 ## Services
 
-| Service      | Description             |
-| ------------ | ----------------------- |
-| `app`        | Plausible application   |
-| `postgres`   | PostgreSQL for metadata |
-| `clickhouse` | ClickHouse for events   |
+| Service    | Description                                             |
+| ---------- | ------------------------------------------------------- |
+| `app`      | Ingestion API, query engine and web UI on port 5080     |
+| `postgres` | Metadata — users, dashboards, alerts and stream schemas |
+
+The image is the AGPL-3.0 open source build. An enterprise build exists at
+`o2cr.ai/openobserve/openobserve-enterprise`, published under a commercial
+license agreement; the OSS `latest` tag tends to trail it by a few patch
+releases.
+
+## Metadata Store
+
+`ZO_META_STORE=postgres` is what selects Postgres, and it is set in
+`docker-compose.yml` rather than exposed in `.env`. **Supplying only
+`ZO_META_POSTGRES_DSN` is not enough** — OpenObserve defaults to SQLite in local
+mode, silently ignores the DSN, writes metadata to `./data/app/db/metadata.sqlite`
+and leaves the Postgres container empty. There is no error, and the container
+reports healthy either way, so the mistake only surfaces when you go looking for
+your dashboards after a restore.
+
+Don't check this by looking for `./data/app/db/metadata.sqlite` — that file is
+created either way, and only its size differs (a few KB when unused, hundreds of
+KB when it is the real store). Query Postgres instead; a correctly wired
+instance has roughly 80 tables and your admin account:
+
+```bash
+docker compose exec postgres \
+  psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c 'select email from users;'
+```
+
+## Storage
+
+`ZO_LOCAL_MODE_STORAGE` decides where ingested data lands, and defaults to
+`disk` — everything stays under `./data/app`, which is the right choice for a
+single-node deployment.
+
+To use an object store instead, set `ZO_LOCAL_MODE_STORAGE=s3` and fill in the
+`ZO_S3_*` values. **They are read only in that mode**; while it stays `disk`,
+all six are ignored no matter what you put in `.env`.
+
+### Postgres 18 on macOS
+
+This service runs `postgres:18-alpine`. **Postgres 18 changed where the image
+keeps its data**: the image's `VOLUME` moved from `/var/lib/postgresql/data` to
+`/var/lib/postgresql`, and `PGDATA` is now `/var/lib/postgresql/18/docker`.
+Mounting the pre-18 path against this image does not fail — Docker creates an
+anonymous volume, writes the real database there, and leaves the bind mount
+empty.
+
+On macOS with Docker Desktop the documented mount does not start at all; it
+exits with `data directory "/var/lib/postgresql/18/docker" has wrong ownership`,
+because Postgres must create and own a subdirectory inside the bind mount. For
+local development, put the database back on the pre-18 layout with an extra
+overlay:
+
+```yaml
+# docker-compose.macos.yml
+services:
+  postgres:
+    environment:
+      - PGDATA=/var/lib/postgresql/data
+    volumes: !override
+      - ./data/postgres:/var/lib/postgresql/data
+```
+
+```bash
+mkdir -p data/postgres
+docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+  -f docker-compose.macos.yml up -d
+```
+
+`!override` is required — a plain `volumes:` key merges with the base file and
+leaves the mount on `/var/lib/postgresql`. `PGDATA` and the mount must change
+together, and `data/postgres` must be pre-created or Docker Desktop creates it
+with the wrong ownership.
 
 ## Environment Variables
 
-| Variable                  | Description            | Required |
-| ------------------------- | ---------------------- | -------- |
-| `BASE_URL`                | Public URL             | Yes      |
-| `SECRET_KEY_BASE`         | Secret key (64+ chars) | Yes      |
-| `TOTP_VAULT_KEY`          | 2FA encryption key     | Yes      |
-| `DATABASE_URL`            | PostgreSQL URL         | Yes      |
-| `CLICKHOUSE_DATABASE_URL` | ClickHouse URL         | Yes      |
+Everything marked required is declared required in `docker-compose.yml`. If one
+is missing or empty, `docker compose` stops before starting anything and names
+the variable.
 
-### Email Configuration
+| Variable                | Description                                    | Required     | Default       |
+| ----------------------- | ---------------------------------------------- | ------------ | ------------- |
+| `DOMAIN`                | Public hostname, used by the Traefik router    | Traefik only | -             |
+| `ZO_ROOT_USER_EMAIL`    | Initial admin login, created on first start    | Yes          | -             |
+| `ZO_ROOT_USER_PASSWORD` | Initial admin password                         | Yes          | -             |
+| `POSTGRES_DB`           | Database name                                  | Yes          | `openobserve` |
+| `POSTGRES_USER`         | Database user                                  | Yes          | `openobserve` |
+| `POSTGRES_PASSWORD`     | Database password                              | Yes          | -             |
+| `ZO_LOCAL_MODE_STORAGE` | Ingested data location — `disk` or `s3`        | No           | `disk`        |
+| `ZO_S3_PROVIDER`        | `aws`, `gcs`, `gcp`, `oss`, `minio` or `swift` | S3 only      | `s3`          |
+| `ZO_S3_SERVER_URL`      | Endpoint URL — leave empty for AWS S3          | S3 only      | -             |
+| `ZO_S3_REGION_NAME`     | Bucket region                                  | S3 only      | -             |
+| `ZO_S3_BUCKET_NAME`     | Bucket name                                    | S3 only      | -             |
+| `ZO_S3_ACCESS_KEY`      | Access key                                     | S3 only      | -             |
+| `ZO_S3_SECRET_KEY`      | Secret key                                     | S3 only      | -             |
 
-| Variable         | Description        |
-| ---------------- | ------------------ |
-| `MAILER_EMAIL`   | From email address |
-| `MAILER_ADAPTER` | Email adapter      |
-| `SMTP_HOST_ADDR` | SMTP server        |
-| `SMTP_HOST_PORT` | SMTP port          |
-| `SMTP_USER_NAME` | SMTP username      |
-| `SMTP_USER_PWD`  | SMTP password      |
+Because `.env.sample` ships secrets blank, validating against it directly fails
+by design:
 
-### GeoIP (Optional)
+```bash
+cp .env.sample .env   # then fill it in
+docker compose --env-file .env -f docker-compose.yml config -q
+```
 
-| Variable              | Description         |
-| --------------------- | ------------------- |
-| `MAXMIND_LICENSE_KEY` | MaxMind license key |
+## Ports
+
+| Port        | Description                                  |
+| ----------- | -------------------------------------------- |
+| `5080:5080` | HTTP API, ingestion and web UI (dev overlay) |
 
 ## Volumes
 
-| Host Path           | Container Path             | Description      |
-| ------------------- | -------------------------- | ---------------- |
-| `./data/app`        | `/var/lib/plausible`       | Application data |
-| `./data/postgres`   | `/var/lib/postgresql/data` | PostgreSQL data  |
-| `./data/clickhouse` | `/var/lib/clickhouse`      | ClickHouse data  |
+| Host Path         | Container Path        | Description                                           |
+| ----------------- | --------------------- | ----------------------------------------------------- |
+| `./data/app`      | `/data`               | WAL, caches, and ingested data when storage is `disk` |
+| `./data/postgres` | `/var/lib/postgresql` | Metadata database (see Storage above)                 |
 
-## Website Integration
+## Health Check
 
-Add to your website:
+The container has no Docker healthcheck. The image is distroless — it ships no
+shell, `curl`, `wget` or `nc` — so an in-container check cannot run and adding
+one marks the container permanently unhealthy. Check it from the host instead:
 
-```html
-<script
-  defer
-  data-domain="yourdomain.com"
-  src="https://plausible.yourdomain.com/js/script.js"
-></script>
+```bash
+curl http://localhost:5080/healthz   # {"status":"ok"}
 ```
+
+## Ingestion
+
+Ingest with HTTP basic auth using the root credentials:
+
+```bash
+curl -u "${ZO_ROOT_USER_EMAIL}:${ZO_ROOT_USER_PASSWORD}" \
+  -X POST "http://localhost:5080/api/default/default/_json" \
+  -H 'Content-Type: application/json' \
+  -d '[{"level":"info","message":"hello"}]'
+```
+
+For long-lived collectors, create a dedicated user and token in the UI rather
+than reusing the root credentials.
 
 ## Links
 
-- [Plausible Website](https://plausible.io/)
-- [Documentation](https://plausible.io/docs)
-- [GitHub Repository](https://github.com/plausible/analytics)
+- [OpenObserve Website](https://openobserve.ai/)
+- [Documentation](https://openobserve.ai/docs/)
+- [Environment Variables Reference](https://openobserve.ai/docs/environment-variables/)
+- [GitHub Repository](https://github.com/openobserve/openobserve)
