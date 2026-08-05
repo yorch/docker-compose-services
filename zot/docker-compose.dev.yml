@@ -1,0 +1,7 @@
+services:
+  zot:
+    ports:
+      # macOS binds 5000 to the AirPlay Receiver by default. Set ZOT_HOST_PORT
+      # to something else in .env rather than editing config.json - the
+      # container port is fixed there and referenced by the Traefik overlay.
+      - ${ZOT_HOST_PORT:-5000}:5000
