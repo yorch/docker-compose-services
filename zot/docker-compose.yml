@@ -1,0 +1,20 @@
+services:
+  zot:
+    image: ghcr.io/project-zot/zot:latest
+    restart: unless-stopped
+    volumes:
+      # Zot reads every setting from this file - it has no environment-variable
+      # support, so the repo's ${VAR} convention does not reach its config. The
+      # file is committed and mounted read-only; edit it directly. See the
+      # Configuration section of the README.
+      - ./config.json:/etc/zot/config.json:ro
+      - ./data/registry:/var/lib/registry
+      # The directory, not the file. Zot watches htpasswd with fsnotify and
+      # reloads it without a restart, but `htpasswd` rewrites the file rather
+      # than editing it in place - a single-file bind mount would stay pinned
+      # to the replaced inode and never see new users.
+      - ./data/auth:/etc/zot/auth
+    # No healthcheck - the image is distroless and ships no shell, curl, wget
+    # or nc to run one with. Adding one marks the container permanently
+    # unhealthy. /livez is reachable from outside the container and needs no
+    # credentials - see the Health Check section of the README.

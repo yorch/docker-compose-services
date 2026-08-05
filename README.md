@@ -126,5 +126,6 @@ yarn update-readme   # regenerate the services table below
 | [Woodpecker Agent](./woodpecker-agent)           | Standalone Woodpecker CI agent that adds build capacity to an existing Woodpecker server.                     |
 | [Wordpress](./wordpress)                         | Popular content management system (CMS) for websites and blogs.                                               |
 | [Wyze Bridge](./wyze-bridge)                     | RTSP bridge for Wyze cameras - view your cameras in any RTSP-compatible viewer.                               |
+| [Zot](./zot)                                     | OCI-native container registry with a built-in web UI, CVE scanning and on-demand Docker Hub mirroring.        |
 
 <!-- END SERVICES -->
