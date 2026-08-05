@@ -2,6 +2,10 @@
 
 Automated Docker container updater that monitors and updates running containers.
 
+Uses [`nickfedor/watchtower`](https://github.com/nicholas-fedor/watchtower), the actively
+maintained fork of the archived `containrrr/watchtower`. See [`../watchtower`](../watchtower)
+for the fuller, environment-variable-driven setup.
+
 ## Features
 
 - Automatically updates Docker containers to the latest images
@@ -43,5 +47,6 @@ labels:
 
 ## Links
 
-- [Watchtower Documentation](https://containrrr.dev/watchtower/)
-- [GitHub Repository](https://github.com/containrrr/watchtower)
+- [Watchtower Documentation](https://watchtower.nickfedor.com/)
+- [GitHub Repository](https://github.com/nicholas-fedor/watchtower)
+- [Docker Hub](https://hub.docker.com/r/nickfedor/watchtower)
