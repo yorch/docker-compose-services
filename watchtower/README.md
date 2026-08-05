@@ -77,7 +77,7 @@ Update all containers once and exit:
 ```bash
 docker run --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  nickfedor/watchtower \
+  nickfedor/watchtower:1 \
   --run-once
 ```
 
