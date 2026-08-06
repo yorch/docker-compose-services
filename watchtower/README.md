@@ -2,6 +2,11 @@
 
 Automated Docker container updates.
 
+Uses [`nickfedor/watchtower`](https://github.com/nicholas-fedor/watchtower), the actively
+maintained fork of the archived `containrrr/watchtower`. It is a drop-in replacement: the
+`com.centurylinklabs.watchtower.*` labels and `WATCHTOWER_*` environment variables are
+unchanged.
+
 ## Features
 
 - Automatic container updates
@@ -72,7 +77,7 @@ Update all containers once and exit:
 ```bash
 docker run --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  containrrr/watchtower \
+  nickfedor/watchtower:1 \
   --run-once
 ```
 
@@ -88,6 +93,6 @@ labels:
 
 ## Links
 
-- [Watchtower Website](https://containrrr.dev/watchtower/)
-- [Documentation](https://containrrr.dev/watchtower/)
-- [GitHub Repository](https://github.com/containrrr/watchtower)
+- [Documentation](https://watchtower.nickfedor.com/)
+- [GitHub Repository](https://github.com/nicholas-fedor/watchtower)
+- [Docker Hub](https://hub.docker.com/r/nickfedor/watchtower)
