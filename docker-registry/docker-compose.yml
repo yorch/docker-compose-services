@@ -47,9 +47,11 @@ services:
   #   depends_on:
   #     - registry
 
-  # https://joxit.dev/docker-registry-ui/
   ui:
-    image: joxit/docker-registry-ui:main
+    # https://joxit.dev/docker-registry-ui/
+    # image: joxit/docker-registry-ui:main
+    # https://yorch.github.io/docker-registry-ui/
+    image: ghcr.io/yorch/docker-registry-ui:main
     restart: unless-stopped
     environment:
       - NGINX_PROXY_PASS_URL=http://registry:${REGISTRY_PORT}
