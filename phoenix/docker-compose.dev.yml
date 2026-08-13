@@ -1,0 +1,7 @@
+services:
+  phoenix:
+    ports:
+      # Web UI, REST/GraphQL API and the OTLP over HTTP collector
+      - 6006:6006
+      # OTLP over gRPC collector
+      - 4317:4317

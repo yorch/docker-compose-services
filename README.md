@@ -103,6 +103,7 @@ yarn update-readme   # regenerate the services table below
 | [Open Webui](./open-webui)                       | Web interface for interacting with LLMs - ChatGPT-like UI for Ollama and OpenAI.                              |
 | [Openobserve](./openobserve)                     | Full-stack observability platform for logs, metrics and traces, with built-in dashboards and alerting.        |
 | [Openui](./openui)                               | AI-powered UI generation tool by Weights & Biases.                                                            |
+| [Phoenix](./phoenix)                             | Open-source LLM tracing, evaluation and prompt experimentation, with a built-in OpenTelemetry collector.      |
 | [Plausible Analytics](./plausible-analytics)     | Privacy-friendly, lightweight website analytics.                                                              |
 | [Pocketbase](./pocketbase)                       | Open-source backend in a single file.                                                                         |
 | [Portainer](./portainer)                         | Docker and Kubernetes management GUI.                                                                         |

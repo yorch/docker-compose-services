@@ -1,0 +1,19 @@
+services:
+  phoenix:
+    networks:
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.phoenix.loadbalancer.server.port=6006'
+      # HTTPS Host
+      - 'traefik.http.routers.phoenix.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.phoenix.entrypoints=websecure'
+      - 'traefik.http.routers.phoenix.tls=true'
+      - 'traefik.http.routers.phoenix.tls.certResolver=webcert'
+      - 'traefik.http.routers.phoenix.service=phoenix'
+
+networks:
+  traefik:
+    external: true
