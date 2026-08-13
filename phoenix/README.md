@@ -60,11 +60,39 @@ export PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 | OTLP over gRPC | `http://localhost:4317`           |
 
 With authentication enabled, exporters must also send an API key created in the
-UI, as `Authorization: Bearer <key>`.
+UI, as `Authorization: Bearer <key>`:
 
-The Traefik overlay proxies port 6006 only, which covers the UI, the APIs and
-OTLP over HTTP. gRPC ingest on 4317 is not published there - send traces over
-HTTP, or add a dedicated Traefik entrypoint for it.
+```bash
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer%20<api-key>"
+```
+
+### Behind Traefik
+
+Both protocols reach Phoenix on the standard HTTPS port, so exporters need only
+the hostname and no extra published ports:
+
+| Protocol       | Endpoint                      |
+| -------------- | ----------------------------- |
+| OTLP over HTTP | `https://${DOMAIN}/v1/traces` |
+| OTLP over gRPC | `https://${DOMAIN}:443`       |
+
+HTTP works because Phoenix serves the collector on port 6006 alongside the UI.
+gRPC is HTTP/2 with the fully qualified method as the path, so the overlay adds
+a second router matching `PathPrefix(/opentelemetry.proto.collector)` and a
+service with `scheme=h2c`: Traefik terminates TLS and speaks plaintext HTTP/2 to
+port 4317. That keeps everything on the shared `websecure` entrypoint — no new
+entrypoint, no repo-wide change to `traefik3/`, and no `4317` published on the
+host.
+
+`scheme=h2c` is the load-bearing part. Without it Traefik forwards HTTP/1.1 and
+the exporter fails. Router precedence needs no explicit `priority` — Traefik
+ranks by rule length, so the longer gRPC rule (68) already outranks the
+host-only router (20).
+
+**With authentication off, both endpoints accept writes from anyone who can
+resolve the hostname.** The Traefik overlay is the public path, so enable auth
+there: set `PHOENIX_ENABLE_AUTH=true`, `PHOENIX_SECRET`,
+`PHOENIX_USE_SECURE_COOKIES=true` and `PHOENIX_CSRF_TRUSTED_ORIGINS=https://${DOMAIN}`.
 
 ## Environment Variables
 
