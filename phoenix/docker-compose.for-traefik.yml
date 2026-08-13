@@ -1,6 +1,9 @@
 services:
   phoenix:
     networks:
+      # default as well as traefik - listing only traefik would drop phoenix
+      # off its own stack network and it could no longer resolve postgres.
+      - default
       - traefik
     labels:
       - 'traefik.enable=true'

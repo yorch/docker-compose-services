@@ -11,12 +11,19 @@ Open-source LLM tracing, evaluation and prompt experimentation, with a built-in 
 - Prompt playground for replaying and editing a captured span
 - REST, GraphQL and MCP APIs
 - Optional authentication with a local admin account
-- SQLite storage out of the box, no external database required
+- PostgreSQL storage, sized for sustained trace ingest
+
+## Services
+
+| Service    | Description                                            |
+| ---------- | ------------------------------------------------------ |
+| `phoenix`  | UI, REST/GraphQL/MCP APIs and OTLP collectors          |
+| `postgres` | Traces, spans, datasets, experiments and user accounts |
 
 ## Quick Start
 
-Copy `.env.sample` to `.env` first. Every value in it is optional for a local
-run, so the defaults start a working instance with authentication disabled.
+Copy `.env.sample` to `.env` and set `POSTGRES_PASSWORD` first — the stack
+refuses to start without it. Everything else has a working default.
 
 ```bash
 # Dev - publishes ports on localhost
@@ -25,6 +32,10 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 # Behind Traefik - HTTPS through the reverse proxy
 docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
+
+On **macOS with Docker Desktop**, Postgres 18 will not start against a bind
+mount — see [Storage](#storage) for the overlay that fixes local development.
+Linux hosts need no change.
 
 The Traefik overlay joins an external network that must already exist. Create it
 once per host:
@@ -57,15 +68,18 @@ HTTP, or add a dedicated Traefik entrypoint for it.
 
 ## Environment Variables
 
-| Variable                                 | Description                                                      | Default |
-| ---------------------------------------- | ---------------------------------------------------------------- | ------- |
-| `DOMAIN`                                 | Public hostname, used by the Traefik router                      | -       |
-| `PHOENIX_ENABLE_AUTH`                    | Require a login for the UI, the APIs and trace ingest            | `false` |
-| `PHOENIX_SECRET`                         | Required when auth is enabled. Signs access and refresh tokens   | -       |
-| `PHOENIX_DEFAULT_ADMIN_INITIAL_PASSWORD` | Password for `admin@localhost`, read on first start only         | `admin` |
-| `PHOENIX_USE_SECURE_COOKIES`             | Store auth tokens in HTTPS-only cookies instead of local storage | `false` |
-| `PHOENIX_CSRF_TRUSTED_ORIGINS`           | Comma-separated origins allowed to submit authenticated requests | -       |
-| `PHOENIX_DEFAULT_RETENTION_POLICY_DAYS`  | Days to keep traces. `0` keeps them forever                      | `0`     |
+| Variable                                 | Description                                                      | Default   |
+| ---------------------------------------- | ---------------------------------------------------------------- | --------- |
+| `DOMAIN`                                 | Public hostname, used by the Traefik router                      | -         |
+| `POSTGRES_DB`                            | Database name. Configures both containers                        | `phoenix` |
+| `POSTGRES_USER`                          | Database user. Configures both containers                        | `phoenix` |
+| `POSTGRES_PASSWORD`                      | **Required.** Database password                                  | -         |
+| `PHOENIX_ENABLE_AUTH`                    | Require a login for the UI, the APIs and trace ingest            | `false`   |
+| `PHOENIX_SECRET`                         | Required when auth is enabled. Signs access and refresh tokens   | -         |
+| `PHOENIX_DEFAULT_ADMIN_INITIAL_PASSWORD` | Password for `admin@localhost`, read on first start only         | `admin`   |
+| `PHOENIX_USE_SECURE_COOKIES`             | Store auth tokens in HTTPS-only cookies instead of local storage | `false`   |
+| `PHOENIX_CSRF_TRUSTED_ORIGINS`           | Comma-separated origins allowed to submit authenticated requests | -         |
+| `PHOENIX_DEFAULT_RETENTION_POLICY_DAYS`  | Days to keep traces. `0` keeps them forever                      | `0`       |
 
 Generate the auth secret with:
 
@@ -80,8 +94,8 @@ invalid value rather than as "unset", so an `PHOENIX_SECRET=` line with nothing
 after it stops the container from starting - even with authentication off.
 
 `PHOENIX_WORKING_DIR` is fixed at `/data` in the compose file to match the bind
-mount. Changing it moves the database off the volume, where it is lost on the
-next recreate.
+mount. Unsetting it sends the file artifacts to `~/.phoenix` inside the
+container, where the next recreate discards them.
 
 ## Ports
 
@@ -92,16 +106,62 @@ next recreate.
 
 ## Volumes
 
-| Host Path        | Container Path | Description                                    |
-| ---------------- | -------------- | ---------------------------------------------- |
-| `./data/phoenix` | `/data`        | SQLite database, inferences and trace datasets |
+| Host Path         | Container Path        | Description                            |
+| ----------------- | --------------------- | -------------------------------------- |
+| `./data/phoenix`  | `/data`               | Inferences, trace datasets, wasm cache |
+| `./data/postgres` | `/var/lib/postgresql` | Database cluster                       |
 
 ## Storage
 
-Phoenix defaults to SQLite at `./data/phoenix/phoenix.db`, which is enough for a
-single instance. For heavier ingest it can use PostgreSQL instead by setting
-`PHOENIX_SQL_DATABASE_URL` - see the self-hosting docs below. Switching engines
-does not migrate existing traces.
+Traces, spans, datasets, experiments and user accounts live in Postgres.
+`./data/phoenix` holds only the file-based artifacts — inferences, trace
+datasets and the wasm cache.
+
+Phoenix is wired to Postgres through `PHOENIX_POSTGRES_HOST`, `_PORT`, `_USER`,
+`_PASSWORD` and `_DB` rather than a hand-written `PHOENIX_SQL_DATABASE_URL`,
+because Phoenix percent-encodes the credentials when it assembles the connection
+string itself. A literal `@` in a hand-written URL truncates the authority.
+
+**Incomplete wiring is silent.** `get_env_postgres_connection_str()` returns
+`None` when the host or user is missing, and Phoenix falls back to SQLite in the
+working directory — healthy container, working UI, empty Postgres, and the loss
+only surfaces when you restore a database backup. Verify by querying Postgres,
+not by reading logs:
+
+```bash
+docker compose exec postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c '\dt'
+```
+
+A correctly wired instance has ~65 tables (`spans`, `traces`, `projects`,
+`datasets`, `alembic_version`, …). A fallback instance has none, and
+`./data/phoenix/phoenix.db` exists — its absence is the quick check.
+
+### Postgres 18 on macOS
+
+This service runs `postgres:18-alpine`. **Postgres 18 changed where the image
+keeps its data**: the image's `VOLUME` moved from `/var/lib/postgresql/data` to
+`/var/lib/postgresql`, and `PGDATA` is now `/var/lib/postgresql/18/docker`.
+Mounting the pre-18 path against this image does not fail — Docker creates an
+anonymous volume, writes the real database there, and leaves the bind mount
+empty.
+
+On macOS with Docker Desktop the documented mount does not start at all; it
+exits with `data directory "/var/lib/postgresql/18/docker" has wrong ownership`,
+because Postgres must create and own a subdirectory inside the bind mount.
+`docker-compose.macos.yml` puts the database back on the pre-18 layout for local
+development:
+
+```bash
+mkdir -p data/postgres
+docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+  -f docker-compose.macos.yml up -d
+```
+
+Pre-creating `data/postgres` matters — if Docker Desktop creates it, ownership is
+wrong and Postgres exits. The overlay uses `!override` (Compose v2.24 or newer)
+because a plain `volumes:` key merges with the base file and would leave the
+mount on `/var/lib/postgresql`. The two layouts are not interchangeable, so do
+not switch an existing data directory between them.
 
 ## Links
 

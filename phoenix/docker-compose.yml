@@ -5,10 +5,26 @@ services:
     volumes:
       - ./data/phoenix:/data
     environment:
-      # Must match the bind mount above. Left at its default (~/.phoenix) the
-      # SQLite database is written inside the container instead, with no error -
-      # every trace, dataset and experiment is lost on the next recreate.
+      # Must match the bind mount above. Traces live in Postgres, but datasets,
+      # inferences and the wasm cache are still written here, and leaving this
+      # at its default (~/.phoenix) puts them inside the container where the
+      # next recreate discards them.
       - PHOENIX_WORKING_DIR=/data
+      # Postgres via the component variables rather than PHOENIX_SQL_DATABASE_URL.
+      # Phoenix percent-encodes the user and password when assembling the DSN
+      # itself, so an @ in the password is safe here - hand-writing the URL, as
+      # openobserve has to, truncates the authority at the first one and dies
+      # with an error that names the port rather than the password.
+      #
+      # Incomplete wiring is silent - get_env_postgres_connection_str returns
+      # None when host or user is missing and Phoenix falls back to SQLite in
+      # the working dir, with a healthy container and an empty database. See
+      # the Storage section of the README for how to verify.
+      - PHOENIX_POSTGRES_HOST=postgres
+      - PHOENIX_POSTGRES_PORT=5432
+      - PHOENIX_POSTGRES_USER=${POSTGRES_USER:?}
+      - PHOENIX_POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set a database password}
+      - PHOENIX_POSTGRES_DB=${POSTGRES_DB:?}
       # Off by default, matching upstream. With it on, PHOENIX_SECRET becomes
       # mandatory and Phoenix creates admin@localhost on first start.
       - PHOENIX_ENABLE_AUTH=${PHOENIX_ENABLE_AUTH:-false}
@@ -42,4 +58,31 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    volumes:
+      # Postgres 18 moved its VOLUME to /var/lib/postgresql (PGDATA is now
+      # /var/lib/postgresql/18/docker). Mounting the old /var/lib/postgresql/data
+      # path here would send the real data to an anonymous volume instead, with
+      # no error - see the Storage section of the README.
+      - ./data/postgres:/var/lib/postgresql
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:?}
+      - POSTGRES_USER=${POSTGRES_USER:?}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set a database password}
+    healthcheck:
+      # -h 127.0.0.1 probes TCP, which is what Phoenix connects over. Without
+      # it pg_isready uses the unix socket, which the entrypoint's temporary
+      # init server already answers while listen_addresses is still empty - so
+      # the check passes and phoenix starts before 5432 accepts connections.
+      test: pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 5s
+      retries: 10
       start_period: 30s
