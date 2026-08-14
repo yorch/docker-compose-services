@@ -1,0 +1,39 @@
+services:
+  phoenix:
+    networks:
+      # default as well as traefik - listing only traefik would drop phoenix
+      # off its own stack network and it could no longer resolve postgres.
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.phoenix.loadbalancer.server.port=6006'
+      # HTTPS Host
+      - 'traefik.http.routers.phoenix.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.phoenix.entrypoints=websecure'
+      - 'traefik.http.routers.phoenix.tls=true'
+      - 'traefik.http.routers.phoenix.tls.certResolver=webcert'
+      - 'traefik.http.routers.phoenix.service=phoenix'
+      # OTLP over gRPC, on the same hostname and the same websecure entrypoint.
+      # gRPC is HTTP/2 with the fully qualified method as the path, so it can be
+      # split off by prefix instead of needing its own entrypoint and published
+      # port. Traefik terminates TLS and speaks h2c to Phoenix, which serves
+      # plaintext HTTP/2 on 4317.
+      #
+      # scheme=h2c is what makes this work - without it Traefik downgrades to
+      # HTTP/1.1 and the exporter fails. No explicit priority is set: Traefik
+      # ranks by rule length, so this longer rule already beats the Host-only
+      # router above.
+      - 'traefik.http.services.phoenix-grpc.loadbalancer.server.port=4317'
+      - 'traefik.http.services.phoenix-grpc.loadbalancer.server.scheme=h2c'
+      - 'traefik.http.routers.phoenix-grpc.rule=Host(`${DOMAIN}`) && PathPrefix(`/opentelemetry.proto.collector`)'
+      - 'traefik.http.routers.phoenix-grpc.entrypoints=websecure'
+      - 'traefik.http.routers.phoenix-grpc.tls=true'
+      - 'traefik.http.routers.phoenix-grpc.tls.certResolver=webcert'
+      - 'traefik.http.routers.phoenix-grpc.service=phoenix-grpc'
+
+networks:
+  traefik:
+    external: true

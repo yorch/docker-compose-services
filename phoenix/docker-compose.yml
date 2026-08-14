@@ -1,0 +1,88 @@
+services:
+  phoenix:
+    image: arizephoenix/phoenix:20
+    restart: unless-stopped
+    volumes:
+      - ./data/phoenix:/data
+    environment:
+      # Must match the bind mount above. Traces live in Postgres, but datasets,
+      # inferences and the wasm cache are still written here, and leaving this
+      # at its default (~/.phoenix) puts them inside the container where the
+      # next recreate discards them.
+      - PHOENIX_WORKING_DIR=/data
+      # Postgres via the component variables rather than PHOENIX_SQL_DATABASE_URL.
+      # Phoenix percent-encodes the user and password when assembling the DSN
+      # itself, so an @ in the password is safe here - hand-writing the URL, as
+      # openobserve has to, truncates the authority at the first one and dies
+      # with an error that names the port rather than the password.
+      #
+      # Incomplete wiring is silent - get_env_postgres_connection_str returns
+      # None when host or user is missing and Phoenix falls back to SQLite in
+      # the working dir, with a healthy container and an empty database. See
+      # the Storage section of the README for how to verify.
+      - PHOENIX_POSTGRES_HOST=postgres
+      - PHOENIX_POSTGRES_PORT=5432
+      - PHOENIX_POSTGRES_USER=${POSTGRES_USER:?}
+      - PHOENIX_POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set a database password}
+      - PHOENIX_POSTGRES_DB=${POSTGRES_DB:?}
+      # Off by default, matching upstream. With it on, PHOENIX_SECRET becomes
+      # mandatory and Phoenix creates admin@localhost on first start.
+      - PHOENIX_ENABLE_AUTH=${PHOENIX_ENABLE_AUTH:-false}
+      # Secure cookies require HTTPS - turning this on for the dev overlay
+      # locks you out of the login form on plain http://localhost.
+      - PHOENIX_USE_SECURE_COOKIES=${PHOENIX_USE_SECURE_COOKIES:-false}
+      # 0 keeps traces forever.
+      - PHOENIX_DEFAULT_RETENTION_POLICY_DAYS=${PHOENIX_DEFAULT_RETENTION_POLICY_DAYS:-0}
+      # Listed without a value on purpose. Phoenix rejects these when they are
+      # set but empty - a bare PHOENIX_SECRET= exits with "Phoenix secret must
+      # be non-empty" even while auth is off. Written as ${VAR:-} compose would
+      # hand the container an empty string every time; with no value it passes
+      # them through only when .env actually defines them, which is why they
+      # ship commented out in .env.sample.
+      - PHOENIX_SECRET
+      - PHOENIX_DEFAULT_ADMIN_INITIAL_PASSWORD
+      - PHOENIX_CSRF_TRUSTED_ORIGINS
+    healthcheck:
+      # Exec form using the image's own interpreter. The image ships no shell,
+      # curl or wget, so the usual CMD-SHELL test cannot run. python3 rather
+      # than python3.13 so a Python bump upstream does not wedge this unhealthy.
+      # 127.0.0.1 rather than localhost - localhost resolves to ::1 first and
+      # Phoenix listens on IPv4 only, so every probe would burn a refused IPv6
+      # connection before falling back. Same reason as the pg_isready -h in
+      # openobserve.
+      test:
+        - CMD
+        - python3
+        - -c
+        - 'import urllib.request, sys; sys.exit(0 if urllib.request.urlopen("http://127.0.0.1:6006/healthz", timeout=5).status == 200 else 1)'
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    volumes:
+      # Postgres 18 moved its VOLUME to /var/lib/postgresql (PGDATA is now
+      # /var/lib/postgresql/18/docker). Mounting the old /var/lib/postgresql/data
+      # path here would send the real data to an anonymous volume instead, with
+      # no error - see the Storage section of the README.
+      - ./data/postgres:/var/lib/postgresql
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:?}
+      - POSTGRES_USER=${POSTGRES_USER:?}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set a database password}
+    healthcheck:
+      # -h 127.0.0.1 probes TCP, which is what Phoenix connects over. Without
+      # it pg_isready uses the unix socket, which the entrypoint's temporary
+      # init server already answers while listen_addresses is still empty - so
+      # the check passes and phoenix starts before 5432 accepts connections.
+      test: pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
