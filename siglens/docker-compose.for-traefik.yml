@@ -1,0 +1,26 @@
+services:
+  siglens:
+    networks:
+      # `default` is listed explicitly on purpose. Declaring `networks:` on a
+      # service replaces the implicit default network rather than adding to it,
+      # so listing only `traefik` would take SigLens off the compose default
+      # network -- where log shippers on the same host reach the ingest API as
+      # http://siglens:8081. Traefik proxies only the UI (5122); ingest stays
+      # on the internal network and is never published.
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.siglens.loadbalancer.server.port=5122'
+      # HTTPS Host
+      - 'traefik.http.routers.siglens.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.siglens.entrypoints=websecure'
+      - 'traefik.http.routers.siglens.tls=true'
+      - 'traefik.http.routers.siglens.tls.certResolver=webcert'
+      - 'traefik.http.routers.siglens.service=siglens'
+
+networks:
+  traefik:
+    external: true

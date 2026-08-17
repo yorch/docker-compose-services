@@ -25,24 +25,32 @@ cp .env.sample .env
 2. Start the service:
 
 ```bash
-docker compose up -d
+# Dev - publishes ports on localhost
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Behind Traefik - HTTPS through the reverse proxy
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
-Access SigLens UI at `http://localhost:5122`
+In dev, the SigLens UI is at `http://localhost:5122`. Behind Traefik it is at
+`https://${DOMAIN}`, and neither port is published on the host — the ingest API
+stays on the compose network, reachable from other containers as
+`http://siglens:8081`.
 
 ## Ports
 
-| Port   | Description         |
-| ------ | ------------------- |
-| `8081` | Ingestion API       |
-| `5122` | Query server and UI |
+| Port   | Description         | Exposure                                       |
+| ------ | ------------------- | ---------------------------------------------- |
+| `8081` | Ingestion API       | Dev only. Internal-only behind Traefik.        |
+| `5122` | Query server and UI | Published in dev, proxied by Traefik otherwise |
 
 ## Environment Variables
 
-| Variable      | Description               | Default |
-| ------------- | ------------------------- | ------- |
-| `INGEST_PORT` | Port for data ingestion   | `8081`  |
-| `UI_PORT`     | Port for UI and query API | `5122`  |
+| Variable      | Description                               | Default |
+| ------------- | ----------------------------------------- | ------- |
+| `DOMAIN`      | Hostname Traefik serves the UI on         | —       |
+| `INGEST_PORT` | Host port for data ingestion (dev only)   | `8081`  |
+| `UI_PORT`     | Host port for UI and query API (dev only) | `5122`  |
 
 ## Volumes
 
@@ -231,9 +239,9 @@ curl http://localhost:5122/health
 ### Reset data
 
 ```bash
-docker compose down
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 rm -rf data/ logs/
-docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
 ## Links
