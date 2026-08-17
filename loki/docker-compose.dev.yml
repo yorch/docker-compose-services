@@ -1,0 +1,4 @@
+services:
+  loki:
+    ports:
+      - 3100:3100

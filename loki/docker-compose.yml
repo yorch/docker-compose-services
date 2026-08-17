@@ -1,0 +1,29 @@
+services:
+  loki:
+    image: grafana/loki:3.7.6
+    restart: unless-stopped
+    # Replaces the image's default CMD, which points at the baked-in
+    # /etc/loki/local-config.yaml - that config has no retention and writes to
+    # paths this stack does not mount. -config.expand-env is what lets
+    # loki-config.yaml carry ${VAR} placeholders; without it Loki reads them as
+    # literal strings and fails on the first one it tries to parse as a value.
+    command:
+      - '-config.file=/etc/loki/config.yaml'
+      - '-config.expand-env=true'
+    environment:
+      # Listed without values on purpose. loki-config.yaml supplies the
+      # defaults via ${VAR:-default}, so passing these through only when .env
+      # actually sets them keeps the fallback in one place instead of two.
+      - LOKI_LOG_LEVEL
+      - LOKI_RETENTION_PERIOD
+    volumes:
+      - ./loki-config.yaml:/etc/loki/config.yaml:ro
+      # Everything lives under one prefix: chunks, the TSDB index and its
+      # cache, the compactor working dir and the ruler. path_prefix in the
+      # config points here too.
+      - ./data/loki:/loki
+    # No healthcheck - the image is distroless and holds exactly one binary,
+    # /usr/bin/loki. There is no shell, curl, wget or nc to probe with, and the
+    # binary has no HTTP client mode, so any healthcheck marks the container
+    # permanently unhealthy. /ready is reachable from outside the container -
+    # see the Health Check section of the README.
