@@ -1,0 +1,5 @@
+services:
+  siglens:
+    ports:
+      - ${INGEST_PORT}:8081
+      - ${UI_PORT}:5122

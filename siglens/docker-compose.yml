@@ -3,9 +3,6 @@ services:
     # image: siglens/siglens:latest
     image: siglens/siglens:1.0.57
     restart: unless-stopped
-    ports:
-      - ${INGEST_PORT}:8081
-      - ${UI_PORT}:5122
     volumes:
       - ./data:/siglens/data
       - ./logs:/siglens/logs
