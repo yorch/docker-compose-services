@@ -14,6 +14,16 @@ Log aggregation system that indexes labels rather than log content, queried with
 
 ## Quick Start
 
+Run the setup script first. It creates `.env`, prepares `./data/loki` so Loki can
+write to it, and offers to generate a basic auth credential. It is idempotent, so
+re-running it is always safe:
+
+```bash
+./setup.sh
+```
+
+Then start whichever setup you want:
+
 ```bash
 # Dev - publishes the HTTP API on localhost:3100
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
@@ -22,12 +32,14 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ./run-with-alloy.sh
 
 # Behind Traefik - HTTPS and basic auth through the reverse proxy
-cp .env.sample .env   # fill in DOMAIN, USERNAME, HASHED_PASSWORD first
-./run-for-traefik.sh
+./run-for-traefik.sh   # fill in DOMAIN, USERNAME, HASHED_PASSWORD in .env first
 
 # Behind Traefik, plus Alloy
 ./run-for-traefik-with-alloy.sh
 ```
+
+On macOS the setup script is optional - the dev overlay runs from a bare
+`docker compose up -d`. On Linux it is not; see below.
 
 The Traefik overlay joins an external network that must already exist. Create it
 once per host:
@@ -45,16 +57,32 @@ curl http://localhost:3100/ready
 
 ### Linux file ownership
 
-The image runs as UID `10001` and Docker creates a missing bind-mount directory
-as `root`, so on Linux the first start fails to write anything into `./data/loki`.
-Create it with the right owner before the first `up`:
+The image runs as UID `10001`, and Docker creates a missing bind-mount directory
+owned by `root`. On Linux that combination stops Loki dead on first start:
+
+```
+mkdir /loki/rules: permission denied
+error initialising module: ruler-storage
+```
+
+With `restart: unless-stopped` the container then crash-loops, and the error
+names the ruler - a subsystem this stack never uses - rather than the ownership
+problem, because `ruler.storage.local.directory` is simply the first path Loki
+tries to create.
+
+`./setup.sh` handles this. It probes whether UID `10001` can actually write to
+`./data/loki` and only corrects ownership when it cannot, using a root container
+rather than `sudo` - a regular user cannot give a file away to another UID, but
+the Docker daemon is already root. The equivalent by hand:
 
 ```bash
 mkdir -p data/loki && sudo chown -R 10001:10001 data/loki
 ```
 
-Docker Desktop on macOS maps ownership through its virtiofs layer, so this step
-is unnecessary there.
+Docker Desktop on macOS remaps bind mount ownership through its virtiofs layer,
+so writes from UID `10001` succeed regardless and the script reports nothing to
+do. That also means this failure cannot be reproduced on macOS - it needs a real
+Linux host, or a path Docker Desktop does not share.
 
 ## Sending logs to Loki
 
@@ -150,7 +178,7 @@ so an empty `.env` still starts a working instance.
 | ----------------------- | ---------- | ----------------------------------------------------------------------------- |
 | `DOMAIN`                | _required_ | Public hostname for the Traefik overlay                                       |
 | `USERNAME`              | _required_ | Basic auth user for the Traefik overlay                                       |
-| `HASHED_PASSWORD`       | _required_ | Basic auth hash, from `htpasswd -nbB user password`, with every `$` doubled   |
+| `HASHED_PASSWORD`       | _required_ | Basic auth hash with every `$` doubled. `./setup.sh` generates it correctly.  |
 | `LOKI_RETENTION_PERIOD` | `744h`     | How long logs are kept before the compactor deletes them. Go duration string. |
 | `LOKI_LOG_LEVEL`        | `info`     | `debug`, `info`, `warn` or `error`                                            |
 
