@@ -1,0 +1,57 @@
+// Grafana Alloy: tail every Docker container on this host into Loki.
+//
+// This file is only read when docker-compose.alloy.yml is part of the stack.
+// It replaces Promtail, whose LTS ended in February 2026 - Alloy is the
+// shipper Grafana maintains now, and the two are not config-compatible.
+//
+// Alloy's own syntax has no shell-style ${VAR}. Read environment variables
+// with sys.env("VAR") if you need to parameterise something here.
+
+discovery.docker "containers" {
+	host             = "unix:///var/run/docker.sock"
+	refresh_interval = "5s"
+}
+
+// Rules only - `targets = []` is deliberate. loki.source.docker below consumes
+// `.rules` and applies them per container as it discovers them, so this block
+// never needs targets of its own.
+discovery.relabel "containers" {
+	targets = []
+
+	// Docker reports names with a leading slash ("/grafana"); strip it so the
+	// label matches what `docker ps` prints.
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "container"
+	}
+
+	// Compose stamps these two labels on everything it starts, which is what
+	// makes {compose_project="grafana"} a useful query in a repo where every
+	// stack is a separate compose project.
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		target_label  = "compose_project"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "compose_service"
+	}
+}
+
+loki.source.docker "containers" {
+	host          = "unix:///var/run/docker.sock"
+	targets       = discovery.docker.containers.targets
+	labels        = {job = "docker"}
+	relabel_rules = discovery.relabel.containers.rules
+	forward_to    = [loki.write.default.receiver]
+}
+
+// Reached over the compose network, so this bypasses Traefik and its basic
+// auth even when docker-compose.for-traefik.yml is in play.
+loki.write "default" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}

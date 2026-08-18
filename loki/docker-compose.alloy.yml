@@ -1,0 +1,23 @@
+services:
+  alloy:
+    image: grafana/alloy:v1.18.1
+    restart: unless-stopped
+    volumes:
+      - ./alloy-config.alloy:/etc/alloy/config.alloy:ro
+      # Read-only is enough to list containers and stream their logs, and it
+      # keeps a compromised collector from being able to start containers on
+      # the host. Mounting the socket at all is still a privilege handover -
+      # read access exposes every container's environment and logs - which is
+      # why this overlay is opt-in rather than part of docker-compose.yml.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Positions live here. Without persistence Alloy forgets how far it read
+      # into each container's log on restart and re-ships from the beginning,
+      # producing duplicates in Loki.
+      - ./data/alloy:/var/lib/alloy/data
+    depends_on:
+      - loki
+    # No command override: the image's default already points at
+    # /etc/alloy/config.alloy with --storage.path=/var/lib/alloy/data, which is
+    # exactly what the two mounts above provide. That default also binds the
+    # debug UI to 127.0.0.1 inside the container, so it stays unreachable -
+    # see the Alloy section of the README for how to open it when debugging.

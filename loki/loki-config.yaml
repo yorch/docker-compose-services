@@ -1,0 +1,98 @@
+# Loki single-binary configuration, filesystem storage.
+#
+# ${VAR} placeholders below are expanded by Loki itself, not by compose -
+# docker-compose.yml starts it with -config.expand-env=true. Compose never
+# reads this file, so the values come straight from .env. Anything not listed
+# in .env.sample falls back to the ${VAR:-default} form written here.
+#
+# Because expand-env is on, a literal dollar sign anywhere in this file would
+# be treated as a variable reference. There are none today; if you add one,
+# escape it as $$.
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+  log_level: ${LOKI_LOG_LEVEL:-info}
+
+common:
+  instance_addr: 127.0.0.1
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+# TSDB with schema v13 is the only combination Loki 3.x should be started on
+# for a new install. Older schemas still parse, but structured metadata - the
+# mechanism Alloy uses to attach container metadata without inflating the
+# label cardinality - is rejected on anything below v13.
+#
+# `from` is the date this schema takes effect and must stay in the past. Never
+# edit this entry after logs have been written under it: to change the schema
+# later, append a new entry with a future `from` date instead, or Loki loses
+# track of where existing chunks live.
+schema_config:
+  configs:
+    - from: 2024-04-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  tsdb_shipper:
+    active_index_directory: /loki/tsdb-index
+    cache_location: /loki/tsdb-cache
+  filesystem:
+    directory: /loki/chunks
+
+# Without retention_enabled the compactor only merges index files and nothing
+# is ever deleted - Loki's stock config grows ./data/loki forever. Deletion is
+# driven by limits_config.retention_period below.
+compactor:
+  working_directory: /loki/compactor
+  retention_enabled: true
+  delete_request_store: filesystem
+  compaction_interval: 10m
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 150
+
+limits_config:
+  retention_period: ${LOKI_RETENTION_PERIOD:-744h}
+  # Logs older than this are dropped at push time with a 400. It bites when
+  # Alloy first attaches to long-running containers and replays their existing
+  # log files - entries past the window are refused and never arrive, which
+  # reads like a broken pipeline rather than a deliberate rejection.
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+
+ingester:
+  wal:
+    # Left at its default of 0.9 - written out because the symptom of crossing
+    # it is unrecognisable otherwise. When the filesystem holding /loki/wal
+    # goes past 90% full the ingester turns read-only, and every push comes
+    # back as HTTP 500 "Ingester is shutting down" while the container stays up
+    # and /ready keeps answering "ready". Nothing in that response mentions
+    # disk. See the Troubleshooting section of the README.
+    #
+    # Raise it if you would rather Loki fight for the last few percent, or set
+    # it to 0 to disable the guard entirely and let the disk actually fill.
+    disk_full_threshold: 0.9
+
+ruler:
+  storage:
+    type: local
+    local:
+      directory: /loki/rules
+
+# Off by default here. Upstream sends anonymous usage statistics home.
+analytics:
+  reporting_enabled: false

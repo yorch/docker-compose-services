@@ -92,6 +92,7 @@ yarn update-readme   # regenerate the services table below
 | [Linkwarden](./linkwarden)                       | Self-hosted bookmark manager with full-text search capabilities.                                              |
 | [Litellm](./litellm)                             | Unified API proxy for 100+ LLM providers (OpenAI, Anthropic, Azure, and more).                                |
 | [Logflare](./logflare)                           | Log ingestion and analytics service (Supabase's logging backend).                                             |
+| [Loki](./loki)                                   | Log aggregation system that indexes labels rather than log content, queried with LogQL.                       |
 | [Lychee](./lychee)                               | Self-hosted photo management and sharing platform.                                                            |
 | [Minecraft Server](./minecraft-server)           | Minecraft Java Edition game server using itzg/minecraft-server image.                                         |
 | [Mosquitto](./mosquitto)                         | Lightweight MQTT message broker.                                                                              |

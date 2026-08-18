@@ -1,0 +1,34 @@
+services:
+  loki:
+    networks:
+      # `default` is listed explicitly because naming any network here replaces
+      # the implicit one. Dropping it would cut Loki off from the compose
+      # network that docker-compose.alloy.yml resolves `http://loki:3100`
+      # against, so the two overlays could not be combined.
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Basic Auth Middleware. Loki ships no authentication of its own -
+      # auth_enabled: false in loki-config.yaml selects single-tenant mode, it
+      # does not mean "unauthenticated requests are rejected". Without this
+      # middleware anyone who resolves ${DOMAIN} can read every log line, push
+      # forged ones and submit delete requests.
+      #
+      # Both halves use :? rather than ? so that the blank lines .env.sample
+      # ships stop the stack instead of being accepted as an empty credential.
+      - 'traefik.http.middlewares.loki.basicauth.users=${USERNAME:?basic auth username for Loki}:${HASHED_PASSWORD:?run htpasswd -nbB user password and paste the hash half}'
+      # Service
+      - 'traefik.http.services.loki.loadbalancer.server.port=3100'
+      # HTTPS Host
+      - 'traefik.http.routers.loki.rule=Host(`${DOMAIN:?the public hostname Loki answers on}`)'
+      - 'traefik.http.routers.loki.entrypoints=websecure'
+      - 'traefik.http.routers.loki.tls=true'
+      - 'traefik.http.routers.loki.tls.certResolver=webcert'
+      - 'traefik.http.routers.loki.service=loki'
+      - 'traefik.http.routers.loki.middlewares=loki'
+
+networks:
+  traefik:
+    external: true
