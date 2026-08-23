@@ -118,7 +118,7 @@ rejected as an untrusted cross-origin request.
 | Host Path             | Container Path             | Description                   |
 | --------------------- | -------------------------- | ----------------------------- |
 | `./data/clickhouse`   | `/var/lib/clickhouse`      | Event data                    |
-| `./data/postgres`     | `/var/lib/postgresql/data` | Accounts and site config      |
+| `./data/postgres`     | `/var/lib/postgresql`      | Accounts and site config      |
 | `./data/redis`        | `/data`                    | Session and counter state     |
 | `./config/clickhouse` | `/etc/clickhouse-server/…` | ClickHouse tuning (read-only) |
 
@@ -145,18 +145,29 @@ Lower `max_memory_usage` if you are running on a small VPS.
 
 ## Notes
 
-Postgres is pinned to 17 and its bind mount is at
-`/var/lib/postgresql/data`. Postgres 18 moved the image's `VOLUME` to
-`/var/lib/postgresql`; bumping the major without moving the mount produces no
-error and silently writes the database to an anonymous volume instead of
-`./data`.
+**Postgres runs 18, and its bind mount is at `/var/lib/postgresql` — not
+`/var/lib/postgresql/data`.** Postgres 18 moved the image's `VOLUME` there and
+put `PGDATA` at `/var/lib/postgresql/18/docker`. Mounting the pre-18 path
+produces no error: Docker creates an anonymous volume, the database writes into
+it, and `./data/postgres` stays empty until a `docker compose down -v` takes the
+data with it.
 
-Upstream pins `postgres:17.4`; this uses `postgres:17-alpine` to match the rest
-of the repo. Same `PGDATA` and `VOLUME`, same `LANG=en_US.utf8`, ICU included —
-and Rybbit's schema needs no extensions beyond core `gen_random_uuid()`. Note
-that Alpine collates text through musl rather than glibc, so an existing
-`./data/postgres` directory cannot simply be pointed at the other variant:
-moving between them needs a `REINDEX` of text indexes, or a dump and restore.
+Upstream pins `postgres:17.4`; this runs `postgres:18-alpine` instead, matching
+the Alpine convention the rest of the repo uses. Nothing in Rybbit's schema
+depends on the difference — the migrations declare no `CREATE EXTENSION` and the
+only function they reach for is `gen_random_uuid()`, core since Postgres 13 —
+and none of Postgres 18's documented incompatibilities (partition `VACUUM`
+scope, `COPY FROM` CSV, `AFTER` trigger roles, rule privileges, full-text
+collation providers) touch it. Data checksums are on by default in 18.
+
+Two things follow from this that are worth knowing before you have data:
+
+- **Majors are not on-disk compatible.** Moving to 19 later needs `pg_dumpall`
+  and a restore, plus a matching change to the mount path if the image layout
+  shifts again. Never just retag and restart.
+- **Alpine collates text through musl, not glibc.** An existing
+  `./data/postgres` cannot simply be pointed at a Debian-based image of the same
+  major; that swap needs a `REINDEX` of text indexes, or a dump and restore.
 
 Behind Traefik, visitor geolocation works with no extra configuration — the
 backend runs Fastify with `trustProxy` and reads `X-Forwarded-For`, which
