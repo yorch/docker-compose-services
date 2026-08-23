@@ -3,9 +3,15 @@
 # ClickHouse holds the trace and observation events; Redis is the queue between
 # web and worker; MinIO stores event payloads and uploaded media.
 #
-# MinIO has to be reachable by the BROWSER, not just by the other containers.
-# Langfuse hands out presigned URLs for media, so `web` is given a public MinIO
-# address while `worker` keeps the internal one - see MINIO_PUBLIC_URL below.
+# Object storage is SeaweedFS rather than MinIO. MinIO's repository was
+# archived in February 2026 and stopped publishing community images before
+# that; Langfuse's own Helm chart replaced MinIO with SeaweedFS in chart 2.0.0.
+# The Langfuse side of the wiring is unchanged - same LANGFUSE_S3_* variables,
+# same path-style requirement.
+#
+# The S3 endpoint has to be reachable by the BROWSER, not just by the other
+# containers. Langfuse hands out presigned URLs for media, so `web` is given a
+# public address while `worker` keeps the internal one - see S3_PUBLIC_URL.
 x-langfuse-env: &langfuse-env
   NEXTAUTH_URL: ${NEXTAUTH_URL:?public origin of the Langfuse UI, no trailing slash}
   DATABASE_URL: ${DATABASE_URL:?postgres connection string, see .env.sample}
@@ -26,21 +32,21 @@ x-langfuse-env: &langfuse-env
   REDIS_AUTH: ${REDIS_AUTH:?password for Redis, generate one with openssl rand -hex 16}
   # Object storage. These endpoints are container-to-container, so they stay on
   # the compose network whichever way the stack is exposed.
-  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: ${MINIO_BUCKET_NAME:-langfuse}
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: ${S3_BUCKET_NAME:-langfuse}
   LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
   LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
-  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minio}
-  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?password for MinIO, at least 8 characters, generate one with openssl rand -hex 16}
-  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-langfuse}
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:?secret key for object storage, generate one with openssl rand -hex 16}
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://seaweedfs:8333
   LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: 'true'
-  LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: ${MINIO_BUCKET_NAME:-langfuse}
+  LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: ${S3_BUCKET_NAME:-langfuse}
   LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
   LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
-  LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minio}
-  LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+  LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-langfuse}
+  LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
   LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: 'true'
   # Overridden on `web` with the public address - see the note at the top.
-  LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+  LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://seaweedfs:8333
   # Email, for user invitations. Both are needed for invites to be sent.
   EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-}
   SMTP_CONNECTION_URL: ${SMTP_CONNECTION_URL:-}
@@ -56,15 +62,17 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio:
+      seaweedfs:
         condition: service_healthy
+      seaweedfs-bucket:
+        condition: service_completed_successfully
     environment:
       <<: *langfuse-env
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?signs session cookies, generate one with openssl rand -base64 32}
       # Presigned media URLs are opened by the browser, so this one address has
       # to be resolvable from outside the compose network. Everything else
       # above stays internal.
-      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: ${MINIO_PUBLIC_URL:?browser-reachable MinIO address, see .env.sample}
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: ${S3_PUBLIC_URL:?browser-reachable object storage address, see .env.sample}
       # Optional bootstrap of an org, project, API keys and first user on an
       # empty database. Left blank, Langfuse shows the normal sign-up screen.
       LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-}
@@ -151,25 +159,62 @@ services:
       timeout: 10s
       retries: 10
 
-  minio:
-    # Chainguard's build, which is what Langfuse upstream moved to. It cannot
-    # be pinned: the free Chainguard tier publishes only `latest`. The
-    # alternative, minio/minio, stopped publishing community images after
-    # RELEASE.2025-09-07 and no longer receives security updates - an
-    # unpinnable maintained image beats a pinnable abandoned one.
-    image: cgr.dev/chainguard/minio
+  seaweedfs:
+    # SeaweedFS in all-in-one mode - master, volume, filer and the S3 gateway
+    # in one process, which is the shape Langfuse's Helm chart deploys.
+    #
+    # Pinned ahead of the version that chart names (3.95, published July 2025).
+    # Replacing an unmaintained object store with a year-old image would give
+    # up most of the reason for the change; the S3 surface Langfuse uses -
+    # path-style addressing and presigned URLs - is stable across 3.x and 4.x.
+    image: chrislusf/seaweedfs:4.44
     restart: unless-stopped
-    entrypoint: sh
-    # Creates the bucket before starting, since Langfuse does not create it.
-    command: -c 'mkdir -p /data/${MINIO_BUCKET_NAME:-langfuse} && minio server --address ":9000" --console-address ":9001" /data'
+    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    configs:
+      - source: seaweedfs-s3-auth
+        target: /etc/seaweedfs/s3.json
     volumes:
-      - ./data/minio:/data
-    environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minio}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - ./data/seaweedfs:/data
     healthcheck:
-      test: ['CMD', 'mc', 'ready', 'local']
+      # /healthz on the S3 port needs no credentials. curl is installed in the
+      # image; the base is alpine.
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:8333/healthz']
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 5s
+      start_period: 10s
+
+  seaweedfs-bucket:
+    # One-shot. SeaweedFS does not create buckets on first write and Langfuse
+    # never calls CreateBucket, so the bucket has to exist before either app
+    # container starts - the Helm chart uses a post-install hook for the same
+    # reason. Creating an existing bucket is harmless, so this is safe to
+    # re-run on every `up`.
+    image: chrislusf/seaweedfs:4.44
+    restart: 'no'
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+    entrypoint: sh
+    command: -c 'echo "s3.bucket.create -name ${S3_BUCKET_NAME:-langfuse}" | weed shell -master=seaweedfs:9333'
+
+configs:
+  seaweedfs-s3-auth:
+    # Inline rather than a file in config/ because it carries the credentials,
+    # and Compose interpolates ${...} in config content but not in a bind-
+    # mounted file. Keeping it here means the secret stays in .env.
+    content: |
+      {
+        "identities": [
+          {
+            "name": "${S3_ACCESS_KEY:-langfuse}",
+            "credentials": [
+              {
+                "accessKey": "${S3_ACCESS_KEY:-langfuse}",
+                "secretKey": "${S3_SECRET_KEY}"
+              }
+            ],
+            "actions": ["Admin", "Read", "List", "Tagging", "Write"]
+          }
+        ]
+      }

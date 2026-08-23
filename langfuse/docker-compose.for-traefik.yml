@@ -1,7 +1,7 @@
 # Two hostnames, because two things have to be reachable from a browser: the
-# Langfuse UI, and the MinIO S3 API that serves presigned media URLs. Set
-# NEXTAUTH_URL=https://${DOMAIN} and MINIO_PUBLIC_URL=https://${MINIO_DOMAIN}
-# in .env to match.
+# Langfuse UI, and the SeaweedFS S3 API that serves presigned media URLs. Set
+# NEXTAUTH_URL=https://${DOMAIN} and S3_PUBLIC_URL=https://${S3_DOMAIN} in .env
+# to match.
 #
 # The other four containers get no labels and no traefik network - they are
 # only ever reached from inside the compose network.
@@ -25,23 +25,23 @@ services:
       - 'traefik.http.routers.langfuse.tls.certResolver=webcert'
       - 'traefik.http.routers.langfuse.service=langfuse'
 
-  minio:
+  seaweedfs:
     networks:
       - default
       - traefik
     labels:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
-      # Port 9000 is MinIO's S3 API. The console on 9001 is deliberately not
+      # Port 8333 is the S3 API. The master UI on 9333 is deliberately not
       # published - it is an admin surface with no place on the public
       # internet, and Langfuse does not use it.
-      - 'traefik.http.services.langfuse-minio.loadbalancer.server.port=9000'
+      - 'traefik.http.services.langfuse-s3.loadbalancer.server.port=8333'
       # HTTPS Host
-      - 'traefik.http.routers.langfuse-minio.rule=Host(`${MINIO_DOMAIN:?the public hostname MinIO answers on, used for presigned media URLs}`)'
-      - 'traefik.http.routers.langfuse-minio.entrypoints=websecure'
-      - 'traefik.http.routers.langfuse-minio.tls=true'
-      - 'traefik.http.routers.langfuse-minio.tls.certResolver=webcert'
-      - 'traefik.http.routers.langfuse-minio.service=langfuse-minio'
+      - 'traefik.http.routers.langfuse-s3.rule=Host(`${S3_DOMAIN:?the public hostname object storage answers on, used for presigned media URLs}`)'
+      - 'traefik.http.routers.langfuse-s3.entrypoints=websecure'
+      - 'traefik.http.routers.langfuse-s3.tls=true'
+      - 'traefik.http.routers.langfuse-s3.tls.certResolver=webcert'
+      - 'traefik.http.routers.langfuse-s3.service=langfuse-s3'
 
 networks:
   traefik:

@@ -18,17 +18,17 @@ Open-source LLM observability platform for tracing, evaluating and debugging LLM
 Six containers. `web` serves the UI and the ingestion API, `worker` drains the
 ingestion queue into ClickHouse, and four datastores sit behind them:
 
-| Container    | Holds                                            |
-| ------------ | ------------------------------------------------ |
-| `postgres`   | Accounts, projects, prompts, dataset definitions |
-| `clickhouse` | Traces, observations and scores                  |
-| `redis`      | The queue between `web` and `worker`             |
-| `minio`      | Event payloads and uploaded media                |
+| Container    | Holds                                             |
+| ------------ | ------------------------------------------------- |
+| `postgres`   | Accounts, projects, prompts, dataset definitions  |
+| `clickhouse` | Traces, observations and scores                   |
+| `redis`      | The queue between `web` and `worker`              |
+| `seaweedfs`  | Event payloads and uploaded media (S3-compatible) |
 
-**MinIO has to be reachable by the browser, not just by the other containers.**
-Langfuse signs media URLs and hands them to the browser, so `web` is given a
-public MinIO address (`MINIO_PUBLIC_URL`) while `worker` keeps the internal
-`http://minio:9000`. Point `MINIO_PUBLIC_URL` at something the browser cannot
+**Object storage has to be reachable by the browser, not just by the other
+containers.** Langfuse signs media URLs and hands them to the browser, so `web`
+is given a public S3 address (`S3_PUBLIC_URL`) while `worker` keeps the internal
+`http://seaweedfs:8333`. Point `S3_PUBLIC_URL` at something the browser cannot
 resolve and the app works except that uploaded images never load.
 
 That is why the Traefik setup needs **two** hostnames.
@@ -44,17 +44,17 @@ openssl rand -base64 32   # SALT
 openssl rand -hex 32      # ENCRYPTION_KEY — must be exactly 64 hex characters
 openssl rand -base64 32   # NEXTAUTH_SECRET
 openssl rand -hex 16      # one each for POSTGRES_PASSWORD, CLICKHOUSE_PASSWORD,
-                          # REDIS_AUTH and MINIO_ROOT_PASSWORD
+                          # REDIS_AUTH and S3_SECRET_KEY
 ```
 
 Then set the two addresses, and make `DATABASE_URL` agree with
 `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` — nothing assembles it
 for you:
 
-| Variable           | Dev                     | Behind Traefik            |
-| ------------------ | ----------------------- | ------------------------- |
-| `NEXTAUTH_URL`     | `http://localhost:3000` | `https://${DOMAIN}`       |
-| `MINIO_PUBLIC_URL` | `http://localhost:9090` | `https://${MINIO_DOMAIN}` |
+| Variable        | Dev                     | Behind Traefik         |
+| --------------- | ----------------------- | ---------------------- |
+| `NEXTAUTH_URL`  | `http://localhost:3000` | `https://${DOMAIN}`    |
+| `S3_PUBLIC_URL` | `http://localhost:8333` | `https://${S3_DOMAIN}` |
 
 2. Start the service:
 
@@ -67,7 +67,7 @@ docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
 In dev the UI is at `http://localhost:3000`. Behind Traefik it is at
-`https://${DOMAIN}`, with MinIO's S3 API at `https://${MINIO_DOMAIN}`.
+`https://${DOMAIN}`, with the S3 API at `https://${S3_DOMAIN}`.
 
 First start takes a while: ClickHouse migrations run before `web` is ready.
 
@@ -77,18 +77,18 @@ First start takes a while: ClickHouse migrations run before `web` is ready.
 
 ## Ports
 
-| Port   | Container    | Description            | Exposure                                                      |
-| ------ | ------------ | ---------------------- | ------------------------------------------------------------- |
-| `3000` | `web`        | UI and ingestion API   | Published in dev, proxied by Traefik at `${DOMAIN}`           |
-| `9000` | `minio`      | S3 API                 | Published on host `9090` in dev, proxied at `${MINIO_DOMAIN}` |
-| `9001` | `minio`      | MinIO console          | Host `9091`, loopback only. Never proxied                     |
-| `3030` | `worker`     | Worker health endpoint | Loopback only in dev                                          |
-| `8123` | `clickhouse` | HTTP interface         | Loopback only in dev                                          |
-| `9000` | `clickhouse` | Native protocol        | Loopback only in dev                                          |
-| `5432` | `postgres`   | Postgres               | Loopback only in dev                                          |
-| `6379` | `redis`      | Redis                  | Loopback only in dev                                          |
+| Port   | Container    | Description            | Exposure                                            |
+| ------ | ------------ | ---------------------- | --------------------------------------------------- |
+| `3000` | `web`        | UI and ingestion API   | Published in dev, proxied by Traefik at `${DOMAIN}` |
+| `8333` | `seaweedfs`  | S3 API                 | Published in dev, proxied at `${S3_DOMAIN}`         |
+| `9333` | `seaweedfs`  | Master UI              | Loopback only in dev. Never proxied                 |
+| `3030` | `worker`     | Worker health endpoint | Loopback only in dev                                |
+| `8123` | `clickhouse` | HTTP interface         | Loopback only in dev                                |
+| `9000` | `clickhouse` | Native protocol        | Loopback only in dev                                |
+| `5432` | `postgres`   | Postgres               | Loopback only in dev                                |
+| `6379` | `redis`      | Redis                  | Loopback only in dev                                |
 
-`DEV_BIND_IP` moves the loopback-only ports; the UI and the MinIO S3 API are
+`DEV_BIND_IP` moves the loopback-only ports; the UI and the S3 API are
 always published on all interfaces, because a browser has to reach them.
 
 ## Environment Variables
@@ -97,9 +97,9 @@ Required — every one is declared `:?`, so a blank value stops the stack with a
 message naming the variable.
 
 | Variable              | Description                                                 |
-| --------------------- | ----------------------------------------------------------- |
+| --------------------- | ----------------------------------------------------------- | ---------------------- |
 | `NEXTAUTH_URL`        | Public origin of the UI, no trailing slash                  |
-| `MINIO_PUBLIC_URL`    | Browser-reachable MinIO S3 address                          |
+| `S3_PUBLIC_URL`       | `http://localhost:8333`                                     | `https://${S3_DOMAIN}` |
 | `DATABASE_URL`        | Postgres connection string, must match the three vars below |
 | `SALT`                | Hashes API keys — `openssl rand -base64 32`                 |
 | `ENCRYPTION_KEY`      | Exactly 64 hex characters — `openssl rand -hex 32`          |
@@ -107,11 +107,11 @@ message naming the variable.
 | `POSTGRES_PASSWORD`   | Password for the Postgres user                              |
 | `CLICKHOUSE_PASSWORD` | Password for the ClickHouse user                            |
 | `REDIS_AUTH`          | Password for Redis                                          |
-| `MINIO_ROOT_PASSWORD` | Password for MinIO, at least 8 characters                   |
+| `S3_SECRET_KEY`       | Secret key for object storage                               |
 | `DOMAIN`              | **Traefik only** — hostname serving the UI                  |
-| `MINIO_DOMAIN`        | **Traefik only** — hostname serving the S3 API              |
+| `S3_DOMAIN`           | **Traefik only** — hostname serving the S3 API              |
 
-`DOMAIN` and `MINIO_DOMAIN` are only read by `docker-compose.for-traefik.yml`,
+`DOMAIN` and `S3_DOMAIN` are only read by `docker-compose.for-traefik.yml`,
 so the dev setup does not need them. They are not optional there.
 
 Optional.
@@ -122,7 +122,7 @@ Optional.
 | `DEV_BIND_IP`                                | Host interface for the dev overlay's sidecar ports | `127.0.0.1`                    |
 | `POSTGRES_DB` / `POSTGRES_USER`              | Postgres database and user name                    | `langfuse`                     |
 | `CLICKHOUSE_DB` / `CLICKHOUSE_USER`          | ClickHouse database and user name                  | `default` / `clickhouse`       |
-| `MINIO_ROOT_USER` / `MINIO_BUCKET_NAME`      | MinIO user and bucket                              | `minio` / `langfuse`           |
+| `S3_ACCESS_KEY` / `S3_BUCKET_NAME`           | Object storage identity and bucket                 | `langfuse` / `langfuse`        |
 | `CLICKHOUSE_URL`                             | ClickHouse HTTP endpoint                           | `http://clickhouse:8123`       |
 | `CLICKHOUSE_MIGRATION_URL`                   | ClickHouse native endpoint, used for migrations    | `clickhouse://clickhouse:9000` |
 | `CLICKHOUSE_CLUSTER_ENABLED`                 | Run ClickHouse DDL as cluster statements           | `false`                        |
@@ -140,7 +140,7 @@ Optional.
 | `./data/clickhouse/data` | `/var/lib/clickhouse`        | Traces and observations  |
 | `./data/clickhouse/logs` | `/var/log/clickhouse-server` | ClickHouse server logs   |
 | `./data/redis`           | `/data`                      | Ingestion queue          |
-| `./data/minio`           | `/data`                      | Event payloads and media |
+| `./data/seaweedfs`       | `/data`                      | Event payloads and media |
 
 Redis is persisted deliberately. It is the queue between `web` and `worker`,
 not a cache, and it runs with `--maxmemory-policy noeviction` so queued
@@ -181,10 +181,29 @@ move the mount path with it is a way to lose a database quietly.
 
 ## Notes
 
-MinIO uses Chainguard's image, which is what Langfuse upstream moved to. It
-cannot be pinned: the free Chainguard tier publishes only `latest`. The
-alternative, `minio/minio`, stopped publishing community images after
-`RELEASE.2025-09-07` and no longer receives security updates.
+**Object storage is SeaweedFS, not MinIO.** MinIO stopped publishing community
+container images in late 2025 and archived its repository in February 2026, so
+the project is no longer maintained. Langfuse's own Helm chart replaced MinIO
+with SeaweedFS in chart 2.0.0, and their values file documents path-style
+addressing as "Required for SeaweedFS / MinIO" — the `LANGFUSE_S3_*` contract is
+identical, so only the container changed.
+
+Two details follow from SeaweedFS rather than MinIO:
+
+- The bucket is created by a one-shot `seaweedfs-bucket` service. SeaweedFS
+  does not create buckets on first write and Langfuse never calls
+  `CreateBucket`, so it has to exist before either app container starts — the
+  Helm chart uses a post-install hook for the same reason. `web` and `worker`
+  wait on it with `service_completed_successfully`, and creating an existing
+  bucket is harmless, so it is safe to re-run on every `up`.
+- Credentials live in an inline Compose `config` rather than a file under
+  `config/`, because Compose interpolates `${...}` in config content but not in
+  a bind-mounted file. That keeps the secret in `.env` instead of in git.
+
+The image is pinned to `4.44` rather than the `3.95` named in Langfuse's chart.
+That pin dates from July 2025, and replacing an unmaintained object store with a
+year-old image would give up most of the point; the S3 surface Langfuse uses —
+path-style addressing and presigned URLs — is stable across 3.x and 4.x.
 
 ## Integration
 
