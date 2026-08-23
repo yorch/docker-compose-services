@@ -43,8 +43,9 @@ openssl rand -hex 32   # BETTER_AUTH_SECRET
 openssl rand -hex 16   # one each for the ClickHouse, Postgres and Redis passwords
 ```
 
-`BASE_URL` is the fifth. Set it to `http://localhost:3001` for dev, or to
-`https://<your-domain>` for the Traefik setup. The stack refuses to start with
+`BASE_URL` is the fifth. Set it to `http://localhost:3002` for dev, or to
+`https://<your-domain>` for the Traefik setup — in both cases the address you
+open in a browser, not the backend's own port. The stack refuses to start with
 any of these blank rather than coming up on a default password.
 
 2. Start the service:

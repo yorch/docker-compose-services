@@ -10,7 +10,13 @@
 :80 {
 	encode zstd gzip
 
-	request_body max_size 10MB
+	# Block form is load-bearing. Caddy's parser consumes the directive name
+	# and then reads only a block, so the inline `request_body max_size 10MB`
+	# spelling adapts without error and silently drops the limit - the emitted
+	# JSON is a bare {"handler": "request_body"} with no max_size at all.
+	request_body {
+		max_size 10MB
+	}
 
 	handle /api/* {
 		reverse_proxy backend:3001
