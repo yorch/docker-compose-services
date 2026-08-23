@@ -1,0 +1,169 @@
+# Langfuse is six containers: the web app, a worker that drains the ingestion
+# queue, and four datastores. Postgres holds accounts, projects and prompts;
+# ClickHouse holds the trace and observation events; Redis is the queue between
+# web and worker; MinIO stores event payloads and uploaded media.
+#
+# MinIO has to be reachable by the BROWSER, not just by the other containers.
+# Langfuse hands out presigned URLs for media, so `web` is given a public MinIO
+# address while `worker` keeps the internal one - see MINIO_PUBLIC_URL below.
+x-langfuse-env: &langfuse-env
+  NEXTAUTH_URL: ${NEXTAUTH_URL:?public origin of the Langfuse UI, no trailing slash}
+  DATABASE_URL: ${DATABASE_URL:?postgres connection string, see .env.sample}
+  SALT: ${SALT:?hashes API keys, generate one with openssl rand -base64 32}
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY:?must be 64 hex characters, generate one with openssl rand -hex 32}
+  TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-true}
+  LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: ${LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES:-false}
+  # ClickHouse. The migration URL uses the native protocol on 9000, the query
+  # URL the HTTP interface on 8123. Both are needed.
+  CLICKHOUSE_MIGRATION_URL: ${CLICKHOUSE_MIGRATION_URL:-clickhouse://clickhouse:9000}
+  CLICKHOUSE_URL: ${CLICKHOUSE_URL:-http://clickhouse:8123}
+  CLICKHOUSE_USER: ${CLICKHOUSE_USER:-clickhouse}
+  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?password for the ClickHouse user, generate one with openssl rand -hex 16}
+  CLICKHOUSE_CLUSTER_ENABLED: ${CLICKHOUSE_CLUSTER_ENABLED:-false}
+  # Redis
+  REDIS_HOST: ${REDIS_HOST:-redis}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_AUTH: ${REDIS_AUTH:?password for Redis, generate one with openssl rand -hex 16}
+  # Object storage. These endpoints are container-to-container, so they stay on
+  # the compose network whichever way the stack is exposed.
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: ${MINIO_BUCKET_NAME:-langfuse}
+  LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+  LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minio}
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?password for MinIO, at least 8 characters, generate one with openssl rand -hex 16}
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+  LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: 'true'
+  LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: ${MINIO_BUCKET_NAME:-langfuse}
+  LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+  LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+  LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minio}
+  LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+  LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: 'true'
+  # Overridden on `web` with the public address - see the note at the top.
+  LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+  # Email, for user invitations. Both are needed for invites to be sent.
+  EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-}
+  SMTP_CONNECTION_URL: ${SMTP_CONNECTION_URL:-}
+
+services:
+  web:
+    image: langfuse/langfuse:${LANGFUSE_VERSION:-4}
+    restart: unless-stopped
+    depends_on: &langfuse-depends-on
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      <<: *langfuse-env
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?signs session cookies, generate one with openssl rand -base64 32}
+      # Presigned media URLs are opened by the browser, so this one address has
+      # to be resolvable from outside the compose network. Everything else
+      # above stays internal.
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: ${MINIO_PUBLIC_URL:?browser-reachable MinIO address, see .env.sample}
+      # Optional bootstrap of an org, project, API keys and first user on an
+      # empty database. Left blank, Langfuse shows the normal sign-up screen.
+      LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-}
+      LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME:-}
+      LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-}
+      LANGFUSE_INIT_PROJECT_NAME: ${LANGFUSE_INIT_PROJECT_NAME:-}
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY:-}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY:-}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-}
+      LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-}
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-}
+
+  worker:
+    image: langfuse/langfuse-worker:${LANGFUSE_VERSION:-4}
+    restart: unless-stopped
+    depends_on: *langfuse-depends-on
+    environment: *langfuse-env
+
+  postgres:
+    # Langfuse 4 needs Postgres 15 or newer. Postgres 18 moved its VOLUME to
+    # /var/lib/postgresql (PGDATA is now /var/lib/postgresql/18/docker), so
+    # bumping the major here without moving this mount would send the real data
+    # to an anonymous volume instead, with no error.
+    image: postgres:17-alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-langfuse}
+      - POSTGRES_USER=${POSTGRES_USER:-langfuse}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?password for the Postgres user, generate one with openssl rand -hex 16}
+      - TZ=UTC
+      - PGTZ=UTC
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  clickhouse:
+    # Langfuse 4 requires 25.12 or newer - it relies on lightweight updates,
+    # the JSON type and full-text search. Upgrading ClickHouse on an existing
+    # Langfuse 3 deployment must happen BEFORE moving the app to 4; see the
+    # README.
+    image: clickhouse/clickhouse-server:25.12
+    restart: unless-stopped
+    user: '101:101'
+    volumes:
+      - ./data/clickhouse/data:/var/lib/clickhouse
+      - ./data/clickhouse/logs:/var/log/clickhouse-server
+    environment:
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB:-default}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-clickhouse}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 1s
+
+  redis:
+    # Redis is the queue between web and worker, not a cache. noeviction stops
+    # it discarding queued ingestion jobs under memory pressure, and the volume
+    # keeps the queue across restarts.
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      --requirepass ${REDIS_AUTH}
+      --maxmemory-policy noeviction
+      --appendonly yes
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test:
+        ['CMD', 'redis-cli', '-a', '${REDIS_AUTH}', '--no-auth-warning', 'ping']
+      interval: 3s
+      timeout: 10s
+      retries: 10
+
+  minio:
+    # Chainguard's build, which is what Langfuse upstream moved to. It cannot
+    # be pinned: the free Chainguard tier publishes only `latest`. The
+    # alternative, minio/minio, stopped publishing community images after
+    # RELEASE.2025-09-07 and no longer receives security updates - an
+    # unpinnable maintained image beats a pinnable abandoned one.
+    image: cgr.dev/chainguard/minio
+    restart: unless-stopped
+    entrypoint: sh
+    # Creates the bucket before starting, since Langfuse does not create it.
+    command: -c 'mkdir -p /data/${MINIO_BUCKET_NAME:-langfuse} && minio server --address ":9000" --console-address ":9001" /data'
+    volumes:
+      - ./data/minio:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minio}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s

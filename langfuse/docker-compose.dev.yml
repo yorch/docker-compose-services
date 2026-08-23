@@ -1,0 +1,35 @@
+# Local exposure. `web` and the MinIO S3 API are the two things a browser
+# talks to, so they bind every interface; the rest are sidecars and follow the
+# repo's DEV_BIND_IP convention.
+#
+# Set MINIO_PUBLIC_URL=http://localhost:9090 in .env to match the MinIO
+# mapping below, otherwise media uploads produce presigned URLs the browser
+# cannot open.
+services:
+  web:
+    ports:
+      - 3000:3000
+
+  minio:
+    ports:
+      # S3 API. Browser-facing, because presigned media URLs point here.
+      - 9090:9000
+      # Console. Operator-only, so it stays on the loopback address.
+      - ${DEV_BIND_IP:-127.0.0.1}:9091:9001
+
+  worker:
+    ports:
+      - ${DEV_BIND_IP:-127.0.0.1}:3030:3030
+
+  clickhouse:
+    ports:
+      - ${DEV_BIND_IP:-127.0.0.1}:8123:8123
+      - ${DEV_BIND_IP:-127.0.0.1}:9000:9000
+
+  redis:
+    ports:
+      - ${DEV_BIND_IP:-127.0.0.1}:6379:6379
+
+  postgres:
+    ports:
+      - ${DEV_BIND_IP:-127.0.0.1}:5432:5432
