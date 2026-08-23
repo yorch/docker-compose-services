@@ -10,13 +10,17 @@
 :80 {
 	encode zstd gzip
 
-	# Block form is load-bearing. Caddy's parser consumes the directive name
-	# and then reads only a block, so the inline `request_body max_size 10MB`
-	# spelling adapts without error and silently drops the limit - the emitted
-	# JSON is a bare {"handler": "request_body"} with no max_size at all.
-	request_body {
-		max_size 10MB
-	}
+	# No request_body limit here on purpose. Upstream's Caddyfile carries
+	# `request_body max_size 10MB`, but Caddy only reads max_size from inside a
+	# block, so that line adapts to a bare {"handler": "request_body"} and the
+	# limit never applies. Writing it correctly would be worse than leaving it
+	# out: the backend raises its own limit to 50MB for
+	# POST /api/sites/:siteId/imports/:importId/events, so a working 10MB cap
+	# here would 413 every historical-events import before it reached Fastify.
+	#
+	# Fastify already enforces the real policy per route (10MB default, 50MB
+	# for that one), and the Traefik overlay adds no limit either, so dev and
+	# production agree.
 
 	handle /api/* {
 		reverse_proxy backend:3001
