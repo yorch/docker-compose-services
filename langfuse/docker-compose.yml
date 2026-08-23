@@ -196,7 +196,30 @@ services:
       seaweedfs:
         condition: service_healthy
     entrypoint: sh
-    command: -c 'echo "s3.bucket.create -name ${S3_BUCKET_NAME:-langfuse}" | weed shell -master=seaweedfs:9333'
+    # `weed shell` talks to the filer, not just the master, and does not
+    # discover one from the master - shell.go only reads the -filer flag - so
+    # both addresses are passed explicitly. The list-then-create dance mirrors
+    # the SeaweedFS chart's own hook: creating a bucket that already exists
+    # exits non-zero, which would fail service_completed_successfully and block
+    # the whole stack on every `up` after the first.
+    command:
+      - -ec
+      - |
+        b='${S3_BUCKET_NAME:-langfuse}'
+        addr='-master=seaweedfs:9333 -filer=seaweedfs:8888'
+        # The healthcheck only covers the S3 port; wait for the filer too.
+        i=0
+        until echo 's3.bucket.list' | weed shell $$addr >/dev/null 2>&1; do
+          i=$$((i+1))
+          [ "$$i" -ge 30 ] && { echo "filer did not come up"; exit 1; }
+          sleep 2
+        done
+        if echo 's3.bucket.list' | weed shell $$addr | awk '{print $$1}' | grep -Fxq "$$b"; then
+          echo "bucket $$b already exists"
+        else
+          echo "creating bucket $$b"
+          echo "s3.bucket.create -name $$b" | weed shell $$addr
+        fi
 
 configs:
   seaweedfs-s3-auth:
