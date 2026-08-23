@@ -84,10 +84,16 @@ services:
     environment: *langfuse-env
 
   postgres:
-    # Langfuse 4 needs Postgres 15 or newer. Postgres 18 moved its VOLUME to
-    # /var/lib/postgresql (PGDATA is now /var/lib/postgresql/18/docker), so
-    # bumping the major here without moving this mount would send the real data
-    # to an anonymous volume instead, with no error.
+    # Langfuse 4 needs Postgres 15 or newer and recommends 16; upstream pins 17.
+    #
+    # The major is written here rather than taken from a variable, on purpose.
+    # Postgres 18 moved its VOLUME to /var/lib/postgresql (PGDATA is now
+    # /var/lib/postgresql/18/docker), so the image and the mount below have to
+    # move together. Upstream's `postgres:${POSTGRES_VERSION:-17}` with a
+    # hardcoded /var/lib/postgresql/data mount is exactly the trap: setting the
+    # variable to 18 leaves the mount pointing somewhere Postgres no longer
+    # writes, so the database lands in an anonymous volume and the real one
+    # stays empty, with no error anywhere.
     image: postgres:17-alpine
     restart: unless-stopped
     volumes:

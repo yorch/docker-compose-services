@@ -169,7 +169,15 @@ evaluators. Check your instrumentation before upgrading.
 
 Postgres majors are not on-disk compatible either. Moving beyond 17 needs
 `pg_upgrade` or a dump and restore, plus a matching change to the mount path —
-Postgres 18 moved its `VOLUME` to `/var/lib/postgresql`.
+Postgres 18 moved its `VOLUME` to `/var/lib/postgresql` and its `PGDATA` to
+`/var/lib/postgresql/18/docker`.
+
+Change both together or neither. Bumping only the image leaves the mount
+pointing at a path Postgres 18 does not write to: it runs `initdb`, Langfuse
+comes up against an empty database, and the old cluster sits untouched on disk
+with nothing in any log to say so. That is also why the major is written into
+the compose file rather than taken from a variable — a version knob that cannot
+move the mount path with it is a way to lose a database quietly.
 
 ## Notes
 
