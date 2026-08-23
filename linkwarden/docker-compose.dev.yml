@@ -5,12 +5,12 @@ services:
 
   db:
     ports:
-      - 5432:5432
+      - ${DEV_BIND_IP:-127.0.0.1}:5432:5432
 
   meilisearch:
     ports:
-      - 7700:7700
+      - ${DEV_BIND_IP:-127.0.0.1}:7700:7700
 
   adminer:
     ports:
-      - 8080:8080
+      - ${DEV_BIND_IP:-127.0.0.1}:8080:8080
