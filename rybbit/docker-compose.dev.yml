@@ -1,0 +1,28 @@
+# Local exposure. Unlike most services here this overlay adds a container
+# rather than just publishing a port, because Rybbit cannot be reached over two
+# ports: the dashboard image calls the API relative to its own origin (see
+# Caddyfile.dev), so the dashboard and the backend have to answer on one
+# hostname. Caddy provides that locally; the Traefik overlay provides it in
+# production with two routers on the same Host rule.
+services:
+  caddy:
+    image: caddy:2.10.0
+    restart: unless-stopped
+    volumes:
+      # Plain http on localhost, so Caddy issues no certificates and has no
+      # state worth persisting.
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile:ro
+    ports:
+      - 3002:80
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  backend:
+    # better-auth marks its session cookie Secure and SameSite=None when
+    # NODE_ENV is production. A browser silently drops a Secure cookie sent
+    # over plain http, so on localhost login would appear to succeed and then
+    # bounce straight back to the sign-in page. Everything else about the
+    # backend is unchanged.
+    environment:
+      - NODE_ENV=development
