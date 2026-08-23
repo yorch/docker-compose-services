@@ -1,0 +1,41 @@
+# Dev-only front door, mounted by docker-compose.dev.yml.
+#
+# The published rybbit-client image resolves the API relative to whatever
+# origin serves the dashboard - upstream builds it with an empty
+# NEXT_PUBLIC_BACKEND_URL, so the browser bundle ships `baseURL: ""` and calls
+# "/api" rather than an absolute host. Publishing the two containers on two
+# ports therefore does not work: the dashboard on :3002 would send every API
+# call to itself. One origin has to cover both, which is what this does, and
+# what the Traefik overlay does with two routers in production.
+:80 {
+	encode zstd gzip
+
+	# No request_body limit here on purpose. Upstream's Caddyfile carries
+	# `request_body max_size 10MB`, but Caddy only reads max_size from inside a
+	# block, so that line adapts to a bare {"handler": "request_body"} and the
+	# limit never applies. Writing it correctly would be worse than leaving it
+	# out: the backend raises its own limit to 50MB for
+	# POST /api/sites/:siteId/imports/:importId/events, so a working 10MB cap
+	# here would 413 every historical-events import before it reached Fastify.
+	#
+	# Fastify already enforces the real policy per route (10MB default, 50MB
+	# for that one), and the Traefik overlay adds no limit either, so dev and
+	# production agree.
+
+	handle /api/* {
+		reverse_proxy backend:3001
+	}
+
+	# OAuth/OIDC discovery documents for MCP clients (RFC 8414/9728) are served
+	# by the backend but must live at the domain root.
+	handle /.well-known/oauth-* {
+		reverse_proxy backend:3001
+	}
+	handle /.well-known/openid-configuration* {
+		reverse_proxy backend:3001
+	}
+
+	handle {
+		reverse_proxy client:3002
+	}
+}

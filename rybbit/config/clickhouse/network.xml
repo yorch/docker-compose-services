@@ -1,0 +1,6 @@
+<clickhouse>
+    <!-- Bind to all interfaces so the backend can reach ClickHouse over the
+         compose network. Nothing publishes 8123/9000 to the host in the
+         Traefik setup, so this stays inside Docker. -->
+    <listen_host>0.0.0.0</listen_host>
+</clickhouse>

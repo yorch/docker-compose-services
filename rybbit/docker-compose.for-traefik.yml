@@ -1,0 +1,59 @@
+# Rybbit is two HTTP containers behind one hostname, so this overlay labels
+# both of them. Upstream puts Caddy in front and path-routes /api to the
+# backend and everything else to the Next.js dashboard; these labels reproduce
+# that split with two Traefik routers on the same Host rule.
+services:
+  backend:
+    networks:
+      # `default` is listed explicitly because naming any network here replaces
+      # the implicit one. Dropping it would cut the backend off from
+      # clickhouse, postgres and redis.
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Response compression, which Caddy did upstream (`encode zstd gzip`).
+      # Only the API needs it: dashboard queries return large JSON payloads and
+      # Fastify does not compress them itself, whereas Next.js already gzips
+      # what the client container serves. Defining and using the middleware on
+      # the same container also keeps the dashboard router from depending on
+      # this one existing.
+      - 'traefik.http.middlewares.rybbit-compress.compress=true'
+      # Service
+      - 'traefik.http.services.rybbit-api.loadbalancer.server.port=3001'
+      # HTTPS Host. The path list mirrors the Caddyfile: the API plus the
+      # OAuth/OIDC discovery documents, which MCP clients require at the domain
+      # root (RFC 8414/9728) even though the backend serves them.
+      - 'traefik.http.routers.rybbit-api.rule=Host(`${DOMAIN:?the public hostname Rybbit answers on}`) && (PathPrefix(`/api`) || PathPrefix(`/.well-known/oauth-`) || PathPrefix(`/.well-known/openid-configuration`))'
+      # Traefik defaults to ordering routers by rule length, which already puts
+      # this ahead of the dashboard's bare Host rule. Setting both priorities
+      # makes that ordering explicit rather than a side effect of how the rules
+      # happen to be worded.
+      - 'traefik.http.routers.rybbit-api.priority=100'
+      - 'traefik.http.routers.rybbit-api.entrypoints=websecure'
+      - 'traefik.http.routers.rybbit-api.tls=true'
+      - 'traefik.http.routers.rybbit-api.tls.certResolver=webcert'
+      - 'traefik.http.routers.rybbit-api.service=rybbit-api'
+      - 'traefik.http.routers.rybbit-api.middlewares=rybbit-compress'
+
+  client:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.rybbit.loadbalancer.server.port=3002'
+      # HTTPS Host - catches everything the API router above did not.
+      - 'traefik.http.routers.rybbit.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.rybbit.priority=1'
+      - 'traefik.http.routers.rybbit.entrypoints=websecure'
+      - 'traefik.http.routers.rybbit.tls=true'
+      - 'traefik.http.routers.rybbit.tls.certResolver=webcert'
+      - 'traefik.http.routers.rybbit.service=rybbit'
+
+networks:
+  traefik:
+    external: true
