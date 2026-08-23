@@ -140,11 +140,16 @@ mixed sentence-case; match the convention above, not the older commits.
 ## Conventions
 
 **Dev port bindings.** In `docker-compose.dev.yml`, publish a container that exists only
-to serve a sibling in the same stack as `127.0.0.1:<host>:<container>` rather than
-`<host>:<container>`. A bare mapping binds `0.0.0.0`, which puts the container on every
-interface the host has — so a Postgres sidecar started for local work is reachable by
-anything on the same coffee-shop wifi, and Docker's own iptables rules sit in front of
-most host firewalls.
+to serve a sibling in the same stack as `${DEV_BIND_IP:-127.0.0.1}:<host>:<container>`
+rather than `<host>:<container>`. A bare mapping binds `0.0.0.0`, which puts the
+container on every interface the host has — so a Postgres sidecar started for local work
+is reachable by anything on the same coffee-shop wifi, and Docker's own iptables rules
+sit in front of most host firewalls.
+
+Use `:-`, not `-`. `.env.sample` files ship values blank, and `${DEV_BIND_IP-127.0.0.1}`
+treats a blank as a real value, producing `:5432:5432`. `:-` falls back on empty as well
+as unset. `DEV_BIND_IP` keeps the same name in every service so there is one thing to
+learn, and belongs in each `.env.sample` like any other variable.
 
 This applies to **sidecars, not products**: the databases behind an app (`db`, `mongo`,
 `mariadb`), caches and search (`redis`, `qdrant`, `meilisearch`), and DB admin UIs
