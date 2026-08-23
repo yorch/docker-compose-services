@@ -30,12 +30,13 @@ services:
       start_period: 10s
 
   postgres:
-    # Pinned to 17: postgres 18 moved the image VOLUME to /var/lib/postgresql,
-    # so bumping the major here without also changing the mount path below
-    # silently writes the database to an anonymous volume instead of ./data.
-    image: postgres:17.4
+    image: postgres:17-alpine
     restart: unless-stopped
     volumes:
+      # Postgres 18 moved its VOLUME to /var/lib/postgresql (PGDATA is now
+      # /var/lib/postgresql/18/docker). Bumping the major here without moving
+      # this mount would send the real data to an anonymous volume instead,
+      # with no error - see the Notes section of the README.
       - ./data/postgres:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-analytics}

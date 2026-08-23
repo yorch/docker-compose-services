@@ -151,6 +151,13 @@ Postgres is pinned to 17 and its bind mount is at
 error and silently writes the database to an anonymous volume instead of
 `./data`.
 
+Upstream pins `postgres:17.4`; this uses `postgres:17-alpine` to match the rest
+of the repo. Same `PGDATA` and `VOLUME`, same `LANG=en_US.utf8`, ICU included —
+and Rybbit's schema needs no extensions beyond core `gen_random_uuid()`. Note
+that Alpine collates text through musl rather than glibc, so an existing
+`./data/postgres` directory cannot simply be pointed at the other variant:
+moving between them needs a `REINDEX` of text indexes, or a dump and restore.
+
 Behind Traefik, visitor geolocation works with no extra configuration — the
 backend runs Fastify with `trustProxy` and reads `X-Forwarded-For`, which
 Traefik sets to the real client address.
