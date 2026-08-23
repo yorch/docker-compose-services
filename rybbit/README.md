@@ -45,8 +45,9 @@ openssl rand -hex 16   # one each for the ClickHouse, Postgres and Redis passwor
 
 `BASE_URL` is the fifth. Set it to `http://localhost:3002` for dev, or to
 `https://<your-domain>` for the Traefik setup — in both cases the address you
-open in a browser, not the backend's own port. The stack refuses to start with
-any of these blank rather than coming up on a default password.
+open in a browser, not the backend's own port. The Traefik setup needs `DOMAIN`
+as well, the same host without the scheme. The stack refuses to start with any
+of these blank rather than coming up on a default password.
 
 2. Start the service:
 
@@ -79,34 +80,39 @@ application containers stay on the compose network.
 
 ## Environment Variables
 
-Required — all five are declared `:?`, so a blank value stops the stack with a
+Required — every one is declared `:?`, so a blank value stops the stack with a
 message naming the variable.
 
-| Variable              | Description                                         |
-| --------------------- | --------------------------------------------------- |
-| `BASE_URL`            | Public origin of the dashboard, no trailing slash   |
-| `BETTER_AUTH_SECRET`  | Session cookie signing key — `openssl rand -hex 32` |
-| `CLICKHOUSE_PASSWORD` | Password for the ClickHouse user                    |
-| `POSTGRES_PASSWORD`   | Password for the Postgres user                      |
-| `REDIS_PASSWORD`      | Password for Redis                                  |
+| Variable              | Description                                                    |
+| --------------------- | -------------------------------------------------------------- |
+| `BASE_URL`            | Public origin of the dashboard, no trailing slash              |
+| `BETTER_AUTH_SECRET`  | Session cookie signing key — `openssl rand -hex 32`            |
+| `CLICKHOUSE_PASSWORD` | Password for the ClickHouse user                               |
+| `POSTGRES_PASSWORD`   | Password for the Postgres user                                 |
+| `REDIS_PASSWORD`      | Password for Redis                                             |
+| `DOMAIN`              | **Traefik setup only** — hostname Rybbit answers on, no scheme |
+
+`DOMAIN` is only read by `docker-compose.for-traefik.yml`, so the dev setup does
+not need it. It is not optional there, though: the router labels use
+`${DOMAIN:?…}`, so leaving it blank stops the Traefik setup during
+interpolation. Set it to the same host as `BASE_URL`, without the `https://`.
 
 Optional.
 
-| Variable             | Description                                            | Default     |
-| -------------------- | ------------------------------------------------------ | ----------- |
-| `DOMAIN`             | Hostname Traefik serves Rybbit on (Traefik setup only) | —           |
-| `IMAGE_TAG`          | Rybbit image tag to run                                | `latest`    |
-| `CLICKHOUSE_DB`      | ClickHouse database name                               | `analytics` |
-| `CLICKHOUSE_USER`    | ClickHouse user name                                   | `default`   |
-| `POSTGRES_DB`        | Postgres database name                                 | `analytics` |
-| `POSTGRES_USER`      | Postgres user name                                     | `rybbit`    |
-| `DISABLE_SIGNUP`     | Close registration to new accounts                     | `false`     |
-| `DISABLE_TELEMETRY`  | Stop reporting anonymous usage to the project          | `false`     |
-| `CLUSTER_WORKERS`    | Backend worker processes, roughly one per core         | `4`         |
-| `LITE_DASHBOARD`     | Reduce the dashboard to a single overview page         | `false`     |
-| `MAPBOX_TOKEN`       | Mapbox token, needed only for the 3D globe view        | —           |
-| `OPENROUTER_API_KEY` | Enables AI-generated report summaries                  | —           |
-| `OPENROUTER_MODEL`   | Model used for those summaries                         | —           |
+| Variable             | Description                                     | Default     |
+| -------------------- | ----------------------------------------------- | ----------- |
+| `IMAGE_TAG`          | Rybbit image tag to run                         | `latest`    |
+| `CLICKHOUSE_DB`      | ClickHouse database name                        | `analytics` |
+| `CLICKHOUSE_USER`    | ClickHouse user name                            | `default`   |
+| `POSTGRES_DB`        | Postgres database name                          | `analytics` |
+| `POSTGRES_USER`      | Postgres user name                              | `rybbit`    |
+| `DISABLE_SIGNUP`     | Close registration to new accounts              | `false`     |
+| `DISABLE_TELEMETRY`  | Stop reporting anonymous usage to the project   | `false`     |
+| `CLUSTER_WORKERS`    | Backend worker processes, roughly one per core  | `4`         |
+| `LITE_DASHBOARD`     | Reduce the dashboard to a single overview page  | `false`     |
+| `MAPBOX_TOKEN`       | Mapbox token, needed only for the 3D globe view | —           |
+| `OPENROUTER_API_KEY` | Enables AI-generated report summaries           | —           |
+| `OPENROUTER_MODEL`   | Model used for those summaries                  | —           |
 
 `BASE_URL` is the value most likely to be wrong. It is where the backend thinks
 it lives — invite links, the OAuth discovery documents, and the list of origins
@@ -163,9 +169,11 @@ collation providers) touch it. Data checksums are on by default in 18.
 
 Two things follow from this that are worth knowing before you have data:
 
-- **Majors are not on-disk compatible.** Moving to 19 later needs `pg_dumpall`
-  and a restore, plus a matching change to the mount path if the image layout
-  shifts again. Never just retag and restart.
+- **Majors are not on-disk compatible.** Moving to 19 later needs a real
+  migration — `pg_upgrade` for an in-place jump, or `pg_dumpall` and a restore —
+  plus a matching change to the mount path if the image layout shifts again.
+  `pg_upgrade` needs both clusters to agree on data checksums, which 18 turns on
+  by default. Never just retag and restart.
 - **Alpine collates text through musl, not glibc.** An existing
   `./data/postgres` cannot simply be pointed at a Debian-based image of the same
   major; that swap needs a `REINDEX` of text indexes, or a dump and restore.
