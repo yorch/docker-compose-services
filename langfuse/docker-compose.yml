@@ -1,0 +1,250 @@
+# Langfuse is six containers: the web app, a worker that drains the ingestion
+# queue, and four datastores. Postgres holds accounts, projects and prompts;
+# ClickHouse holds the trace and observation events; Redis is the queue between
+# web and worker; MinIO stores event payloads and uploaded media.
+#
+# Object storage is SeaweedFS rather than MinIO. MinIO's repository was
+# archived in February 2026 and stopped publishing community images before
+# that; Langfuse's own Helm chart replaced MinIO with SeaweedFS in chart 2.0.0.
+# The Langfuse side of the wiring is unchanged - same LANGFUSE_S3_* variables,
+# same path-style requirement.
+#
+# The S3 endpoint has to be reachable by the BROWSER, not just by the other
+# containers. Langfuse hands out presigned URLs for media, so `web` is given a
+# public address while `worker` keeps the internal one - see S3_PUBLIC_URL.
+x-langfuse-env: &langfuse-env
+  NEXTAUTH_URL: ${NEXTAUTH_URL:?public origin of the Langfuse UI, no trailing slash}
+  DATABASE_URL: ${DATABASE_URL:?postgres connection string, see .env.sample}
+  SALT: ${SALT:?hashes API keys, generate one with openssl rand -base64 32}
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY:?must be 64 hex characters, generate one with openssl rand -hex 32}
+  TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-true}
+  LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: ${LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES:-false}
+  # ClickHouse. The migration URL uses the native protocol on 9000, the query
+  # URL the HTTP interface on 8123. Both are needed.
+  CLICKHOUSE_MIGRATION_URL: ${CLICKHOUSE_MIGRATION_URL:-clickhouse://clickhouse:9000}
+  CLICKHOUSE_URL: ${CLICKHOUSE_URL:-http://clickhouse:8123}
+  CLICKHOUSE_USER: ${CLICKHOUSE_USER:-clickhouse}
+  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?password for the ClickHouse user, generate one with openssl rand -hex 16}
+  CLICKHOUSE_CLUSTER_ENABLED: ${CLICKHOUSE_CLUSTER_ENABLED:-false}
+  # Redis
+  REDIS_HOST: ${REDIS_HOST:-redis}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_AUTH: ${REDIS_AUTH:?password for Redis, generate one with openssl rand -hex 16}
+  # Object storage. These endpoints are container-to-container, so they stay on
+  # the compose network whichever way the stack is exposed.
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: ${S3_BUCKET_NAME:-langfuse}
+  LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+  LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-langfuse}
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:?secret key for object storage, generate one with openssl rand -hex 16}
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://seaweedfs:8333
+  LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: 'true'
+  LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: ${S3_BUCKET_NAME:-langfuse}
+  LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+  LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+  LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-langfuse}
+  LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+  LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: 'true'
+  # Overridden on `web` with the public address - see the note at the top.
+  LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://seaweedfs:8333
+  # Email, for user invitations. Both are needed for invites to be sent.
+  EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-}
+  SMTP_CONNECTION_URL: ${SMTP_CONNECTION_URL:-}
+
+services:
+  web:
+    image: langfuse/langfuse:${LANGFUSE_VERSION:-4}
+    restart: unless-stopped
+    depends_on: &langfuse-depends-on
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+      seaweedfs-bucket:
+        condition: service_completed_successfully
+    environment:
+      <<: *langfuse-env
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?signs session cookies, generate one with openssl rand -base64 32}
+      # Presigned media URLs are opened by the browser, so this one address has
+      # to be resolvable from outside the compose network. Everything else
+      # above stays internal.
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: ${S3_PUBLIC_URL:?browser-reachable object storage address, see .env.sample}
+      # Optional bootstrap of an org, project, API keys and first user on an
+      # empty database. Left blank, Langfuse shows the normal sign-up screen.
+      LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-}
+      LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME:-}
+      LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-}
+      LANGFUSE_INIT_PROJECT_NAME: ${LANGFUSE_INIT_PROJECT_NAME:-}
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY:-}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY:-}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-}
+      LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-}
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-}
+
+  worker:
+    image: langfuse/langfuse-worker:${LANGFUSE_VERSION:-4}
+    restart: unless-stopped
+    depends_on: *langfuse-depends-on
+    environment: *langfuse-env
+
+  postgres:
+    # Langfuse 4 needs Postgres 15 or newer and recommends 16; upstream pins 17.
+    #
+    # The major is written here rather than taken from a variable, on purpose.
+    # Postgres 18 moved its VOLUME to /var/lib/postgresql (PGDATA is now
+    # /var/lib/postgresql/18/docker), so the image and the mount below have to
+    # move together. Upstream's `postgres:${POSTGRES_VERSION:-17}` with a
+    # hardcoded /var/lib/postgresql/data mount is exactly the trap: setting the
+    # variable to 18 leaves the mount pointing somewhere Postgres no longer
+    # writes, so the database lands in an anonymous volume and the real one
+    # stays empty, with no error anywhere.
+    image: postgres:17-alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-langfuse}
+      - POSTGRES_USER=${POSTGRES_USER:-langfuse}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?password for the Postgres user, generate one with openssl rand -hex 16}
+      - TZ=UTC
+      - PGTZ=UTC
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  clickhouse:
+    # Langfuse 4 requires 25.12 or newer - it relies on lightweight updates,
+    # the JSON type and full-text search. Upgrading ClickHouse on an existing
+    # Langfuse 3 deployment must happen BEFORE moving the app to 4; see the
+    # README.
+    image: clickhouse/clickhouse-server:25.12
+    restart: unless-stopped
+    # No `user:` here, unlike upstream. Upstream mounts named volumes, which
+    # Docker creates with the image's ownership; this repo uses bind mounts,
+    # which it creates as root. Pinning the container to 101:101 then leaves
+    # ClickHouse unable to write its own data directory on Linux. Started as
+    # root the entrypoint chowns /var/lib/clickhouse and drops to the
+    # clickhouse user itself, which is what rybbit/ and plausible-analytics/
+    # rely on too. macOS hides the difference - Docker Desktop remaps bind
+    # mount ownership - so this only ever failed on a real server.
+    volumes:
+      - ./data/clickhouse/data:/var/lib/clickhouse
+      - ./data/clickhouse/logs:/var/log/clickhouse-server
+    environment:
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB:-default}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-clickhouse}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 1s
+
+  redis:
+    # Redis is the queue between web and worker, not a cache. noeviction stops
+    # it discarding queued ingestion jobs under memory pressure, and the volume
+    # keeps the queue across restarts.
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      --requirepass ${REDIS_AUTH}
+      --maxmemory-policy noeviction
+      --appendonly yes
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test:
+        ['CMD', 'redis-cli', '-a', '${REDIS_AUTH}', '--no-auth-warning', 'ping']
+      interval: 3s
+      timeout: 10s
+      retries: 10
+
+  seaweedfs:
+    # SeaweedFS in all-in-one mode - master, volume, filer and the S3 gateway
+    # in one process, which is the shape Langfuse's Helm chart deploys.
+    #
+    # Pinned ahead of the version that chart names (3.95, published July 2025).
+    # Replacing an unmaintained object store with a year-old image would give
+    # up most of the reason for the change; the S3 surface Langfuse uses -
+    # path-style addressing and presigned URLs - is stable across 3.x and 4.x.
+    image: chrislusf/seaweedfs:4.44
+    restart: unless-stopped
+    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    configs:
+      - source: seaweedfs-s3-auth
+        target: /etc/seaweedfs/s3.json
+    volumes:
+      - ./data/seaweedfs:/data
+    healthcheck:
+      # /healthz on the S3 port needs no credentials. curl is installed in the
+      # image; the base is alpine.
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:8333/healthz']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  seaweedfs-bucket:
+    # One-shot. SeaweedFS does not create buckets on first write and Langfuse
+    # never calls CreateBucket, so the bucket has to exist before either app
+    # container starts - the Helm chart uses a post-install hook for the same
+    # reason. Creating an existing bucket is harmless, so this is safe to
+    # re-run on every `up`.
+    image: chrislusf/seaweedfs:4.44
+    restart: 'no'
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+    entrypoint: sh
+    # `weed shell` talks to the filer, not just the master, and does not
+    # discover one from the master - shell.go only reads the -filer flag - so
+    # both addresses are passed explicitly. The list-then-create dance mirrors
+    # the SeaweedFS chart's own hook: creating a bucket that already exists
+    # exits non-zero, which would fail service_completed_successfully and block
+    # the whole stack on every `up` after the first.
+    command:
+      - -ec
+      - |
+        b='${S3_BUCKET_NAME:-langfuse}'
+        addr='-master=seaweedfs:9333 -filer=seaweedfs:8888'
+        # The healthcheck only covers the S3 port; wait for the filer too.
+        i=0
+        until echo 's3.bucket.list' | weed shell $$addr >/dev/null 2>&1; do
+          i=$$((i+1))
+          [ "$$i" -ge 30 ] && { echo "filer did not come up"; exit 1; }
+          sleep 2
+        done
+        if echo 's3.bucket.list' | weed shell $$addr | awk '{print $$1}' | grep -Fxq "$$b"; then
+          echo "bucket $$b already exists"
+        else
+          echo "creating bucket $$b"
+          echo "s3.bucket.create -name $$b" | weed shell $$addr
+        fi
+
+configs:
+  seaweedfs-s3-auth:
+    # Inline rather than a file in config/ because it carries the credentials,
+    # and Compose interpolates ${...} in config content but not in a bind-
+    # mounted file. Keeping it here means the secret stays in .env.
+    content: |
+      {
+        "identities": [
+          {
+            "name": "${S3_ACCESS_KEY:-langfuse}",
+            "credentials": [
+              {
+                "accessKey": "${S3_ACCESS_KEY:-langfuse}",
+                "secretKey": "${S3_SECRET_KEY}"
+              }
+            ],
+            "actions": ["Admin", "Read", "List", "Tagging", "Write"]
+          }
+        ]
+      }

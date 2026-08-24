@@ -1,0 +1,34 @@
+# Local exposure. `web` and the SeaweedFS S3 API are the two things a browser
+# talks to, so they bind every interface; the rest are sidecars and follow the
+# repo's DEV_BIND_IP convention.
+#
+# Set S3_PUBLIC_URL=http://localhost:8333 in .env to match the mapping below,
+# otherwise media uploads produce presigned URLs the browser cannot open.
+services:
+  web:
+    ports:
+      - 3000:3000
+
+  seaweedfs:
+    ports:
+      # S3 API. Browser-facing, because presigned media URLs point here.
+      - 8333:8333
+      # Master UI. Operator-only, so it stays on the loopback address.
+      - ${DEV_BIND_IP:-127.0.0.1}:9333:9333
+
+  worker:
+    ports:
+      - ${DEV_BIND_IP:-127.0.0.1}:3030:3030
+
+  clickhouse:
+    ports:
+      - ${DEV_BIND_IP:-127.0.0.1}:8123:8123
+      - ${DEV_BIND_IP:-127.0.0.1}:9000:9000
+
+  redis:
+    ports:
+      - ${DEV_BIND_IP:-127.0.0.1}:6379:6379
+
+  postgres:
+    ports:
+      - ${DEV_BIND_IP:-127.0.0.1}:5432:5432
