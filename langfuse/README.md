@@ -35,11 +35,23 @@ That is why the Traefik setup needs **two** hostnames.
 
 ## Quick Start
 
-1. Copy the environment configuration and fill in the required values:
+1. Generate the secrets:
+
+```bash
+./setup.sh --dev     # dev: also sets the two addresses to localhost
+./setup.sh           # Traefik: secrets only, addresses are yours to set
+```
+
+This creates `.env` from `.env.sample`, fills every blank secret with a
+generated value of the right shape, assembles `DATABASE_URL` to match the
+Postgres password it just generated, and chmods the file to `600`. It never
+prints a value, and it never overwrites one that is already set — so it is safe
+to re-run, including against a live deployment.
+
+To do it by hand instead:
 
 ```bash
 cp .env.sample .env
-
 openssl rand -base64 32   # SALT
 openssl rand -hex 32      # ENCRYPTION_KEY — must be exactly 64 hex characters
 openssl rand -base64 32   # NEXTAUTH_SECRET
@@ -47,14 +59,21 @@ openssl rand -hex 16      # one each for POSTGRES_PASSWORD, CLICKHOUSE_PASSWORD,
                           # REDIS_AUTH and S3_SECRET_KEY
 ```
 
-Then set the two addresses, and make `DATABASE_URL` agree with
-`POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` — nothing assembles it
-for you:
+Then make `DATABASE_URL` agree with `POSTGRES_USER` / `POSTGRES_PASSWORD` /
+`POSTGRES_DB`; nothing assembles it for you. Use a hex password if you write it
+by hand — base64 can contain `/` and `+`, which need percent-encoding inside a
+connection string.
+
+Either way, set the two addresses:
 
 | Variable        | Dev                     | Behind Traefik         |
 | --------------- | ----------------------- | ---------------------- |
 | `NEXTAUTH_URL`  | `http://localhost:3000` | `https://${DOMAIN}`    |
 | `S3_PUBLIC_URL` | `http://localhost:8333` | `https://${S3_DOMAIN}` |
+
+The Traefik setup also needs `DOMAIN` and `S3_DOMAIN`. To check nothing was
+missed without revealing anything, `grep -E '^[A-Z_]+=$' .env` should list only
+optional variables.
 
 2. Start the service:
 
@@ -148,15 +167,46 @@ ingestion jobs are not dropped under memory pressure.
 
 ## Upgrading
 
-**Moving from Langfuse 3 to 4 is not just a retag.** Version 4 requires
-ClickHouse 25.12 or newer, and upstream is explicit that **ClickHouse must be
-upgraded before the application**. Langfuse 3 runs fine on current ClickHouse,
-so the safe sequence against an existing deployment is:
+**Moving from Langfuse 3 to 4 is not just a retag.** Upstream splits it into
+three phases, each of which leaves the deployment in a stable state, so they can
+be days apart.
 
-1. Bump only the `clickhouse` image to `25.12` and start the stack, still on
-   Langfuse 3. Let it come up healthy.
-2. Then move `LANGFUSE_VERSION` to `4`. ClickHouse schema migrations run
-   automatically on startup.
+**1. Infrastructure.** Version 4 requires ClickHouse 25.12 or newer (Postgres
+15+, Redis 7.0+). Langfuse 3 runs fine on current ClickHouse, so bump only the
+`clickhouse` image and start the stack still on Langfuse 3. Let it come up
+healthy before going further — upstream is explicit that ClickHouse is upgraded
+**before** the application.
+
+**2. Server.** Move `LANGFUSE_VERSION` to `4`. ClickHouse schema migrations run
+automatically on startup. What happens to writes depends on
+`LANGFUSE_MIGRATION_V4_WRITE_MODE`:
+
+| Mode          | Writes                                 | Use when                                             |
+| ------------- | -------------------------------------- | ---------------------------------------------------- |
+| `legacy`      | v3 tables only                         | De-risking the server upgrade — nothing else changes |
+| `dual`        | both old and new tables                | Transitioning, while older SDKs catch up             |
+| `events_only` | new `events` tables only (**default**) | Every producer already sends a compatible SDK        |
+
+If all your instrumentation is on Python SDK ≥ 4.7.0 / JS-TS SDK ≥ 5.4.0, the
+default is fine and the migration is done. If not, set `legacy` first, because
+`events_only` **rejects older SDKs at ingestion**.
+
+**3. Data model.** Only needed if you started at `legacy`. Upgrade the SDKs and
+any API consumers, switch to `dual` so new data lands in both places, confirm it
+is healthy, and only then deal with history — either
+`LANGFUSE_BACKGROUND_MIGRATION_V4_ENABLE_HISTORIC_BACKFILL=true` (rewrites
+everything, wants roughly 3x disk headroom) or simply dual-writing for one full
+retention window and letting the old data age out. Finally drop the write-mode
+override to land on `events_only`.
+
+Order matters in phase 3: the backfill runs **once**, so enabling it before the
+dual write is active and healthy leaves anything ingested in between permanently
+missing from the new tables.
+
+These `LANGFUSE_MIGRATION_V4_*` variables are transitional and upstream intends
+to remove them in a later major, so they are not in `.env.sample`. Add them to
+`.env` for the duration of a migration — every variable in `.env` reaches both
+containers.
 
 Check what wrote your existing data before you start —
 `grep -o "Starting ClickHouse [0-9.]*" data/clickhouse/logs/clickhouse-server.log | tail -1`.
@@ -207,10 +257,28 @@ path-style addressing and presigned URLs — is stable across 3.x and 4.x.
 
 ## Integration
 
+`get_client()` is a singleton keyed on the public key and reads its
+configuration from the environment, so credentials go in the environment rather
+than in the call:
+
+```bash
+export LANGFUSE_PUBLIC_KEY="pk-lf-..."
+export LANGFUSE_SECRET_KEY="sk-lf-..."
+export LANGFUSE_HOST="https://langfuse.example.com"
+```
+
 ```python
 from langfuse import get_client
 
-langfuse = get_client(
+langfuse = get_client()
+```
+
+To configure it in code instead, use the constructor:
+
+```python
+from langfuse import Langfuse
+
+langfuse = Langfuse(
     public_key="pk-lf-...",
     secret_key="sk-lf-...",
     host="https://langfuse.example.com",

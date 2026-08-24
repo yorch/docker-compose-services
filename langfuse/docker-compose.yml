@@ -125,7 +125,14 @@ services:
     # README.
     image: clickhouse/clickhouse-server:25.12
     restart: unless-stopped
-    user: '101:101'
+    # No `user:` here, unlike upstream. Upstream mounts named volumes, which
+    # Docker creates with the image's ownership; this repo uses bind mounts,
+    # which it creates as root. Pinning the container to 101:101 then leaves
+    # ClickHouse unable to write its own data directory on Linux. Started as
+    # root the entrypoint chowns /var/lib/clickhouse and drops to the
+    # clickhouse user itself, which is what rybbit/ and plausible-analytics/
+    # rely on too. macOS hides the difference - Docker Desktop remaps bind
+    # mount ownership - so this only ever failed on a real server.
     volumes:
       - ./data/clickhouse/data:/var/lib/clickhouse
       - ./data/clickhouse/logs:/var/log/clickhouse-server
