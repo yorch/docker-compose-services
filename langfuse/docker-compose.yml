@@ -180,6 +180,12 @@ services:
     configs:
       - source: seaweedfs-s3-auth
         target: /etc/seaweedfs/s3.json
+        # World-readable so the `seaweed` user (uid 1000, via su-exec in
+        # the image's entrypoint) can read it. The default 0440 mounts as
+        # root:root and makes weed crash-loop with "permission denied"
+        # on /etc/seaweedfs/s3.json, keeping the healthcheck failing and
+        # blocking web/worker/bucket.
+        mode: 0444
     volumes:
       - ./data/seaweedfs:/data
     healthcheck:
