@@ -30,14 +30,14 @@ once per host:
 
 ## Services
 
-| Service     | Description                  |
-| ----------- | ---------------------------- |
-| `web`       | Web application              |
-| `worker`    | Celery background worker     |
-| `postgres`  | PostgreSQL database          |
-| `redis`     | Cache and message broker     |
-| `migrate`   | Database migrations          |
-| `dbbackups` | Automated PostgreSQL backups |
+| Service     | Description                     |
+| ----------- | ------------------------------- |
+| `web`       | Web application (granian ASGI)  |
+| `worker`    | django-vtasks background worker |
+| `postgres`  | PostgreSQL database             |
+| `valkey`    | Cache and task queue (Valkey 9) |
+| `migrate`   | Database migrations             |
+| `dbbackups` | Automated PostgreSQL backups    |
 
 ## Environment Variables
 
@@ -69,18 +69,37 @@ once per host:
 
 ### Data Retention
 
-| Variable                                    | Description                 | Default |
-| ------------------------------------------- | --------------------------- | ------- |
-| `GLITCHTIP_MAX_EVENT_LIFE_DAYS`             | Event retention days        | `90`    |
-| `GLITCHTIP_MAX_TRANSACTION_EVENT_LIFE_DAYS` | Transaction event retention | `90`    |
-| `GLITCHTIP_MAX_TRANSACTION_LIFE_DAYS`       | Transaction retention       | `180`   |
+| Variable                               | Description                        | Default |
+| -------------------------------------- | ---------------------------------- | ------- |
+| `GLITCHTIP_RETENTION_DAYS`             | Master default for all retention   | `90`    |
+| `GLITCHTIP_EVENT_RETENTION_DAYS`       | Error event retention (hot + cold) | `90`    |
+| `GLITCHTIP_EVENT_HOT_DAYS`             | Days in PostgreSQL before archival | `30`    |
+| `GLITCHTIP_TRANSACTION_RETENTION_DAYS` | Transaction retention (hot + cold) | `90`    |
+| `GLITCHTIP_LOG_RETENTION_DAYS`         | Log retention (hot + cold)         | `90`    |
+| `GLITCHTIP_LOG_HOT_DAYS`               | Days logs stay in PostgreSQL       | `7`     |
+| `GLITCHTIP_UPTIME_RETENTION_DAYS`      | Uptime check retention             | `90`    |
+| `GLITCHTIP_FILE_RETENTION_DAYS`        | File (sourcemap, debug symbol)     | `90`    |
+| `GLITCHTIP_RELEASE_RETENTION_DAYS`     | Release retention                  | `365`   |
 
-### Worker Configuration
+### Server / Scaling (v6: granian + django-vtasks)
 
-| Variable                            | Description                 | Default   |
-| ----------------------------------- | --------------------------- | --------- |
-| `CELERY_WORKER_CONCURRENCY`         | Concurrent workers          | CPU cores |
-| `CELERY_WORKER_MAX_TASKS_PER_CHILD` | Tasks before worker restart | `100`     |
+| Variable                 | Description                         | Default   |
+| ------------------------ | ----------------------------------- | --------- |
+| `TRUSTED_PROXIES`        | Trusted proxy IPs/CIDRs for granian | `*`       |
+| `GRANIAN_WORKERS`        | Granian web workers                 | `1`       |
+| `VTASKS_CONCURRENCY`     | Concurrent asyncio background tasks | `20`      |
+| `DATABASE_POOL_MAX_SIZE` | psycopg connection pool size        | `20`      |
+| `LOG_LEVEL`              | Python log level                    | `WARNING` |
+
+### Security / Proxy
+
+| Variable               | Description                                     | Default |
+| ---------------------- | ----------------------------------------------- | ------- |
+| `ALLOWED_HOSTS`        | Comma-separated allowed hostnames               | `*`     |
+| `CSRF_TRUSTED_ORIGINS` | Trusted origins for CSRF (needed behind proxy)  |         |
+| `SECURE_HSTS_SECONDS`  | HSTS max-age (0 disables)                       | `0`     |
+| `BASE_PATH`            | Subpath to run under (e.g. `/glitchtip`)        |         |
+| `PROXY_ENV`            | Trust `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` | `false` |
 
 ## Volumes
 
@@ -106,4 +125,4 @@ Sentry.init({
 
 - [GlitchTip Website](https://glitchtip.com/)
 - [Documentation](https://glitchtip.com/documentation)
-- [GitHub Repository](https://gitlab.com/glitchtip/glitchtip)
+- [GitLab Repository](https://gitlab.com/glitchtip/glitchtip)
