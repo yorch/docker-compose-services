@@ -3,51 +3,33 @@ services:
     image: lycheeorg/lychee
     restart: unless-stopped
     volumes:
-      - ./data/lychee/conf:/conf
-      - ./data/lychee/uploads:/uploads
-      - ./data/lychee/sym:/sym
-      - ./data/lychee/logs:/logs
+      - ./data/lychee/uploads:/app/public/uploads
+      - ./data/lychee/logs:/app/storage/logs
+      - ./data/lychee/tmp:/app/storage/tmp
     environment:
-      # - PUID=1000
-      # - PGID=1000
-      # PHP timezone e.g. PHP_TZ=America/New_York
-      # - PHP_TZ=UTC
-      - PHP_TZ=${TIMEZONE}
-      - TIMEZONE=${TIMEZONE}
-      # - APP_NAME=Laravel
-      # - APP_ENV=local
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - APP_KEY=${APP_KEY:?generate one with echo APP_KEY=base64:$(openssl rand -base64 32)}
+      - APP_NAME=${APP_NAME:-Lychee}
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_TIMEZONE=${TIMEZONE:-UTC}
+      - APP_URL=${APP_URL:?set to the public URL e.g. https://lychee.example.com}
       - APP_FORCE_HTTPS=true
-      # - APP_DEBUG=true
-      - APP_URL=http://${LYCHEE_DOMAIN}
       - DB_CONNECTION=pgsql
       - DB_HOST=db
       - DB_PORT=5432
       - DB_DATABASE=${POSTGRES_DB}
       - DB_USERNAME=${POSTGRES_USER}
-      - DB_PASSWORD=${POSTGRES_PASSWORD}
-      # - DB_PASSWORD_FILE=<filename>
-      # - DB_OLD_LYCHEE_PREFIX=''
-      # - CACHE_DRIVER=file
-      # - SESSION_DRIVER=file
-      # - SESSION_LIFETIME=120
-      # - SECURITY_HEADER_HSTS_ENABLE=false
-      # - REDIS_HOST=127.0.0.1
-      # - REDIS_PASSWORD=null
-      # - REDIS_PASSWORD_FILE=<filename>
-      # - REDIS_PORT=6379
-      # - MAIL_DRIVER=smtp
-      # - MAIL_HOST=smtp.mailtrap.io
-      # - MAIL_PORT=2525
-      # - MAIL_USERNAME=null
-      # - MAIL_PASSWORD=null
-      # - MAIL_PASSWORD_FILE=<filename>
-      # - MAIL_ENCRYPTION=null
-      - STARTUP_DELAY=15
-      # - ADMIN_USER=admin
-      # - ADMIN_PASSWORD=<ADMIN_PASSWORD>
-      # - ADMIN_PASSWORD_FILE=<filename>
+      - DB_PASSWORD=${POSTGRES_PASSWORD:?set the postgres password}
+      - SESSION_DRIVER=${SESSION_DRIVER:-file}
+      - SESSION_LIFETIME=${SESSION_LIFETIME:-120}
+      - CACHE_STORE=${CACHE_STORE:-file}
+      - QUEUE_CONNECTION=${QUEUE_CONNECTION:-database}
+      - TRUSTED_PROXIES=*
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   db:
     image: postgres:15-alpine
@@ -57,7 +39,7 @@ services:
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set the postgres password}
     healthcheck:
       test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 10s

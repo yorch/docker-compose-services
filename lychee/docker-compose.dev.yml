@@ -1,4 +1,4 @@
 services:
   app:
     ports:
-      - 8085:80
+      - 8085:8000
