@@ -2,6 +2,12 @@ services:
   app:
     image: ghcr.io/open-webui/open-webui:main
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
     volumes:
       - ./data/webui:/app/backend/data
     environment:

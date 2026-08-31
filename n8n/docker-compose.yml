@@ -18,6 +18,12 @@ services:
   main:
     image: n8nio/n8n:stable
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
     volumes:
       - ./data/n8n:/home/node/.n8n
       - ./data/files:/files
