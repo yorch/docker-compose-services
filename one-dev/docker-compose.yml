@@ -4,6 +4,12 @@ services:
   app:
     image: 1dev/server
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
     volumes:
       - ./data/onedev:/opt/onedev
     environment:
