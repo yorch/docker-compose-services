@@ -1,0 +1,17 @@
+# LiteLLM proxy configuration
+# Docs: https://docs.litellm.ai/docs/proxy/configs
+
+litellm_settings:
+  # Fail requests that hang instead of holding connections open (default 6000s)
+  request_timeout: 600
+  # Production logging - JSON format, no debug verbosity
+  set_verbose: false
+  json_logs: true
+
+general_settings:
+  # Allow adding models through the Admin UI in addition to this file
+  store_model_in_db: true
+  # Write spend updates to the database every 60s instead of per-request
+  proxy_batch_write_at: 60
+  # Keep LLM error logs out of the database (send to your logging stack instead)
+  disable_error_logs: true
