@@ -1,0 +1,40 @@
+services:
+  open-seo:
+    image: ghcr.io/every-app/open-seo:v0.1.7
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+    environment:
+      # Hardcoded for Docker self-hosting mode.
+      - CLOUDFLARE_INCLUDE_PROCESS_ENV=true
+      - AUTH_MODE=local_noauth
+      - VITE_SHOW_DEVTOOLS=false
+      - PORT=${PORT:-3001}
+      - ALLOWED_HOST=${ALLOWED_HOST:-}
+      - OPENSEO_TELEMETRY_DISABLED=${OPENSEO_TELEMETRY_DISABLED:-1}
+      - DO_NOT_TRACK=${DO_NOT_TRACK:-1}
+      # Required - the app does nothing useful without a DataForSEO API key.
+      - DATAFORSEO_API_KEY=${DATAFORSEO_API_KEY:?set DATAFORSEO_API_KEY}
+      # Optional: AI features (SAM, the in-app SEO agent).
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-}
+      # Optional: Google Search Console integration.
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-}
+    volumes:
+      - ./data/open-seo:/app/.wrangler
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(`http://127.0.0.1:$${PORT:-3001}/api/health`).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s

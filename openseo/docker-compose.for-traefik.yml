@@ -1,0 +1,20 @@
+services:
+  open-seo:
+    networks:
+      - default
+      - traefik
+    environment:
+      - ALLOWED_HOST=${DOMAIN}
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.services.openseo.loadbalancer.server.port=${PORT:-3001}'
+      - 'traefik.http.routers.openseo.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.openseo.entrypoints=websecure'
+      - 'traefik.http.routers.openseo.tls=true'
+      - 'traefik.http.routers.openseo.tls.certResolver=webcert'
+      - 'traefik.http.routers.openseo.service=openseo'
+
+networks:
+  traefik:
+    external: true
