@@ -103,6 +103,7 @@ yarn update-readme   # regenerate the services table below
 | [One Dev](./one-dev) | Self-hosted Git server with built-in CI/CD capabilities. |
 | [Open Webui](./open-webui) | Web interface for interacting with LLMs - ChatGPT-like UI for Ollama and OpenAI. |
 | [Openobserve](./openobserve) | Full-stack observability platform for logs, metrics and traces, with built-in dashboards and alerting. |
+| [Openseo](./openseo) | Open-source pay-as-you-go SEO tool and alternative to Semrush and Ahrefs, powered by the DataForSEO API. |
 | [Openui](./openui) | AI-powered UI generation tool by Weights & Biases. |
 | [Phoenix](./phoenix) | Open-source LLM tracing, evaluation and prompt experimentation, with a built-in OpenTelemetry collector. |
 | [Plausible Analytics](./plausible-analytics) | Privacy-friendly, lightweight website analytics. |
