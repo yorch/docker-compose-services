@@ -1,0 +1,12 @@
+services:
+  server:
+    ports:
+      - 3000:3000
+
+  db:
+    ports:
+      - ${DEV_BIND_IP:-127.0.0.1}:5432:5432
+
+  redis:
+    ports:
+      - ${DEV_BIND_IP:-127.0.0.1}:6379:6379

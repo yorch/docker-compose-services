@@ -119,6 +119,7 @@ yarn update-readme   # regenerate the services table below
 | [Timescale](./timescale) | PostgreSQL for time-series data. |
 | [Traefik](./traefik) | Modern HTTP reverse proxy and load balancer (v2.x). |
 | [Traefik3](./traefik3) | Modern HTTP reverse proxy and load balancer (v3.x). |
+| [Twenty](./twenty) | Self-hosted Salesforce alternative CRM with a server, background worker, PostgreSQL, and Redis. |
 | [Vaultwarden](./vaultwarden) | Lightweight Bitwarden-compatible password manager server. |
 | [Waha](./waha) | WhatsApp HTTP API - Open-source WhatsApp API that connects to WhatsApp via web interface. |
 | [Watchtower](./watchtower) | Automated Docker container updates. |
