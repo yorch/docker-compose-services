@@ -1,0 +1,8 @@
+services:
+  atuin:
+    ports:
+      - 8888:8888
+
+  postgres:
+    ports:
+      - ${DEV_BIND_IP:-127.0.0.1}:5432:5432
