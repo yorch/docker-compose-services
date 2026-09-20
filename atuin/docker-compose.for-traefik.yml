@@ -1,0 +1,22 @@
+services:
+  atuin:
+    # Must stay on `default` as well as `traefik` - Atuin reaches Postgres on
+    # the internal network.
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.atuin.loadbalancer.server.port=8888'
+      # HTTPS Host
+      - 'traefik.http.routers.atuin.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.atuin.entrypoints=websecure'
+      - 'traefik.http.routers.atuin.tls=true'
+      - 'traefik.http.routers.atuin.tls.certResolver=webcert'
+      - 'traefik.http.routers.atuin.service=atuin'
+
+networks:
+  traefik:
+    external: true

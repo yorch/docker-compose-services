@@ -1,0 +1,37 @@
+services:
+  atuin:
+    # Upstream advises pinning a tagged release and reading the release notes
+    # before upgrading. Tags carry no `v` prefix.
+    image: ghcr.io/atuinsh/atuin:18.22
+    command: start
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # No /config mount: every setting comes from ATUIN_* env vars below and all
+    # state lives in Postgres. The image already ships a /healthz HEALTHCHECK.
+    environment:
+      - ATUIN_HOST=0.0.0.0
+      - ATUIN_PORT=8888
+      # Enable to register your account(s), then turn back off - see the README.
+      - ATUIN_OPEN_REGISTRATION=${ATUIN_OPEN_REGISTRATION:-false}
+      - ATUIN_DB_URI=postgres://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?set a database password}@postgres:5432/${POSTGRES_DB:?}
+      - RUST_LOG=${RUST_LOG:-atuin_server=info}
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    volumes:
+      # Postgres 18 moved its VOLUME to /var/lib/postgresql. Mounting the old
+      # /var/lib/postgresql/data path would send the data to an anonymous
+      # volume instead, with no error.
+      - ./data/postgres:/var/lib/postgresql
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:?}
+      - POSTGRES_USER=${POSTGRES_USER:?}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set a database password}
+    healthcheck:
+      test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 2s
+      retries: 10

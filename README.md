@@ -66,6 +66,7 @@ yarn update-readme   # regenerate the services table below
 | [Ackee](./ackee) | Self-hosted, Node.js based analytics tool for those who care about privacy. |
 | [Agentlogs](./agentlogs) | Self-hosted viewer for AI coding agent session logs, with OAuth login and AI-generated summaries. |
 | [Anything Llm](./anything-llm) | An all-in-one AI application for local LLM chat with documents, embedding, and vector database management. |
+| [Atuin](./atuin) | Self-hosted sync server for Atuin, the end-to-end encrypted shell history tool. |
 | [Auto Update](./auto-update) | Automated Docker container updater that monitors and updates running containers. |
 | [Couchdb](./couchdb) | Apache CouchDB - a NoSQL document database with HTTP API and built-in replication. |
 | [Countly](./countly) | Product analytics platform for mobile, web, and desktop applications. |
