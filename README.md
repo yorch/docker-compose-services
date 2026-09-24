@@ -90,6 +90,7 @@ yarn update-readme   # regenerate the services table below
 | [Joplin](./joplin) | Self-hosted sync server for Joplin, an open-source note-taking application. |
 | [Kafka](./kafka) | Distributed event streaming platform with KRaft mode (no Zookeeper required). |
 | [Langfuse](./langfuse) | Open-source LLM observability platform for tracing, evaluating and debugging LLM applications. |
+| [Learnhouse](./learnhouse) | Open-source learning platform for creating and running courses, with a collaborative editor, assignments, and certificates. |
 | [Linkwarden](./linkwarden) | Self-hosted bookmark manager with full-text search capabilities. |
 | [Litellm](./litellm) | Unified API proxy for 100+ LLM providers (OpenAI, Anthropic, Azure, and more). |
 | [Logflare](./logflare) | Log ingestion and analytics service (Supabase's logging backend). |

@@ -1,0 +1,33 @@
+# Local exposure over plain http on localhost:${DEV_PORT}. Unlike most services
+# here this overlay also sets environment and adds a container: LearnHouse bakes
+# its public URL into links, cookies and the WebSocket address, so the http
+# values live here and the https ones in the Traefik overlay.
+services:
+  app:
+    ports:
+      - ${DEV_PORT:-8080}:80
+    environment:
+      - LEARNHOUSE_DOMAIN=localhost:${DEV_PORT:-8080}
+      - LEARNHOUSE_FRONTEND_DOMAIN=localhost:${DEV_PORT:-8080}
+      - LEARNHOUSE_ALLOWED_ORIGINS=http://localhost:${DEV_PORT:-8080}
+      - LEARNHOUSE_COOKIE_DOMAIN=localhost
+      - LEARNHOUSE_SSL=false
+      - NEXTAUTH_URL=http://localhost:${DEV_PORT:-8080}
+      - NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL=http://localhost:${DEV_PORT:-8080}/
+      - NEXT_PUBLIC_LEARNHOUSE_API_URL=http://localhost:${DEV_PORT:-8080}/api/v1/
+      - NEXT_PUBLIC_LEARNHOUSE_DOMAIN=localhost:${DEV_PORT:-8080}
+      - NEXT_PUBLIC_LEARNHOUSE_TOP_DOMAIN=localhost
+      - NEXT_PUBLIC_LEARNHOUSE_HTTPS=false
+      - NEXT_PUBLIC_COLLAB_URL=ws://localhost:${DEV_PORT:-8080}/collab
+
+  # Server-side rendering fetches the API through the same public URL the
+  # browser uses. Inside the app container nothing listens on ${DEV_PORT} - its
+  # nginx is on 80 - so this sidecar shares the app's network namespace and
+  # forwards that port to 80. Upstream's installer does the same.
+  ssr-fwd:
+    image: alpine/socat:1.8.0.3
+    restart: unless-stopped
+    network_mode: service:app
+    command: TCP-LISTEN:${DEV_PORT:-8080},fork,reuseaddr TCP:localhost:80
+    depends_on:
+      - app
