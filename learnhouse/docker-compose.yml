@@ -1,0 +1,95 @@
+services:
+  app:
+    # All-in-one image: Next.js frontend, FastAPI backend and the collaboration
+    # server, behind an internal nginx on port 80 that routes between them.
+    image: ghcr.io/learnhouse/app:1.3.6
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # The public URLs (NEXT_PUBLIC_*, NEXTAUTH_URL, cookie domain, ...) differ
+    # between http on localhost and https behind Traefik, so each overlay sets
+    # them. The API runs its migrations and creates the initial admin and
+    # organization on first start.
+    environment:
+      - HOSTNAME=0.0.0.0
+      - LEARNHOUSE_PORT=9000
+      # Collab server -> API, inside the container
+      - LEARNHOUSE_API_URL=http://localhost:9000
+      - LEARNHOUSE_SQL_CONNECTION_STRING=postgresql://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?set a database password}@db:5432/${POSTGRES_DB:?}
+      - LEARNHOUSE_REDIS_CONNECTION_STRING=redis://redis:6379/learnhouse
+      - LEARNHOUSE_REDIS_URL=redis://redis:6379
+      - LEARNHOUSE_TENANCY=single
+      - LEARNHOUSE_DEVELOPMENT_MODE=False
+      - LEARNHOUSE_CONTENT_DELIVERY_TYPE=filesystem
+      # The collab server always sits behind the container's own nginx
+      - COLLAB_TRUST_PROXY=true
+      # Secrets
+      - LEARNHOUSE_AUTH_JWT_SECRET_KEY=${LEARNHOUSE_AUTH_JWT_SECRET_KEY:?generate one with openssl rand -hex 32}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:?generate one with openssl rand -hex 32}
+      - COLLAB_INTERNAL_KEY=${COLLAB_INTERNAL_KEY:?generate one with openssl rand -hex 32}
+      # First-run bootstrap
+      - LEARNHOUSE_INITIAL_ADMIN_EMAIL=${LEARNHOUSE_INITIAL_ADMIN_EMAIL:?set the initial admin email}
+      - LEARNHOUSE_INITIAL_ADMIN_PASSWORD=${LEARNHOUSE_INITIAL_ADMIN_PASSWORD:?set the initial admin password}
+      - LEARNHOUSE_INITIAL_ORG_NAME=${LEARNHOUSE_INITIAL_ORG_NAME:-Default Organization}
+      - LEARNHOUSE_INITIAL_ORG_SLUG=${LEARNHOUSE_INITIAL_ORG_SLUG:-default}
+      - NEXT_PUBLIC_LEARNHOUSE_DEFAULT_ORG=${LEARNHOUSE_INITIAL_ORG_SLUG:-default}
+      - NEXT_PUBLIC_LEARNHOUSE_MULTI_ORG=False
+      # Optional - AI
+      - LEARNHOUSE_IS_AI_ENABLED=${LEARNHOUSE_IS_AI_ENABLED:-False}
+      - LEARNHOUSE_AI_PROVIDER=${LEARNHOUSE_AI_PROVIDER:-google}
+      - LEARNHOUSE_AI_API_KEY=${LEARNHOUSE_AI_API_KEY:-}
+      - LEARNHOUSE_GEMINI_API_KEY=${LEARNHOUSE_GEMINI_API_KEY:-}
+      # Optional - email
+      - LEARNHOUSE_EMAIL_PROVIDER=${LEARNHOUSE_EMAIL_PROVIDER:-resend}
+      - LEARNHOUSE_SYSTEM_EMAIL_ADDRESS=${LEARNHOUSE_SYSTEM_EMAIL_ADDRESS:-}
+      - LEARNHOUSE_RESEND_API_KEY=${LEARNHOUSE_RESEND_API_KEY:-}
+      - LEARNHOUSE_SMTP_HOST=${LEARNHOUSE_SMTP_HOST:-}
+      - LEARNHOUSE_SMTP_PORT=${LEARNHOUSE_SMTP_PORT:-587}
+      - LEARNHOUSE_SMTP_USERNAME=${LEARNHOUSE_SMTP_USERNAME:-}
+      - LEARNHOUSE_SMTP_PASSWORD=${LEARNHOUSE_SMTP_PASSWORD:-}
+      - LEARNHOUSE_SMTP_USE_TLS=${LEARNHOUSE_SMTP_USE_TLS:-True}
+      # Optional - in-editor Unsplash image picker
+      - NEXT_PUBLIC_UNSPLASH_ACCESS_KEY=${NEXT_PUBLIC_UNSPLASH_ACCESS_KEY:-}
+    volumes:
+      - ./data/content:/app/api/content
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost/api/v1/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  db:
+    # pgvector is only used by the AI features, but the image is a drop-in
+    # Postgres, so it is used unconditionally (as upstream does).
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    volumes:
+      # Postgres 18 moved its VOLUME to /var/lib/postgresql. Mounting the old
+      # /var/lib/postgresql/data path would send the data to an anonymous
+      # volume instead, with no error.
+      - ./data/postgres:/var/lib/postgresql
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:?}
+      - POSTGRES_USER=${POSTGRES_USER:?}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set a database password}
+    healthcheck:
+      test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 2s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 2s
+      retries: 10

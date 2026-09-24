@@ -1,0 +1,37 @@
+services:
+  app:
+    # Must stay on `default` as well as `traefik` - the app reaches Postgres and
+    # Redis on the internal network.
+    networks:
+      - default
+      - traefik
+    # https values for the public URLs; the http ones live in the dev overlay.
+    environment:
+      - LEARNHOUSE_DOMAIN=${DOMAIN}
+      - LEARNHOUSE_FRONTEND_DOMAIN=${DOMAIN}
+      - LEARNHOUSE_ALLOWED_ORIGINS=https://${DOMAIN}
+      - LEARNHOUSE_COOKIE_DOMAIN=${DOMAIN}
+      - LEARNHOUSE_SSL=true
+      - NEXTAUTH_URL=https://${DOMAIN}
+      - NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL=https://${DOMAIN}/
+      - NEXT_PUBLIC_LEARNHOUSE_API_URL=https://${DOMAIN}/api/v1/
+      - NEXT_PUBLIC_LEARNHOUSE_DOMAIN=${DOMAIN}
+      - NEXT_PUBLIC_LEARNHOUSE_TOP_DOMAIN=${DOMAIN}
+      - NEXT_PUBLIC_LEARNHOUSE_HTTPS=true
+      - NEXT_PUBLIC_COLLAB_URL=wss://${DOMAIN}/collab
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service - the container's internal nginx, which also proxies the
+      # /collab WebSocket
+      - 'traefik.http.services.learnhouse.loadbalancer.server.port=80'
+      # HTTPS Host
+      - 'traefik.http.routers.learnhouse.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.learnhouse.entrypoints=websecure'
+      - 'traefik.http.routers.learnhouse.tls=true'
+      - 'traefik.http.routers.learnhouse.tls.certResolver=webcert'
+      - 'traefik.http.routers.learnhouse.service=learnhouse'
+
+networks:
+  traefik:
+    external: true
