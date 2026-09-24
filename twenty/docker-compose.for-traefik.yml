@@ -1,0 +1,18 @@
+services:
+  server:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.services.twenty.loadbalancer.server.port=3000'
+      - 'traefik.http.routers.twenty.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.twenty.entrypoints=websecure'
+      - 'traefik.http.routers.twenty.tls=true'
+      - 'traefik.http.routers.twenty.tls.certResolver=webcert'
+      - 'traefik.http.routers.twenty.service=twenty'
+
+networks:
+  traefik:
+    external: true
