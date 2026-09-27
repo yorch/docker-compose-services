@@ -120,7 +120,6 @@ yarn update-readme   # regenerate the services table below
 | [Supertokens](./supertokens) | Open-source authentication solution. |
 | [Telegraf](./telegraf) | Plugin-driven server agent for collecting and reporting metrics. |
 | [Timescale](./timescale) | PostgreSQL for time-series data. |
-| [Traefik](./traefik) | Modern HTTP reverse proxy and load balancer (v2.x). |
 | [Traefik3](./traefik3) | Modern HTTP reverse proxy and load balancer (v3.x). |
 | [Twenty](./twenty) | Self-hosted Salesforce alternative CRM with a server, background worker, PostgreSQL, and Redis. |
 | [Vaultwarden](./vaultwarden) | Lightweight Bitwarden-compatible password manager server. |

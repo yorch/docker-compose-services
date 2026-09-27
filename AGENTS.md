@@ -35,7 +35,7 @@ The central convention. A service's compose files are **merged** by passing mult
 
 Some services deviate with extra overlays for optional components
 (`qbittorrent/docker-compose.gluetun.yml`, `jaeger/docker-compose.hotrod.yml`,
-`traefik/docker-compose.http-auth.yml`, `*.ports.yml`). When they do, a matching
+`timescale/docker-compose.pg-admin.yml`, `*.ports.yml`). When they do, a matching
 `run-*.sh` script in the service folder documents the exact `-f` combination — treat
 that script as the source of truth for which files a setup needs. `qbittorrent` is the
 one case where the Traefik setup still needs `docker-compose.ports.yml`, because Traefik
@@ -73,9 +73,9 @@ networks:
     external: true
 ```
 
-The `webcert` cert resolver and `websecure` entrypoint are defined in `traefik/` and
-`traefik3/`. The external `traefik` network must exist first — create it with
-`traefik3/setup.sh` (`docker network create traefik`).
+The `webcert` cert resolver and `websecure` entrypoint are defined in `traefik3/`. The
+external `traefik` network must exist first — create it with `traefik3/setup.sh`
+(`docker network create traefik`).
 
 ## Commands
 
