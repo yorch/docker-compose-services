@@ -7,9 +7,9 @@ services:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
       # Service
-      - 'traefik.http.services.joplin.loadbalancer.server.port=${APP_PORT}'
+      - 'traefik.http.services.joplin.loadbalancer.server.port=${APP_PORT:-22300}'
       # HTTPS Host
-      - 'traefik.http.routers.joplin.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.joplin.rule=Host(`${DOMAIN:?Variable DOMAIN not set}`)'
       - 'traefik.http.routers.joplin.entrypoints=websecure'
       - 'traefik.http.routers.joplin.tls=true'
       - 'traefik.http.routers.joplin.tls.certResolver=webcert'
@@ -37,22 +37,6 @@ services:
     # Traefik filters out this container as it gets reported as unhealthy in some part of the process
     healthcheck:
       disable: true
-
-  adminer:
-    networks:
-      - default
-      - traefik
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.docker.network=traefik'
-      # Service
-      - 'traefik.http.services.joplin-adminer.loadbalancer.server.port=8080'
-      # HTTPS Host
-      - 'traefik.http.routers.joplin-adminer.rule=Host(`adminer.${DOMAIN}`)'
-      - 'traefik.http.routers.joplin-adminer.entrypoints=websecure'
-      - 'traefik.http.routers.joplin-adminer.tls=true'
-      - 'traefik.http.routers.joplin-adminer.tls.certResolver=webcert'
-      - 'traefik.http.routers.joplin-adminer.service=joplin-adminer'
 
 networks:
   traefik:
