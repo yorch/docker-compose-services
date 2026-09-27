@@ -121,7 +121,7 @@ yarn update-readme   # regenerate the services table below
 | [Telegraf](./telegraf) | Plugin-driven server agent for collecting and reporting metrics. |
 | [Timescale](./timescale) | PostgreSQL for time-series data. |
 | [Traefik](./traefik) | Modern HTTP reverse proxy and load balancer (v2.x). |
-| [Traefik3](./traefik3) | Modern HTTP reverse proxy and load balancer (v3.x). |
+| [Traefik3](./traefik3) | Reverse proxy (v3.x) that fronts every other service here, with automatic HTTPS via Let's Encrypt. |
 | [Twenty](./twenty) | Self-hosted Salesforce alternative CRM with a server, background worker, PostgreSQL, and Redis. |
 | [Vaultwarden](./vaultwarden) | Lightweight Bitwarden-compatible password manager server. |
 | [Waha](./waha) | WhatsApp HTTP API - Open-source WhatsApp API that connects to WhatsApp via web interface. |

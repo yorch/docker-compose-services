@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v2.9
+    image: traefik:v3.7.13
     container_name: traefik
     restart: unless-stopped
     ports:
@@ -9,8 +9,8 @@ services:
     networks:
       - traefik
     volumes:
-      # So that Traefik can listen to the Docker events
-      - /var/run/docker.sock:/var/run/docker.sock
+      # So that Traefik can listen to the Docker events (read-only: it never writes to the API)
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./data:/opt/traefik
       - ./logs:/opt/logs
     command:
@@ -29,7 +29,7 @@ services:
       # Or through DNS challenge using Digital Ocean
       # - '--certificatesresolvers.webcert.acme.dnschallenge=true'
       # - '--certificatesresolvers.webcert.acme.dnschallenge.provider=digitalocean'
-      - '--certificatesResolvers.webcert.acme.email=${ACME_EMAIL?Variable ACME_EMAIL not set}'
+      - '--certificatesResolvers.webcert.acme.email=${ACME_EMAIL:?Variable ACME_EMAIL not set}'
       - '--certificatesResolvers.webcert.acme.storage=/opt/traefik/acme.json'
       # Docker Provider
       - '--providers.docker' # Tells Traefik to listen to docker
@@ -58,11 +58,14 @@ services:
     labels:
       - 'traefik.enable=true'
       # HTTPS Host
-      - 'traefik.http.routers.traefik-api.rule=Host(`${TRAEFIK_HOST?Variable TRAEFIK_HOST not set}`)'
+      - 'traefik.http.routers.traefik-api.rule=Host(`${TRAEFIK_HOST:?Variable TRAEFIK_HOST not set}`)'
       - 'traefik.http.routers.traefik-api.entrypoints=websecure'
       - 'traefik.http.routers.traefik-api.tls=true'
       - 'traefik.http.routers.traefik-api.tls.certResolver=webcert'
       - 'traefik.http.routers.traefik-api.service=api@internal'
+      # The dashboard exposes the full routing config, so it is never served without auth
+      - 'traefik.http.routers.traefik-api.middlewares=traefik-dashboard-auth'
+      - 'traefik.http.middlewares.traefik-dashboard-auth.basicauth.users=${DASHBOARD_USERNAME:?Variable DASHBOARD_USERNAME not set}:${DASHBOARD_HASHED_PASSWORD:?Variable DASHBOARD_HASHED_PASSWORD not set, see README}'
 
 networks:
   traefik:
