@@ -169,6 +169,14 @@ itself the thing being run, or to anything meant to be reached from another mach
 `traefik`. Those keep the bare mapping; binding them to localhost would break the point
 of running them.
 
+**DB admin UIs never go through Traefik.** Adminer, mongo-express, pgAdmin, redisinsight,
+Meilisearch UIs and the like live in `docker-compose.dev.yml` only, bound to
+`${DEV_BIND_IP:-127.0.0.1}` like any other sidecar. A public router puts a login form for
+the whole database on the internet, and a basic-auth middleware in front of it is one
+leaked or reused password away from the same thing. To reach a production database, open
+an SSH tunnel to the dev-overlay port instead. A `docker-compose.for-traefik.yml` should
+route only the product itself.
+
 **Env vars.** Every configurable value goes through `${VAR}` in the compose file and is
 documented in `.env.sample`. `.env` is gitignored — never create or commit one. Use
 `${VAR:-default}` for optional values, and one of the two fail-fast forms for values
