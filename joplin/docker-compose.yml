@@ -56,7 +56,7 @@ services:
 
   dbbackups:
     # https://github.com/prodrigestivill/docker-postgres-backup-local
-    image: prodrigestivill/postgres-backup-local
+    image: prodrigestivill/postgres-backup-local:18
     depends_on:
       - db
     restart: unless-stopped
