@@ -15,12 +15,12 @@ docker compose \
   --project-directory ${DIR} \
   exec app \
   dokku \
-  ${@}
+  "$@"
 ```
 
 ## Plugins
 
-To install plugins, you can create a file `plugin-list` inside `./data/dokku`, for instance:
+To install plugins, you can create a file `plugin-list` inside `${DOKKU_DATA_DIR}` (default `/var/lib/dokku`), for instance:
 
 ```text
 postgres: https://github.com/dokku/dokku-postgres.git

@@ -1,14 +1,17 @@
 services:
   app:
     image: dokku/dokku:0.28.1
-    ports:
-      - 22:22
-      - 80:80
-      - 443:443
     restart: unless-stopped
+    # Dokku starts app containers on the host daemon's default bridge and its
+    # nginx proxies to their IPs; on a compose network those are unreachable (504).
+    network_mode: bridge
     volumes:
-      - ./data/dokku:/mnt/dokku
+      # Absolute host path, not ./data: Dokku hands paths under it to the host's
+      # Docker daemon (DOKKU_HOST_ROOT / DOKKU_LIB_HOST_ROOT below), so the
+      # daemon must resolve them to the same directory.
+      - ${DOKKU_DATA_DIR:-/var/lib/dokku}:/mnt/dokku
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - DOKKU_HOSTNAME=${DOKKU_HOSTNAME}
-      - DOKKU_HOST_ROOT=/var/lib/dokku/home/dokku
+      - DOKKU_HOSTNAME=${DOKKU_HOSTNAME:?Variable DOKKU_HOSTNAME not set}
+      - DOKKU_HOST_ROOT=${DOKKU_DATA_DIR:-/var/lib/dokku}/home/dokku
+      - DOKKU_LIB_HOST_ROOT=${DOKKU_DATA_DIR:-/var/lib/dokku}/var/lib/dokku
