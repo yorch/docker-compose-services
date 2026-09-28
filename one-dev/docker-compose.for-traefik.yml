@@ -9,7 +9,7 @@ services:
       # Service
       - 'traefik.http.services.onedev.loadbalancer.server.port=6610'
       # HTTPS Host
-      - 'traefik.http.routers.onedev.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.onedev.rule=Host(`${DOMAIN:?Variable DOMAIN not set}`)'
       - 'traefik.http.routers.onedev.entrypoints=websecure'
       - 'traefik.http.routers.onedev.tls=true'
       - 'traefik.http.routers.onedev.tls.certResolver=webcert'

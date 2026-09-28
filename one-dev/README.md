@@ -28,16 +28,28 @@ once per host:
 ../traefik3/setup.sh   # docker network create traefik
 ```
 
-Access OneDev at `http://localhost:6610`
+Access OneDev at `http://localhost:6610` (dev) and sign in with `INITIAL_USER` /
+`INITIAL_PASSWORD`. The admin is created on first start, so the setup wizard is never
+exposed.
+
+Behind Traefik only HTTPS is proxied: clone over `https://${DOMAIN}`. Git over SSH
+(port 6611) is published by the dev overlay only.
 
 ## Environment Variables
 
-| Variable             | Description            | Required |
-| -------------------- | ---------------------- | -------- |
-| `INITIAL_USER`       | Initial admin username | Yes      |
-| `INITIAL_PASSWORD`   | Initial admin password | Yes      |
-| `INITIAL_EMAIL`      | Initial admin email    | Yes      |
-| `INITIAL_SERVER_URL` | Public server URL      | Yes      |
+| Variable               | Description                                                 | Required |
+| ---------------------- | ----------------------------------------------------------- | -------- |
+| `DOMAIN`               | Hostname Traefik routes to OneDev (Traefik only)            | Traefik  |
+| `INITIAL_USER`         | Admin username created on first start                       | Yes      |
+| `INITIAL_PASSWORD`     | Admin password created on first start                       | Yes      |
+| `INITIAL_EMAIL`        | Admin email                                                 | Yes      |
+| `INITIAL_SERVER_URL`   | Public URL (`https://${DOMAIN}` or `http://localhost:6610`) | Yes      |
+| `INITIAL_SSH_ROOT_URL` | SSH root URL; derived from the server URL if unset          | No       |
+| `PORT_WEB`             | Dev host port for the web UI (default `6610`)               | No       |
+| `PORT_SSH`             | Dev host port for Git over SSH (default `6611`)             | No       |
+
+The `INITIAL_*` values only apply to the first start. The compose file passes them to
+OneDev as lowercase `initial_*` keys, the only form OneDev reads.
 
 ## Volumes
 
