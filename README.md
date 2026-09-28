@@ -116,7 +116,7 @@ yarn update-readme   # regenerate the services table below
 | [Rybbit](./rybbit) | Open-source, privacy-friendly web and product analytics — a cookieless Google Analytics replacement with no consent banner required. |
 | [Shlink](./shlink) | Self-hosted URL shortener. |
 | [Siglens](./siglens) | High-performance log aggregation and observability platform with 100x lower storage costs than Elasticsearch. |
-| [Sim Studio Ai](./sim-studio-ai) | AI simulation and workflow studio platform. |
+| [Sim Studio Ai](./sim-studio-ai) | Open-source visual builder for AI agent workflows (Sim), with realtime collaboration, scheduled runs and a Postgres + pgvector backend. |
 | [Supertokens](./supertokens) | Open-source authentication solution. |
 | [Telegraf](./telegraf) | Plugin-driven server agent for collecting and reporting metrics. |
 | [Timescale](./timescale) | PostgreSQL for time-series data. |
