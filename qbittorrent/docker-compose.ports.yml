@@ -1,6 +1,7 @@
 services:
   qbittorrent:
     ports:
-      # - ${WEBUI_PORT}:${WEBUI_PORT}
-      - ${TORRENTING_PORT}:${TORRENTING_PORT}
-      - ${TORRENTING_PORT}:${TORRENTING_PORT}/udp
+      # Torrenting only. The web UI is published by docker-compose.dev.yml
+      # (dev) or proxied by Traefik.
+      - ${TORRENTING_PORT:-6881}:${TORRENTING_PORT:-6881}
+      - ${TORRENTING_PORT:-6881}:${TORRENTING_PORT:-6881}/udp

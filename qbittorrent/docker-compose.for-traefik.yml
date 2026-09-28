@@ -6,9 +6,9 @@ services:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
       # Service
-      - 'traefik.http.services.qbittorrent.loadbalancer.server.port=${WEBUI_PORT}'
+      - 'traefik.http.services.qbittorrent.loadbalancer.server.port=${WEBUI_PORT:-8080}'
       # HTTPS Host
-      - 'traefik.http.routers.qbittorrent.rule=Host(`${HOST?Variable HOST not set}`)'
+      - 'traefik.http.routers.qbittorrent.rule=Host(`${HOST:?Variable HOST not set}`)'
       - 'traefik.http.routers.qbittorrent.entrypoints=websecure'
       - 'traefik.http.routers.qbittorrent.tls=true'
       - 'traefik.http.routers.qbittorrent.tls.certResolver=webcert'

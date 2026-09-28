@@ -1,0 +1,6 @@
+services:
+  qbittorrent:
+    # Web UI only; the torrenting port lives in docker-compose.ports.yml, which
+    # the Traefik setup also uses (so it can't carry the UI port too).
+    ports:
+      - ${WEBUI_PORT:-8080}:${WEBUI_PORT:-8080}
