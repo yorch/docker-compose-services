@@ -14,6 +14,9 @@ Product analytics platform for mobile, web, and desktop applications.
 ## Quick Start
 
 ```bash
+# Dev - publishes nginx on http://localhost:8080 (set COUNTLY_CONFIG_HOSTNAME=localhost:8080)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
 # Behind Traefik - HTTPS through the reverse proxy
 docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
@@ -25,45 +28,37 @@ once per host:
 ../traefik3/setup.sh   # docker network create traefik
 ```
 
+The first start takes several minutes: the frontend loads city coordinates into MongoDB
+before it becomes healthy (nginx returns 502 until then). Then open the site and create
+the admin account. Countly's first-run setup page is open to whoever reaches it first,
+so finish it before sharing the URL.
+
 ## Services
 
-| Service            | Description      |
-| ------------------ | ---------------- |
-| `nginx`            | Reverse proxy    |
-| `countly-api`      | API server       |
-| `countly-frontend` | Web dashboard    |
-| `mongo`            | MongoDB database |
+| Service            | Description                                                        |
+| ------------------ | ------------------------------------------------------------------ |
+| `nginx`            | Official nginx; routes `/i`, `/o` to the API, rest to the frontend |
+| `countly-api`      | API server                                                         |
+| `countly-frontend` | Web dashboard                                                      |
+| `mongo`            | MongoDB 5                                                          |
 
 ## Environment Variables
 
-| Variable                       | Description                             |
-| ------------------------------ | --------------------------------------- |
-| `COUNTLY_PLUGINS`              | Comma-separated list of enabled plugins |
-| `COUNTLY_CONFIG__MONGODB_HOST` | MongoDB hostname                        |
-| `COUNTLY_CONFIG_HOSTNAME`      | Public hostname                         |
-| `NODE_OPTIONS`                 | Node.js options (memory allocation)     |
+| Variable                  | Description                                                | Required |
+| ------------------------- | ---------------------------------------------------------- | -------- |
+| `DOMAIN`                  | Hostname Traefik routes to Countly (Traefik only)          | Traefik  |
+| `COUNTLY_CONFIG_HOSTNAME` | Public hostname Countly builds links with                  | Yes      |
+| `COUNTLY_API_WORKERS`     | API worker processes, about one per CPU core (default `2`) | No       |
 
-## Configuration
-
-### API Workers
-
-Adjust the number of API workers based on your CPU cores:
-
-```yaml
-environment:
-  - COUNTLY_CONFIG_API_WORKERS=2
-```
-
-### Nginx Configuration
-
-Custom nginx configuration is mounted from `./conf/nginx.server.conf`.
+The enabled plugin list lives in `docker-compose.yml` (`x-countly-plugins`) and is shared
+by the API and the frontend, which must match.
 
 ## Volumes
 
-| Host Path                  | Container Path                                       | Description  |
-| -------------------------- | ---------------------------------------------------- | ------------ |
-| `./data/mongo`             | `/data/db`                                           | MongoDB data |
-| `./conf/nginx.server.conf` | `/opt/bitnami/nginx/conf/server_blocks/countly.conf` | Nginx config |
+| Host Path                  | Container Path                   | Description  |
+| -------------------------- | -------------------------------- | ------------ |
+| `./data/mongo`             | `/data/db`                       | MongoDB data |
+| `./conf/nginx.server.conf` | `/etc/nginx/conf.d/default.conf` | Nginx config |
 
 ## Links
 
