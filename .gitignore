@@ -1,6 +1,10 @@
 data/
 node_modules/
 
+# Service files that hold credentials or runtime output outside ./data
+mosquitto/config/mosquitto/passwd
+mosquitto/log/
+
 .env
 
 # Yarn v2+ Zero Installs
