@@ -174,10 +174,10 @@ documented in `.env.sample`. `.env` is gitignored — never create or commit one
 `${VAR:-default}` for optional values, and one of the two fail-fast forms for values
 with no safe default:
 
-| Form              | Fails when                | Use for                                             |
-| ----------------- | ------------------------- | --------------------------------------------------- |
-| `${VAR?message}`  | `VAR` is **unset**        | Values a user would omit entirely (see `traefik3/`) |
-| `${VAR:?message}` | unset **or empty string** | Anything `.env.sample` ships blank                  |
+| Form              | Fails when                | Use for                                               |
+| ----------------- | ------------------------- | ----------------------------------------------------- |
+| `${VAR?message}`  | `VAR` is **unset**        | Rarely right — a copied `.env.sample` sets vars empty |
+| `${VAR:?message}` | unset **or empty string** | Anything `.env.sample` ships blank                    |
 
 **Prefer `:?`.** `.env.sample` files list secrets as `SECRET=` with no value, and
 copying that to `.env` leaves the variable _set but empty_ — which `${VAR?…}` does not
