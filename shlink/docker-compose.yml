@@ -2,24 +2,27 @@ services:
   app:
     image: shlinkio/shlink:4.4.6
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
-      - ANONYMIZE_REMOTE_ADDR=${ANONYMIZE_REMOTE_ADDR}
+      - ANONYMIZE_REMOTE_ADDR=${ANONYMIZE_REMOTE_ADDR:-true}
       - DB_DRIVER=postgres
       - DB_HOST=db
-      - DB_NAME=${POSTGRES_DB}
-      - DB_PASSWORD=${POSTGRES_PASSWORD}
-      - DB_USER=${POSTGRES_USER}
-      - DEFAULT_DOMAIN=${SHLINK_DOMAIN}
-      - GEOLITE_LICENSE_KEY=${GEOLITE_LICENSE_KEY}
-      - INITIAL_API_KEY=${INITIAL_API_KEY}
-      - IS_HTTPS_ENABLED=${IS_HTTPS_ENABLED}
+      - DB_NAME=${POSTGRES_DB:-shlink}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:?generate one with openssl rand -hex 24}
+      - DB_USER=${POSTGRES_USER:-shlink}
+      - DEFAULT_DOMAIN=${SHLINK_DOMAIN:?Variable SHLINK_DOMAIN not set}
+      - GEOLITE_LICENSE_KEY=${GEOLITE_LICENSE_KEY:-}
+      - INITIAL_API_KEY=${INITIAL_API_KEY:?generate one with openssl rand -hex 32}
+      - IS_HTTPS_ENABLED=${IS_HTTPS_ENABLED:-true}
 
+  # Deliberately not preconfigured with a server: SHLINK_SERVER_API_KEY would be
+  # served to every visitor in servers.json. Add the server (URL + API key) in
+  # the browser instead; it is stored in that browser only.
   web:
-    image: shlinkio/shlink-web-client
+    image: shlinkio/shlink-web-client:4.8.1
     restart: unless-stopped
-    environment:
-      - SHLINK_SERVER_URL=${SHLINK_URL}
-      - SHLINK_SERVER_API_KEY=${INITIAL_API_KEY}
 
   db:
     image: postgres:17-alpine
@@ -27,9 +30,9 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-shlink}
+      - POSTGRES_USER=${POSTGRES_USER:-shlink}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?generate one with openssl rand -hex 24}
     healthcheck:
       test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 5s
