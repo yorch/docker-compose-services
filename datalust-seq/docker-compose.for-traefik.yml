@@ -8,7 +8,7 @@ services:
       # Service
       - 'traefik.http.services.seq.loadbalancer.server.port=80'
       # HTTPS Host
-      - 'traefik.http.routers.seq.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.seq.rule=Host(`${DOMAIN:?Variable DOMAIN not set}`)'
       - 'traefik.http.routers.seq.entrypoints=websecure'
       - 'traefik.http.routers.seq.tls=true'
       - 'traefik.http.routers.seq.tls.certResolver=webcert'

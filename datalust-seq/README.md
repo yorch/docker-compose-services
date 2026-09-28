@@ -28,20 +28,19 @@ once per host:
 ../traefik3/setup.sh   # docker network create traefik
 ```
 
-Access the web UI at `http://localhost:5341`
+Access the web UI at `http://localhost:8080` (dev) and sign in as `admin` with
+`SEQ_FIRSTRUN_ADMINPASSWORD`; Seq asks for a new password at the first login. Port
+`5341` is ingestion-only and does not serve the UI or API.
 
 ## Environment Variables
 
-| Variable                         | Description                 | Default |
-| -------------------------------- | --------------------------- | ------- |
-| `ACCEPT_EULA`                    | Accept the EULA             | `Y`     |
-| `SEQ_FIRSTRUN_ADMINPASSWORDHASH` | Initial admin password hash | -       |
+| Variable                     | Description                                                | Required |
+| ---------------------------- | ---------------------------------------------------------- | -------- |
+| `DOMAIN`                     | Hostname Traefik routes to Seq (Traefik only)              | Traefik  |
+| `SEQ_FIRSTRUN_ADMINPASSWORD` | Initial `admin` password, used only when `./data` is empty | Yes      |
 
-### Generating Admin Password Hash
-
-```bash
-echo 'your-password' | docker run --rm -i datalust/seq config hash
-```
+Seq 2025.2 and later refuse to initialise a new instance without an admin password (or
+an explicit opt-out of authentication), so compose fails fast if it is unset.
 
 ## Volumes
 
