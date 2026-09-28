@@ -1,12 +1,25 @@
 services:
   app:
     ports:
-      - 3000:3000
+      - 3000:80
 
   mongo:
     ports:
       - ${DEV_BIND_IP:-127.0.0.1}:27017:27017
 
+  # DB admin UI: dev only, never routed through Traefik (see AGENTS.md).
+  # Opt-in: starts only with `--profile mongo-express`.
   mongo-express:
+    image: mongo-express:1.0.2
+    profiles: [mongo-express]
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      ME_CONFIG_BASICAUTH: 'true'
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USERNAME:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:?generate one with openssl rand -hex 16}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGODB_USERNAME:-errbit}:${MONGODB_PASSWORD:?generate one with openssl rand -hex 24}@mongo:27017/?authSource=admin
     ports:
       - ${DEV_BIND_IP:-127.0.0.1}:8081:8081

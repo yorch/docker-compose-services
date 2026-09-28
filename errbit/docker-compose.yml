@@ -1,31 +1,62 @@
+# app and errbit-init share the same Rails configuration
+x-errbit-env: &errbit-env
+  # The Mongo user is created in the admin database (MONGO_INITDB_ROOT_*), so it
+  # must authenticate there even though Errbit's data lives in `errbit`.
+  MONGO_URL: mongodb://${MONGODB_USERNAME:-errbit}:${MONGODB_PASSWORD:?generate one with openssl rand -hex 24}@mongo:27017/errbit?authSource=admin
+  RAILS_ENV: ${RAILS_ENV:-production}
+  SECRET_KEY_BASE: ${SECRET_KEY_BASE:?generate one with openssl rand -hex 64}
+  ERRBIT_HOST: ${DOMAIN:?Variable DOMAIN not set}
+  ERRBIT_ADMIN_EMAIL: ${ERRBIT_ADMIN_EMAIL}
+  ERRBIT_ADMIN_PASSWORD: ${ERRBIT_ADMIN_PASSWORD:?generate one with openssl rand -hex 16}
+  ERRBIT_ADMIN_USER: ${ERRBIT_ADMIN_USER}
+  ERRBIT_CONFIRM_ERR_ACTIONS: ${ERRBIT_CONFIRM_ERR_ACTIONS}
+  ERRBIT_USER_HAS_USERNAME: ${ERRBIT_USER_HAS_USERNAME}
+  ERRBIT_USE_GRAVATAR: ${ERRBIT_USE_GRAVATAR}
+  ERRBIT_GRAVATAR_DEFAULT: ${ERRBIT_GRAVATAR_DEFAULT:-}
+  ERRBIT_EMAIL_FROM: ${ERRBIT_EMAIL_FROM}
+  EMAIL_DELIVERY_METHOD: ${EMAIL_DELIVERY_METHOD}
+  SMTP_SERVER: ${SMTP_SERVER}
+  SMTP_PORT: ${SMTP_PORT}
+  SMTP_AUTHENTICATION: ${SMTP_AUTHENTICATION}
+  SMTP_USERNAME: ${SMTP_USERNAME}
+  SMTP_PASSWORD: ${SMTP_PASSWORD}
+  SMTP_DOMAIN: ${SMTP_DOMAIN}
+  SMTP_ENABLE_STARTTLS_AUTO: ${SMTP_ENABLE_STARTTLS_AUTO}
+
 services:
   app:
-    image: errbit/errbit:latest
+    image: errbit/errbit:0.11.5
     restart: unless-stopped
+    depends_on:
+      errbit-init:
+        condition: service_completed_successfully
+    environment:
+      <<: *errbit-env
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', '-o', '/dev/null', 'http://localhost/up']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Creates the admin from ERRBIT_ADMIN_* and the Mongo indexes. The seed resets
+  # the admin password every time it runs, so it only runs while there are no
+  # users; later starts just (re)create indexes.
+  errbit-init:
+    image: errbit/errbit:0.11.5
+    restart: 'no'
+    environment:
+      <<: *errbit-env
+    command:
+      - sh
+      - -c
+      - >-
+        if bin/rails runner 'exit(User.exists? ? 0 : 1)';
+        then bin/rails db:mongoid:create_indexes;
+        else bin/rails errbit:bootstrap; fi
     depends_on:
       mongo:
         condition: service_healthy
-    environment:
-      MONGO_URL: mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongo:27017/errbit
-      RAILS_ENV: ${RAILS_ENV}
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-      ERRBIT_HOST: ${DOMAIN}
-      ERRBIT_ADMIN_EMAIL: ${ERRBIT_ADMIN_EMAIL}
-      ERRBIT_ADMIN_PASSWORD: ${ERRBIT_ADMIN_PASSWORD}
-      ERRBIT_ADMIN_USER: ${ERRBIT_ADMIN_USER}
-      ERRBIT_CONFIRM_ERR_ACTIONS: ${ERRBIT_CONFIRM_ERR_ACTIONS}
-      ERRBIT_USER_HAS_USERNAME: ${ERRBIT_USER_HAS_USERNAME}
-      ERRBIT_USE_GRAVATAR: ${ERRBIT_USE_GRAVATAR}
-      ERRBIT_GRAVATAR_DEFAULT: ${ERRBIT_GRAVATAR_DEFAULT}
-      ERRBIT_EMAIL_FROM: ${ERRBIT_EMAIL_FROM}
-      EMAIL_DELIVERY_METHOD: ${EMAIL_DELIVERY_METHOD}
-      SMTP_SERVER: ${SMTP_SERVER}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_AUTHENTICATION: ${SMTP_AUTHENTICATION}
-      SMTP_USERNAME: ${SMTP_USERNAME}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_DOMAIN: ${SMTP_DOMAIN}
-      SMTP_ENABLE_STARTTLS_AUTO: ${SMTP_ENABLE_STARTTLS_AUTO}
 
   mongo:
     image: mongo:8-noble
@@ -33,25 +64,11 @@ services:
     volumes:
       - ./data/mongo:/data/db
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME:-errbit}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD:?generate one with openssl rand -hex 24}
     healthcheck:
       test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
-
-  mongo-express:
-    image: mongo-express:latest
-    restart: unless-stopped
-    depends_on:
-      mongo:
-        condition: service_healthy
-    environment:
-      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USERNAME}
-      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
-      ME_CONFIG_BASICAUTH: true
-      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGODB_USERNAME}
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGODB_PASSWORD}
-      ME_CONFIG_MONGODB_URL: mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongo:27017/
