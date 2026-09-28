@@ -28,35 +28,29 @@ once per host:
 ../traefik3/setup.sh   # docker network create traefik
 ```
 
+Dev: API on `http://localhost:8080`, web client on `http://localhost:8081`. Behind Traefik:
+API on `https://${SHLINK_DOMAIN}`, web client on `https://web.${SHLINK_DOMAIN}`.
+
 ## Services
 
-| Service      | Description          |
-| ------------ | -------------------- |
-| `app`        | Shlink API server    |
-| `web-client` | Shlink web interface |
-| `postgres`   | PostgreSQL database  |
+| Service | Description                               |
+| ------- | ----------------------------------------- |
+| `app`   | Shlink API server and short-URL redirects |
+| `web`   | Shlink web client (static, no secrets)    |
+| `db`    | PostgreSQL database                       |
 
 ## Environment Variables
 
-### Shlink Server
-
-| Variable              | Description              | Required |
-| --------------------- | ------------------------ | -------- |
-| `DEFAULT_DOMAIN`      | Default short URL domain | Yes      |
-| `IS_HTTPS_ENABLED`    | Enable HTTPS             | Yes      |
-| `GEOLITE_LICENSE_KEY` | MaxMind GeoLite2 key     | -        |
-| `INITIAL_API_KEY`     | Initial API key          | -        |
-
-### Database
-
-| Variable      | Description                      |
-| ------------- | -------------------------------- |
-| `DB_DRIVER`   | Database driver (postgres/mysql) |
-| `DB_NAME`     | Database name                    |
-| `DB_USER`     | Database user                    |
-| `DB_PASSWORD` | Database password                |
-| `DB_HOST`     | Database host                    |
-| `DB_PORT`     | Database port                    |
+| Variable                | Description                                                        | Required |
+| ----------------------- | ------------------------------------------------------------------ | -------- |
+| `SHLINK_DOMAIN`         | Short-URL domain; also the Traefik host (`web.` prefix for the UI) | Yes      |
+| `INITIAL_API_KEY`       | Admin API key created on first start (`openssl rand -hex 32`)      | Yes      |
+| `POSTGRES_PASSWORD`     | Database password (`openssl rand -hex 24`)                         | Yes      |
+| `POSTGRES_DB`           | Database name (default `shlink`)                                   | No       |
+| `POSTGRES_USER`         | Database user (default `shlink`)                                   | No       |
+| `GEOLITE_LICENSE_KEY`   | MaxMind key for visit geolocation; empty disables it               | No       |
+| `IS_HTTPS_ENABLED`      | Generate `https://` short URLs (default `true`)                    | No       |
+| `ANONYMIZE_REMOTE_ADDR` | Anonymize visitor IPs (default `true`)                             | No       |
 
 ## Volumes
 
@@ -76,7 +70,10 @@ curl -X POST https://your-domain/rest/v3/short-urls \
 
 ## Web Client
 
-Access the web interface to manage URLs visually. Configure it to point to your Shlink server.
+The web client is a static app that runs in your browser. It is **not** preconfigured with
+a server: doing so would publish `SHLINK_SERVER_API_KEY` to every visitor in
+`servers.json`. Open the web client, choose _Add a server_, and enter the API URL and
+`INITIAL_API_KEY` once. The key is stored in that browser only.
 
 ## Links
 
