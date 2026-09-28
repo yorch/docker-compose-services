@@ -16,6 +16,9 @@ Self-hosted sync server for Joplin, an open-source note-taking application.
 # Dev - publishes ports on localhost
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
+# Dev + Adminer (opt-in profile) on 127.0.0.1:8080
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile adminer up -d
+
 # Behind Traefik - HTTPS through the reverse proxy
 docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 
@@ -32,15 +35,16 @@ once per host:
 
 ## Services
 
-| Service     | Description                                                |
-| ----------- | ---------------------------------------------------------- |
-| `app`       | Joplin Server                                              |
-| `db`        | PostgreSQL database                                        |
-| `dbbackups` | Automated database backups                                 |
-| `adminer`   | Database admin UI, **dev overlay only** (`127.0.0.1:8080`) |
+| Service     | Description                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| `app`       | Joplin Server                                                                              |
+| `db`        | PostgreSQL database                                                                        |
+| `dbbackups` | Automated database backups                                                                 |
+| `adminer`   | Database admin UI, **dev overlay only**, opt-in via `--profile adminer` (`127.0.0.1:8080`) |
 
-Adminer is never routed through Traefik. To inspect a production database, open an SSH
-tunnel to the host and run the dev overlay's `adminer` there, or connect with `psql`.
+Adminer is never routed through Traefik and doesn't start unless you pass
+`--profile adminer`. To inspect a production database, open an SSH tunnel to the host
+and start the dev overlay's `adminer` there, or connect with `psql`.
 
 ## Environment Variables
 

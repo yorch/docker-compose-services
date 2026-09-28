@@ -8,9 +8,10 @@ services:
       - ${DEV_BIND_IP:-127.0.0.1}:5432:5432
 
   # DB admin UI: dev only, never routed through Traefik (see AGENTS.md).
-  # For a production database, SSH-tunnel to this port instead.
+  # Opt-in: starts only with `--profile adminer`.
   adminer:
     image: adminer:5
+    profiles: [adminer]
     depends_on:
       - db
     restart: unless-stopped
