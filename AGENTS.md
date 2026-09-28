@@ -186,6 +186,25 @@ only the product and its datastores. Show the profile command in the README Quic
 docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile adminer up -d
 ```
 
+**A product with no login of its own gets basic auth in its Traefik overlay.** Tracing
+UIs, log viewers, Docker managers, bot dashboards and auth-server cores (jaeger, siglens,
+portainer, octobot, supertokens, …) would otherwise be public the moment the overlay is
+up. Attach a basicauth middleware named `<svc>-auth` and make its credentials required:
+
+```yaml
+- 'traefik.http.routers.<name>.middlewares=<name>-auth'
+- 'traefik.http.middlewares.<name>-auth.basicauth.users=${BASIC_AUTH_USER:?Variable BASIC_AUTH_USER not set}:${BASIC_AUTH_PASSWORD_HASH:?generate with htpasswd -nbB, see README}'
+```
+
+Use exactly `BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD_HASH` in every service, not
+`USERNAME` (a shell `USERNAME` overrides `.env` during interpolation). The hash is a
+bcrypt `htpasswd` value, which contains `$`, so `.env.sample` must tell users to
+single-quote it:
+
+```bash
+docker run --rm httpd:2.4-alpine htpasswd -nbB admin 'your-password' | cut -d: -f2
+```
+
 **Env vars.** Every configurable value goes through `${VAR}` in the compose file and is
 documented in `.env.sample`. `.env` is gitignored — never create or commit one. Use
 `${VAR:-default}` for optional values, and one of the two fail-fast forms for values
