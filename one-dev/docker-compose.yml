@@ -2,7 +2,7 @@
 
 services:
   app:
-    image: 1dev/server
+    image: 1dev/server:16.7.3
     restart: unless-stopped
     deploy:
       resources:
@@ -12,13 +12,16 @@ services:
           memory: 1G
     volumes:
       - ./data/onedev:/opt/onedev
+    # Unattended setup: creates the admin on first start so the setup wizard is
+    # never left open. OneDev only reads these keys in lowercase; the uppercase
+    # forms are silently ignored.
     environment:
-      INITIAL_USER: ${INITIAL_PASSWORD}
-      INITIAL_PASSWORD: ${INITIAL_PASSWORD}
-      INITIAL_EMAIL: ${INITIAL_EMAIL}
-      INITIAL_SERVER_URL: ${INITIAL_SERVER_URL}
+      initial_user: ${INITIAL_USER:?Variable INITIAL_USER not set}
+      initial_password: ${INITIAL_PASSWORD:?generate one with openssl rand -hex 16}
+      initial_email: ${INITIAL_EMAIL:?Variable INITIAL_EMAIL not set}
+      initial_server_url: ${INITIAL_SERVER_URL:?e.g. https://onedev.example.com or http://localhost:6610}
       # SSH root url of this server (will derive from initial_server_url if left empty)
-      # INITIAL_SSH_ROOT_URL: ${INITIAL_SSH_ROOT_URL}
+      # initial_ssh_root_url: ${INITIAL_SSH_ROOT_URL}
 
   # TODO: Update setup to use Postgres instead of internal DB
   # db:
