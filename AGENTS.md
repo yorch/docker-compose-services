@@ -205,6 +205,11 @@ single-quote it:
 docker run --rm httpd:2.4-alpine htpasswd -nbB admin 'your-password' | cut -d: -f2
 ```
 
+**Exception: APIs that clients call with their own bearer token.** Basic auth travels
+in the same `Authorization` header, so SDKs sending `Authorization: Bearer …` break
+behind it. For those (see `firecrawl/`), restrict the router with an `ipallowlist`
+middleware and a required `<SVC>_ALLOWED_IPS` list of CIDRs instead.
+
 **Env vars.** Every configurable value goes through `${VAR}` in the compose file and is
 documented in `.env.sample`. `.env` is gitignored — never create or commit one. Use
 `${VAR:-default}` for optional values, and one of the two fail-fast forms for values
