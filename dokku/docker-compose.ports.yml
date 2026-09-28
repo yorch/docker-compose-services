@@ -1,0 +1,8 @@
+# Dedicated Dokku host only: Dokku runs its own nginx and needs the host's
+# 80/443, plus 22 for `git push`. It cannot share a host with traefik3/.
+services:
+  app:
+    ports:
+      - 22:22
+      - 80:80
+      - 443:443
