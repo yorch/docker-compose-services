@@ -1,8 +1,8 @@
 services:
   hotrod:
-    image: jaegertracing/example-hotrod:latest
+    image: jaegertracing/example-hotrod:2.21.0
     restart: unless-stopped
     environment:
-      # - JAEGER_AGENT_HOST=jaeger
-      - OTEL_EXPORTER_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      # Current HotROD exports over OTLP; the old Jaeger exporter variable is ignored
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
     command: ['all']

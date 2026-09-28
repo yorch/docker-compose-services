@@ -1,6 +1,6 @@
 services:
   jaeger:
-    image: jaegertracing/all-in-one:1
+    image: jaegertracing/all-in-one:1.60.0
     ports:
       # https://www.jaegertracing.io/docs/1.42/getting-started/
       # UDP agent accept jaeger.thrift over Thrift-compact protocol (used by most SDKs)

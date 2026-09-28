@@ -20,8 +20,17 @@ docker compose -f docker-compose.yml -f docker-compose.ports.yml up -d
 docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 
 # Other setups - with the HotROD demo app for generating traces:
-./run.sh                          # local
+./run.sh                          # local: UI on :16686, HotROD on :8080
 ./run-for-traefik-with-hotrod.sh  # behind Traefik
+```
+
+Behind Traefik the UI is served at `https://jaeger.${DOMAIN}` (and HotROD at
+`https://jaeger-hotrod.${DOMAIN}`), both behind **required basic auth**: Jaeger has no
+login of its own and the UI exposes every trace. Set `BASIC_AUTH_USER` and
+`BASIC_AUTH_PASSWORD_HASH` (single-quoted) in `.env`; generate the hash with:
+
+```bash
+docker run --rm httpd:2.4-alpine htpasswd -nbB admin 'your-password' | cut -d: -f2
 ```
 
 The Traefik overlay joins an external network that must already exist. Create it
@@ -42,15 +51,20 @@ Access the Jaeger UI at `http://localhost:16686`
 | `5778`  | HTTP     | Agent configs (sampling)    |
 | `4317`  | gRPC     | OTLP collector              |
 | `4318`  | HTTP     | OTLP collector              |
-| `14250` | HTTP     | model.proto                 |
+| `14250` | gRPC     | model.proto                 |
 | `14268` | HTTP     | jaeger.thrift direct        |
 | `16686` | HTTP     | Web UI                      |
 
 ## Environment Variables
 
-| Variable                 | Description                   | Default |
-| ------------------------ | ----------------------------- | ------- |
-| `COLLECTOR_OTLP_ENABLED` | Enable OpenTelemetry Protocol | `true`  |
+| Variable                   | Description                                             | Required |
+| -------------------------- | ------------------------------------------------------- | -------- |
+| `DOMAIN`                   | Base domain; UI at `jaeger.${DOMAIN}` (Traefik only)    | Traefik  |
+| `BASIC_AUTH_USER`          | Basic-auth user for the UI and HotROD (Traefik only)    | Traefik  |
+| `BASIC_AUTH_PASSWORD_HASH` | bcrypt hash for that user, single-quoted (Traefik only) | Traefik  |
+
+The collector ports (4317/4318 and the legacy agent ports) are published by the base
+file in every setup, so applications on other hosts can send traces.
 
 ## Storage
 

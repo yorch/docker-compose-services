@@ -9,11 +9,14 @@ services:
       # Service
       - 'traefik.http.services.jaeger.loadbalancer.server.port=16686'
       # HTTPS Host
-      - 'traefik.http.routers.jaeger.rule=Host(`jaeger.${DOMAIN}`)'
+      - 'traefik.http.routers.jaeger.rule=Host(`jaeger.${DOMAIN:?Variable DOMAIN not set}`)'
       - 'traefik.http.routers.jaeger.entrypoints=websecure'
       - 'traefik.http.routers.jaeger.tls=true'
       - 'traefik.http.routers.jaeger.tls.certResolver=webcert'
       - 'traefik.http.routers.jaeger.service=jaeger'
+      # No login of its own: basic auth is required (see AGENTS.md)
+      - 'traefik.http.routers.jaeger.middlewares=jaeger-auth'
+      - 'traefik.http.middlewares.jaeger-auth.basicauth.users=${BASIC_AUTH_USER:?Variable BASIC_AUTH_USER not set}:${BASIC_AUTH_PASSWORD_HASH:?generate with htpasswd -nbB, see README}'
 
 networks:
   traefik:
