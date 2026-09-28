@@ -1,28 +1,81 @@
+# The app and the one-shot installer read the same wp-config.php, which pulls
+# its DB settings from these variables.
+x-wordpress-db-env: &wordpress-db-env
+  WORDPRESS_DB_HOST: mariadb
+  WORDPRESS_DB_USER: ${DB_USERNAME:-wordpress}
+  WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:?generate one with openssl rand -hex 24}
+  WORDPRESS_DB_NAME: ${DB_NAME:-wordpress}
+
 services:
   app:
-    image: docker.io/bitnami/wordpress:6
+    image: wordpress:6.9-php8.3-apache
+    restart: unless-stopped
     volumes:
-      - ./data/wordpress:/bitnami/wordpress
-    depends_on:
-      - mariadb
+      - ./data/html:/var/www/html
     environment:
-      - ALLOW_EMPTY_PASSWORD=no
-      - WORDPRESS_DATABASE_HOST=mariadb
-      - WORDPRESS_DATABASE_PORT_NUMBER=3306
-      - WORDPRESS_DATABASE_USER=${DB_USERNAME}
-      - WORDPRESS_DATABASE_NAME=${DB_NAME}
-      - WORDPRESS_DATABASE_PASSWORD=${DB_PASSWORD}
-      - WORDPRESS_USERNAME=${WP_USERNAME}
-      - WORDPRESS_PASSWORD=${WP_PASSWORD}
-      - WORDPRESS_EMAIL=${WP_EMAIL}
+      <<: *wordpress-db-env
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    healthcheck:
+      # 200 both before and after install, so it only tracks Apache + PHP
+      test:
+        [
+          'CMD',
+          'curl',
+          '-fsS',
+          '-o',
+          '/dev/null',
+          'http://localhost/wp-admin/install.php',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Installs WordPress with the admin account from .env on first start, so the
+  # web installer is never left open for the first visitor. No-op afterwards.
+  wp-init:
+    image: wordpress:cli-2.12-php8.3
+    # The cli image is Alpine (www-data = 82); the app runs as Debian www-data (33)
+    user: '33:33'
+    restart: 'no'
+    volumes:
+      - ./data/html:/var/www/html
+    environment:
+      <<: *wordpress-db-env
+      WP_URL: ${WP_URL:-http://localhost:8080}
+      WP_TITLE: ${WP_TITLE:-WordPress}
+      WP_USERNAME: ${WP_USERNAME:?Variable WP_USERNAME not set}
+      WP_PASSWORD: ${WP_PASSWORD:?generate one with openssl rand -hex 16}
+      WP_EMAIL: ${WP_EMAIL:?Variable WP_EMAIL not set}
+    command:
+      - sh
+      - -c
+      - >-
+        wp core is-installed ||
+        wp core install --url="$$WP_URL" --title="$$WP_TITLE"
+        --admin_user="$$WP_USERNAME" --admin_password="$$WP_PASSWORD"
+        --admin_email="$$WP_EMAIL" --skip-email
+    depends_on:
+      app:
+        condition: service_healthy
 
   mariadb:
-    image: docker.io/bitnami/mariadb:latest
+    image: mariadb:12.3
+    restart: unless-stopped
     volumes:
-      - ./data/mariadb:/bitnami/mariadb
+      - ./data/mysql:/var/lib/mysql
     environment:
-      - ALLOW_EMPTY_PASSWORD=no
-      - MARIADB_USER=${DB_USERNAME}
-      - MARIADB_DATABASE=${DB_NAME}
-      - MARIADB_PASSWORD=${DB_PASSWORD}
-      - MARIADB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME:-wordpress}
+      MARIADB_USER: ${DB_USERNAME:-wordpress}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?generate one with openssl rand -hex 24}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?generate one with openssl rand -hex 24}
+      # Runs mariadb-upgrade after an image bump
+      MARIADB_AUTO_UPGRADE: '1'
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

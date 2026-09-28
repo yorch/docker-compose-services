@@ -51,6 +51,7 @@
     "htpasswd",
     "httpd",
     "ingester",
+    "innodb",
     "isready",
     "karakeep",
     "langfuse",
