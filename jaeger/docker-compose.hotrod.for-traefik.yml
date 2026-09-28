@@ -9,11 +9,13 @@ services:
       # Service
       - 'traefik.http.services.jaeger-hotrod.loadbalancer.server.port=8080'
       # HTTPS Host
-      - 'traefik.http.routers.jaeger-hotrod.rule=Host(`jaeger-hotrod.${DOMAIN}`)'
+      - 'traefik.http.routers.jaeger-hotrod.rule=Host(`jaeger-hotrod.${DOMAIN:?Variable DOMAIN not set}`)'
       - 'traefik.http.routers.jaeger-hotrod.entrypoints=websecure'
       - 'traefik.http.routers.jaeger-hotrod.tls=true'
       - 'traefik.http.routers.jaeger-hotrod.tls.certResolver=webcert'
       - 'traefik.http.routers.jaeger-hotrod.service=jaeger-hotrod'
+      # Reuses the jaeger-auth middleware defined on the jaeger container
+      - 'traefik.http.routers.jaeger-hotrod.middlewares=jaeger-auth@docker'
 
 networks:
   traefik:
