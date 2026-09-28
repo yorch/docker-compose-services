@@ -13,22 +13,18 @@ Lightweight MQTT message broker.
 
 ## Quick Start
 
-1. Create configuration file at `./config/mosquitto/mosquitto.conf`:
-
-```conf
-listener 1883
-allow_anonymous false
-password_file /mosquitto/config/passwd
-persistence true
-persistence_location /mosquitto/data/
-log_dest file /mosquitto/log/mosquitto.log
-```
-
-2. Start the service:
-
 ```bash
+# 1. Create the password file with a first user (prompts for the password)
+./setup.sh <username>
+
+# 2. Start the broker on port 1883
 docker compose up -d
 ```
+
+The broker requires authentication (`allow_anonymous false`), and
+`./config/mosquitto/mosquitto.conf` is tracked in this folder. Run `setup.sh` before the
+first `up`. If the password file is missing, Docker creates a directory in its place
+and the broker crash-loops.
 
 ## Ports
 
@@ -40,26 +36,23 @@ docker compose up -d
 
 ## Volumes
 
-| Host Path                           | Container Path                     | Description     |
-| ----------------------------------- | ---------------------------------- | --------------- |
-| `./config/mosquitto/mosquitto.conf` | `/mosquitto/config/mosquitto.conf` | Configuration   |
-| `./config/mosquitto/passwd`         | `/mosquitto/config/passwd`         | Password file   |
-| `./data`                            | `/mosquitto/data`                  | Persistent data |
-| `./log`                             | `/mosquitto/log`                   | Log files       |
+| Host Path                           | Container Path                     | Description            |
+| ----------------------------------- | ---------------------------------- | ---------------------- |
+| `./config/mosquitto/mosquitto.conf` | `/mosquitto/config/mosquitto.conf` | Configuration          |
+| `./config/mosquitto/passwd`         | `/mosquitto/config/passwd`         | Password file          |
+| `./data`                            | `/mosquitto/data`                  | Persistent data        |
+| `./log`                             | `/mosquitto/log`                   | Log files (gitignored) |
 
 ## Creating Users
 
-Generate password file:
+Add or update a user at any time (the broker picks it up after a restart):
 
 ```bash
-docker compose exec mqtt mosquitto_passwd -c /mosquitto/config/passwd username
+./setup.sh <username>
+docker compose restart mqtt
 ```
 
-Add additional users:
-
-```bash
-docker compose exec mqtt mosquitto_passwd -b /mosquitto/config/passwd username password
-```
+`config/mosquitto/passwd` holds password hashes and is gitignored.
 
 ## Configuration Examples
 
