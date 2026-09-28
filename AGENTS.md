@@ -177,6 +177,15 @@ leaked or reused password away from the same thing. To reach a production databa
 an SSH tunnel to the dev-overlay port instead. A `docker-compose.for-traefik.yml` should
 route only the product itself.
 
+They are also **opt-in**: give each one a Compose profile named after the tool
+(`profiles: [adminer]`, `[mongo-express]`, `[pgadmin]`, …), so a plain dev `up` starts
+only the product and its datastores. Show the profile command in the README Quick Start
+(see `joplin/`):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile adminer up -d
+```
+
 **Env vars.** Every configurable value goes through `${VAR}` in the compose file and is
 documented in `.env.sample`. `.env` is gitignored — never create or commit one. Use
 `${VAR:-default}` for optional values, and one of the two fail-fast forms for values
