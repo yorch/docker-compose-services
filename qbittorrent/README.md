@@ -14,15 +14,15 @@ Open-source BitTorrent client with web UI.
 ## Quick Start
 
 ```bash
-# Dev - publishes ports on localhost
-docker compose -f docker-compose.yml -f docker-compose.ports.yml up -d
+# Dev - web UI on http://localhost:8080 plus the torrenting port
+docker compose -f docker-compose.yml -f docker-compose.ports.yml -f docker-compose.dev.yml up -d
 
 # Behind Traefik - HTTPS for the web UI.
 # The ports overlay is still needed: Traefik proxies only the UI,
 # so the torrenting port must stay published on the host.
 docker compose -f docker-compose.yml -f docker-compose.ports.yml -f docker-compose.for-traefik.yml up -d
 
-# Other setups:
+# Through a WireGuard VPN (Gluetun) - see below
 ./run-with-gluetun.sh
 ```
 
@@ -33,55 +33,46 @@ once per host:
 ../traefik3/setup.sh   # docker network create traefik
 ```
 
-Access the web UI at `http://localhost:8080`
+Sign in as `admin` with the temporary password from the logs, then set your own:
 
-Default credentials: `admin` / Check logs for password
+```bash
+docker compose logs qbittorrent | grep "temporary password"
+```
 
 ## Environment Variables
 
-| Variable          | Description     | Default |
-| ----------------- | --------------- | ------- |
-| `PUID`            | User ID         | `1000`  |
-| `PGID`            | Group ID        | `1000`  |
-| `TZ`              | Timezone        | -       |
-| `WEBUI_PORT`      | Web UI port     | `8080`  |
-| `TORRENTING_PORT` | Torrenting port | `6881`  |
+| Variable          | Description                                          | Default   |
+| ----------------- | ---------------------------------------------------- | --------- |
+| `HOST`            | Hostname Traefik routes to the web UI (Traefik only) | -         |
+| `TZ`              | Timezone                                             | `Etc/UTC` |
+| `PUID` / `PGID`   | User/group the downloads are written as              | `1000`    |
+| `WEBUI_PORT`      | Web UI port (container and host)                     | `8080`    |
+| `TORRENTING_PORT` | Torrenting port, TCP + UDP                           | `6881`    |
+
+### Gluetun (VPN setup only)
+
+| Variable                | Description                                 | Required |
+| ----------------------- | ------------------------------------------- | -------- |
+| `VPN_SERVICE_PROVIDER`  | Gluetun provider name, e.g. `mullvad`       | Yes      |
+| `WIREGUARD_PRIVATE_KEY` | From your provider's WireGuard config       | Yes      |
+| `WIREGUARD_ADDRESSES`   | IPv4 address from that config               | Yes      |
+| `SERVER_CITIES`         | Preferred exit cities                       | No       |
+| `UPDATER_PERIOD`        | How often Gluetun refreshes its server list | No       |
 
 ## Volumes
 
-| Host Path     | Container Path | Description         |
-| ------------- | -------------- | ------------------- |
-| `./config`    | `/config`      | Configuration files |
-| `./downloads` | `/downloads`   | Downloaded files    |
+| Host Path        | Container Path | Description                            |
+| ---------------- | -------------- | -------------------------------------- |
+| `./config`       | `/config`      | qBittorrent configuration (gitignored) |
+| `./downloads`    | `/downloads`   | Downloaded files (gitignored)          |
+| `./data/gluetun` | `/gluetun`     | Gluetun state (VPN setup only)         |
 
 ## VPN Integration (Gluetun)
 
-For VPN support, use with Gluetun:
-
-```yaml
-services:
-  gluetun:
-    image: qmcgaw/gluetun
-    cap_add:
-      - NET_ADMIN
-    environment:
-      - VPN_SERVICE_PROVIDER=...
-    ports:
-      - 8080:8080
-
-  qbittorrent:
-    network_mode: 'service:gluetun'
-    depends_on:
-      - gluetun
-```
-
-## Initial Password
-
-Check container logs for the initial password:
-
-```bash
-docker compose logs qbittorrent | grep password
-```
+`docker-compose.gluetun.yml` runs qBittorrent inside Gluetun's network namespace
+(`network_mode: service:gluetun`), so all its traffic, including the web UI, goes
+through the VPN. Gluetun publishes the web UI and torrenting ports in that setup. Fill
+in the Gluetun variables and run `./run-with-gluetun.sh`.
 
 ## Links
 

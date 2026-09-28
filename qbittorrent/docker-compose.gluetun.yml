@@ -1,24 +1,24 @@
 services:
   gluetun:
-    image: qmcgaw/gluetun
+    image: qmcgaw/gluetun:v3.41.3
     container_name: gluetun
     restart: unless-stopped
     volumes:
       - ./data/gluetun:/gluetun
     environment:
-      - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER}
+      - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER:?Variable VPN_SERVICE_PROVIDER not set}
       - VPN_TYPE=wireguard
-      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
-      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
-      - SERVER_CITIES=${SERVER_CITIES}
-      - UPDATER_PERIOD=${UPDATER_PERIOD}
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY:?from your VPN provider WireGuard config}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES:?from your VPN provider WireGuard config}
+      - SERVER_CITIES=${SERVER_CITIES:-}
+      - UPDATER_PERIOD=${UPDATER_PERIOD:-}
     cap_add:
       - NET_ADMIN
     ports:
       # Make sure to include these for qbittorrent to work
-      - ${WEBUI_PORT}:${WEBUI_PORT}
-      - ${TORRENTING_PORT}:${TORRENTING_PORT}/tcp
-      - ${TORRENTING_PORT}:${TORRENTING_PORT}/udp
+      - ${WEBUI_PORT:-8080}:${WEBUI_PORT:-8080}
+      - ${TORRENTING_PORT:-6881}:${TORRENTING_PORT:-6881}/tcp
+      - ${TORRENTING_PORT:-6881}:${TORRENTING_PORT:-6881}/udp
       - 6011:6011
   qbittorrent:
     # Gluetun VPN container name

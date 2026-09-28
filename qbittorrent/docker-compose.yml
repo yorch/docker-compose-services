@@ -1,14 +1,14 @@
 services:
   qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest
+    image: lscr.io/linuxserver/qbittorrent:5.2.3
     container_name: qbittorrent
     restart: unless-stopped
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=${TZ}
-      - WEBUI_PORT=${WEBUI_PORT}
-      - TORRENTING_PORT=${TORRENTING_PORT}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+      - WEBUI_PORT=${WEBUI_PORT:-8080}
+      - TORRENTING_PORT=${TORRENTING_PORT:-6881}
     volumes:
       - ./config:/config
       - ./downloads:/downloads

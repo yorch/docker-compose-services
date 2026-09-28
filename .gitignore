@@ -18,3 +18,7 @@ mosquitto/log/
 
 # AI
 .claude/settings.local.json
+
+# qbittorrent state that lives outside ./data
+qbittorrent/config/
+qbittorrent/downloads/
