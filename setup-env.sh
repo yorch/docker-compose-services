@@ -109,6 +109,40 @@ if [ ${#SERVICES[@]} -eq 0 ]; then
   usage 1
 fi
 
+is_generatable() {
+  case "$1" in
+    POSTGRES_PASSWORD | DB_PASSWORD | DB_ROOT_PASSWORD) return 0 ;;
+    *_DB_PASSWORD | *_DATABASE_PASSWORD) return 0 ;;
+    REDIS_PASSWORD | REDIS_AUTH) return 0 ;;
+    MONGODB_PASSWORD | MONGO_EXPRESS_PASSWORD | COUCHDB_PASSWORD | CLICKHOUSE_PASSWORD) return 0 ;;
+    ENCRYPTION_KEY | SECRET_KEY_BASE | APP_KEY | NEXTAUTH_SECRET | BETTER_AUTH_SECRET) return 0 ;;
+    # App-level secrets and admin logins this repo generates for itself.
+    SECRET_KEY | GF_SECURITY_ADMIN_PASSWORD | PGADMIN_DEFAULT_PASSWORD) return 0 ;;
+    DOCKER_INFLUXDB_INIT_PASSWORD | DOCKER_INFLUXDB_INIT_ADMIN_TOKEN) return 0 ;;
+    INTERNAL_API_SECRET | CRON_SECRET | COLLAB_INTERNAL_KEY | BULL_AUTH_KEY) return 0 ;;
+    OPENUI_SESSION_KEY | LEARNHOUSE_AUTH_JWT_SECRET_KEY | WOODPECKER_AGENT_SECRET) return 0 ;;
+    SECRET | SALT | WP_PASSWORD | WB_PASSWORD | ACCOUNT_PASSWORD | ACKEE_PASSWORD) return 0 ;;
+    LITELLM_MASTER_KEY | LITELLM_SALT_KEY | MEILI_MASTER_KEY | ZO_ROOT_USER_PASSWORD) return 0 ;;
+    ERRBIT_ADMIN_PASSWORD | INITIAL_PASSWORD | LANGFUSE_INIT_USER_PASSWORD) return 0 ;;
+    LEARNHOUSE_INITIAL_ADMIN_PASSWORD) return 0 ;;
+    # Service-specific shared secrets. These are not recognizable from a generic
+    # naming pattern - `SANDBOX_API_KEYS` reads like a third-party credential,
+    # which is why the third-party test runs first and does not match it - so
+    # they are listed explicitly. Add new ones here when a service ships a
+    # secret the repo makes up for itself.
+    SANDBOX_API_KEYS | N8N_SANDBOX_SERVICE_API_KEY) return 0 ;;
+    SANDBOX_API_RUNNER_REGISTRATION_TOKEN | SANDBOX_API_RUNNER_API_KEY) return 0 ;;
+    SEARXNG_SECRET | N8N_RUNNERS_AUTH_TOKEN | N8N_ENCRYPTION_KEY) return 0 ;;
+    # Added with the "require a shared secret" wave of PRs: each is a value
+    # the service's own sample says to make with `openssl rand -hex 32`.
+    # SUPERTOKENS_API_KEY allows only letters, digits, = and -, at least 20
+    # characters - hex32 satisfies that (64 chars, [0-9a-f]).
+    HASURA_GRAPHQL_ADMIN_SECRET | SUPERTOKENS_API_KEY) return 0 ;;
+    LANGFUSE_S3_SECRET_KEY | LANGFUSE_CLICKHOUSE_PASSWORD | LANGFUSE_REDIS_AUTH) return 0 ;;
+  esac
+  return 1
+}
+
 # --- what may be generated ------------------------------------------------
 #
 # Two questions, asked in this order: does the value belong to a third party
@@ -122,6 +156,13 @@ fi
 # at the first login attempt - strictly worse than leaving the line empty,
 # because an empty value is visibly empty.
 is_thirdparty() {
+  # A key named explicitly in is_generatable is ours by definition. This check
+  # exists because the generic suffix rules below are broad by design and will
+  # otherwise swallow such a key: `SUPERTOKENS_API_KEY` matches `*_API_KEY` and
+  # would be treated as a vendor credential, even though its own sample says to
+  # make it with `openssl rand -hex 32`. The curated list wins over the pattern.
+  is_generatable "$1" && return 1
+
   case "$1" in
     # Vendor-prefixed credentials. Placed first because these are broader than
     # the suffix rules below; shellcheck flags the overlap otherwise, and the
@@ -147,38 +188,12 @@ is_thirdparty() {
     # A bcrypt hash, not a secret we can make up: it has to be produced by
     # htpasswd from a password a human chose, and $$-escaped for compose.
     BASIC_AUTH_PASSWORD_HASH | HASHED_PASSWORD | DASHBOARD_HASHED_PASSWORD) return 0 ;;
-  esac
+    # An argon2 hash, for the same reason - vaultwarden's own `hash` command
+    # produces it, and it is single-quoted in .env because it contains $.
+    ADMIN_TOKEN) return 0 ;;  esac
   return 1
 }
 
-is_generatable() {
-  case "$1" in
-    POSTGRES_PASSWORD | DB_PASSWORD | DB_ROOT_PASSWORD) return 0 ;;
-    *_DB_PASSWORD | *_DATABASE_PASSWORD) return 0 ;;
-    REDIS_PASSWORD | REDIS_AUTH) return 0 ;;
-    MONGODB_PASSWORD | MONGO_EXPRESS_PASSWORD | COUCHDB_PASSWORD | CLICKHOUSE_PASSWORD) return 0 ;;
-    ENCRYPTION_KEY | SECRET_KEY_BASE | APP_KEY | NEXTAUTH_SECRET | BETTER_AUTH_SECRET) return 0 ;;
-    # App-level secrets and admin logins this repo generates for itself.
-    SECRET_KEY | GF_SECURITY_ADMIN_PASSWORD | PGADMIN_DEFAULT_PASSWORD) return 0 ;;
-    DOCKER_INFLUXDB_INIT_PASSWORD | DOCKER_INFLUXDB_INIT_ADMIN_TOKEN) return 0 ;;
-    INTERNAL_API_SECRET | CRON_SECRET | COLLAB_INTERNAL_KEY | BULL_AUTH_KEY) return 0 ;;
-    OPENUI_SESSION_KEY | LEARNHOUSE_AUTH_JWT_SECRET_KEY | WOODPECKER_AGENT_SECRET) return 0 ;;
-    SECRET | SALT | WP_PASSWORD | WB_PASSWORD | ACCOUNT_PASSWORD | ACKEE_PASSWORD) return 0 ;;
-    LITELLM_MASTER_KEY | LITELLM_SALT_KEY | MEILI_MASTER_KEY | ZO_ROOT_USER_PASSWORD) return 0 ;;
-    ERRBIT_ADMIN_PASSWORD | INITIAL_PASSWORD | LANGFUSE_INIT_USER_PASSWORD) return 0 ;;
-    LEARNHOUSE_INITIAL_ADMIN_PASSWORD) return 0 ;;
-    # Service-specific shared secrets. These are not recognizable from a generic
-    # naming pattern - `SANDBOX_API_KEYS` reads like a third-party credential,
-    # which is why the third-party test runs first and does not match it - so
-    # they are listed explicitly. Add new ones here when a service ships a
-    # secret the repo makes up for itself.
-    SANDBOX_API_KEYS | N8N_SANDBOX_SERVICE_API_KEY) return 0 ;;
-    SANDBOX_API_RUNNER_REGISTRATION_TOKEN | SANDBOX_API_RUNNER_API_KEY) return 0 ;;
-    SEARXNG_SECRET | N8N_RUNNERS_AUTH_TOKEN | N8N_ENCRYPTION_KEY) return 0 ;;
-    LANGFUSE_S3_SECRET_KEY | LANGFUSE_CLICKHOUSE_PASSWORD | LANGFUSE_REDIS_AUTH) return 0 ;;
-  esac
-  return 1
-}
 
 # Values that are non-empty but are obviously placeholder defaults from a
 # sample file. These are left ALONE rather than replaced, because a key that
