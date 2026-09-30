@@ -28,7 +28,22 @@ once per host:
 ../traefik3/setup.sh   # docker network create traefik
 ```
 
-Access the web UI at `http://localhost:5001`
+Access the web UI at `http://localhost:8085` (dev).
+
+OctoBot's web UI has no login by default and controls live trading with the exchange keys
+in `./data/user`, so behind Traefik it requires basic auth. Generate the hash with:
+
+```bash
+docker run --rm httpd:2.4-alpine htpasswd -nbB admin 'your-password' | cut -d: -f2
+```
+
+## Environment Variables
+
+| Variable                   | Description                              | Required |
+| -------------------------- | ---------------------------------------- | -------- |
+| `OCTOBOT_DOMAIN`           | Hostname Traefik routes to the UI        | Traefik  |
+| `BASIC_AUTH_USER`          | Basic-auth user for the UI               | Traefik  |
+| `BASIC_AUTH_PASSWORD_HASH` | bcrypt hash for that user, single-quoted | Traefik  |
 
 ## Volumes
 
