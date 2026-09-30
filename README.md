@@ -128,7 +128,7 @@ yarn update-readme   # regenerate the services table below
 | [Watchtower](./watchtower) | Automated Docker container updates. |
 | [Wg Dashboard](./wg-dashboard) | Web-based dashboard for WireGuard VPN management. |
 | [Wg Easy](./wg-easy) | Easy-to-use WireGuard VPN with web UI. |
-| [Wg Portal](./wg-portal) | Enterprise-grade WireGuard VPN management portal. |
+| [Wg Portal](./wg-portal) | Web portal for managing WireGuard interfaces, peers and users (wg-portal v2), with a companion WireGuard container. |
 | [Woodpecker](./woodpecker) | Lightweight container-native CI/CD engine driven by a `.woodpecker.yaml` in each repository. |
 | [Woodpecker Agent](./woodpecker-agent) | Standalone Woodpecker CI agent that adds build capacity to an existing Woodpecker server. |
 | [Wordpress](./wordpress) | Popular content management system (CMS) for websites and blogs. |

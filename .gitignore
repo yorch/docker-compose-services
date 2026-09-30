@@ -22,3 +22,6 @@ mosquitto/log/
 # qbittorrent state that lives outside ./data
 qbittorrent/config/
 qbittorrent/downloads/
+
+# wg-portal state: WireGuard private keys, database, config
+wg-portal/wg/
