@@ -1,12 +1,17 @@
 services:
   app:
-    image: devlikeapro/waha
+    image: devlikeapro/waha:latest-2026.9.1
+    restart: unless-stopped
     volumes:
-      - ./data:/app/data
+      # WAHA keeps sessions (incl. its sqlite store) in /app/.sessions and
+      # downloaded media in /app/.media; /app/data is not used by the image.
+      - ./data/sessions:/app/.sessions
+      - ./data/media:/app/.media
     environment:
       - ENV=production
-      - WAHA_API_KEY=${WAHA_API_KEY}
-      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD}
-      - WAHA_DASHBOARD_USERNAME=${WAHA_DASHBOARD_USERNAME}
-      - WHATSAPP_SWAGGER_PASSWORD=${WHATSAPP_SWAGGER_PASSWORD}
-      - WHATSAPP_SWAGGER_USERNAME=${WHATSAPP_SWAGGER_USERNAME}
+      # This API controls a WhatsApp account, so none of these have defaults
+      - WAHA_API_KEY=${WAHA_API_KEY:?generate one with openssl rand -hex 32}
+      - WAHA_DASHBOARD_USERNAME=${WAHA_DASHBOARD_USERNAME:-admin}
+      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD:?generate one with openssl rand -hex 16}
+      - WHATSAPP_SWAGGER_USERNAME=${WHATSAPP_SWAGGER_USERNAME:-admin}
+      - WHATSAPP_SWAGGER_PASSWORD=${WHATSAPP_SWAGGER_PASSWORD:?generate one with openssl rand -hex 16}
