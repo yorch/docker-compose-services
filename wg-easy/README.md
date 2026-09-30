@@ -13,7 +13,12 @@ Easy-to-use WireGuard VPN with web UI.
 ## Quick Start
 
 ```bash
-# Behind Traefik - HTTPS through the reverse proxy
+cp .env.sample .env  # then set WG_HOST and WG_EASY_PASSWORD
+
+# Dev - web UI on http://localhost:51821 (loopback, INSECURE=true for plain HTTP)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Behind Traefik - HTTPS for the web UI
 docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
@@ -24,27 +29,26 @@ once per host:
 ../traefik3/setup.sh   # docker network create traefik
 ```
 
-Access the web UI at `http://localhost:51821`
+wg-easy v15 normally opens a setup wizard on the first visit, and whoever completes it
+owns the VPN. This stack uses v15's **unattended setup** instead: on the first start it
+creates the admin from `WG_EASY_USERNAME` / `WG_EASY_PASSWORD` and sets the public host,
+so the wizard is never reachable. Sign in with those credentials. Later changes (DNS,
+CIDRs, allowed IPs) are made in the web UI.
 
 ## Environment Variables
 
-| Variable   | Description        | Required |
-| ---------- | ------------------ | -------- |
-| `WG_HOST`  | Public hostname/IP | Yes      |
-| `PASSWORD` | Admin password     | Yes      |
+| Variable           | Description                                             | Required |
+| ------------------ | ------------------------------------------------------- | -------- |
+| `WG_HOST`          | Public hostname/IP clients connect to (UDP 51820)       | Yes      |
+| `WG_EASY_PASSWORD` | Admin password created on first start (use a long one)  | Yes      |
+| `WG_EASY_USERNAME` | Admin username (default `admin`)                        | No       |
+| `DOMAIN`           | Hostname Traefik serves the web UI on                   | Traefik  |
+| `DEV_BIND_IP`      | Host interface for the dev web UI (default `127.0.0.1`) | No       |
 
-### Optional Settings
-
-| Variable                  | Description         | Default           |
-| ------------------------- | ------------------- | ----------------- |
-| `WG_PORT`                 | WireGuard port      | `51820`           |
-| `WG_DEFAULT_DNS`          | Client DNS          | `1.1.1.1`         |
-| `WG_DEFAULT_ADDRESS`      | Client IP range     | `10.8.0.x`        |
-| `WG_MTU`                  | MTU value           | `null`            |
-| `WG_PERSISTENT_KEEPALIVE` | Keep-alive interval | `0`               |
-| `WG_ALLOWED_IPS`          | Client allowed IPs  | `0.0.0.0/0, ::/0` |
-| `UI_TRAFFIC_STATS`        | Show traffic stats  | `true`            |
-| `UI_CHART_TYPE`           | Chart type (0-3)    | `0`               |
+`WG_HOST`, `WG_EASY_USERNAME` and `WG_EASY_PASSWORD` are only read on the first start
+(they map to wg-easy's `INIT_*` variables). Once setup is done, upstream recommends
+removing the password from `.env`; compose would then need a placeholder, so rotating it
+from the web UI is the practical option.
 
 ## Ports
 
