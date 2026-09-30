@@ -16,6 +16,9 @@ Self-hosted sync server for Joplin, an open-source note-taking application.
 # Dev - publishes ports on localhost
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
+# Dev + Adminer (opt-in profile) on 127.0.0.1:8080
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile adminer up -d
+
 # Behind Traefik - HTTPS through the reverse proxy
 docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 
@@ -32,31 +35,45 @@ once per host:
 
 ## Services
 
-| Service     | Description                |
-| ----------- | -------------------------- |
-| `app`       | Joplin Server              |
-| `db`        | PostgreSQL database        |
-| `adminer`   | Database administration UI |
-| `dbbackups` | Automated database backups |
+| Service     | Description                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| `app`       | Joplin Server                                                                              |
+| `db`        | PostgreSQL database                                                                        |
+| `dbbackups` | Automated database backups                                                                 |
+| `adminer`   | Database admin UI, **dev overlay only**, opt-in via `--profile adminer` (`127.0.0.1:8080`) |
+
+Adminer is never routed through Traefik and doesn't start unless you pass
+`--profile adminer`. To inspect a production database, open an SSH tunnel to the host
+and start the dev overlay's `adminer` there, or connect with `psql`.
 
 ## Environment Variables
 
-| Variable       | Description      | Default  |
-| -------------- | ---------------- | -------- |
-| `APP_NAME`     | Application name | `Joplin` |
-| `APP_BASE_URL` | Public URL       | -        |
-| `APP_PORT`     | Application port | `22300`  |
-| `DB_CLIENT`    | Database client  | `pg`     |
+| Variable       | Description                                                 | Default     |
+| -------------- | ----------------------------------------------------------- | ----------- |
+| `DOMAIN`       | Hostname Traefik routes to Joplin (Traefik only)            | -           |
+| `APP_NAME`     | Application name                                            | `Joplin`    |
+| `APP_BASE_URL` | Public URL; must match the URL you browse to (origin check) | -           |
+| `APP_PORT`     | Port Joplin listens on, published as-is by the dev overlay  | `22300`     |
+| `DEV_BIND_IP`  | Host interface for the dev overlay's Postgres and Adminer   | `127.0.0.1` |
 
 ### Database Configuration
 
-| Variable            | Description       |
-| ------------------- | ----------------- |
-| `POSTGRES_HOST`     | Database hostname |
-| `POSTGRES_PORT`     | Database port     |
-| `POSTGRES_USER`     | Database user     |
-| `POSTGRES_PASSWORD` | Database password |
-| `POSTGRES_DATABASE` | Database name     |
+| Variable            | Description                                              |
+| ------------------- | -------------------------------------------------------- |
+| `POSTGRES_USER`     | Database user                                            |
+| `POSTGRES_PASSWORD` | Database password (**required**, `openssl rand -hex 32`) |
+| `POSTGRES_DATABASE` | Database name                                            |
+| `POSTGRES_PORT`     | Database port                                            |
+
+### Backups
+
+| Variable                       | Description                                                     |
+| ------------------------------ | --------------------------------------------------------------- |
+| `DBBACKUPS_SCHEDULE`           | Cron schedule (default `@daily`)                                |
+| `DBBACKUPS_BACKUP_KEEP_DAYS`   | Daily backups to keep                                           |
+| `DBBACKUPS_BACKUP_KEEP_WEEKS`  | Weekly backups to keep                                          |
+| `DBBACKUPS_BACKUP_KEEP_MONTHS` | Monthly backups to keep                                         |
+| `DBBACKUPS_HEALTHCHECK_PORT`   | Health endpoint, routed at `dbbackups.${DOMAIN}` behind Traefik |
 
 ### Email Configuration (Optional)
 
@@ -68,6 +85,7 @@ once per host:
 | `MAILER_SECURITY`      | SMTP security      |
 | `MAILER_AUTH_USER`     | SMTP username      |
 | `MAILER_AUTH_PASSWORD` | SMTP password      |
+| `MAILER_NOREPLY_NAME`  | From name          |
 | `MAILER_NOREPLY_EMAIL` | From email address |
 
 ## Volumes
