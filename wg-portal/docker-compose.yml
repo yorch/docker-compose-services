@@ -1,6 +1,6 @@
 services:
   wg-portal:
-    image: wgportal/wg-portal:v2
+    image: wgportal/wg-portal:v2.3.1
     container_name: wg-portal
     restart: unless-stopped
     logging:
@@ -9,25 +9,34 @@ services:
         max-file: '3'
     cap_add:
       - NET_ADMIN
-    # Use host network mode for WireGuard and the UI. Ensure that access to the UI is properly secured.
-    # network_mode: 'host'
-    # So we ensure to stay on the same network as the wireguard container.
+    # Shares the wireguard container's network, so its ports (and Traefik
+    # labels) live on that container.
     network_mode: 'service:wireguard'
+    environment:
+      # Without these wg-portal creates admin@wgportal.local / wgportal-default
+      # and signs sessions with `very_secret` / `extremely_secret`.
+      - WG_PORTAL_CORE_ADMIN_USER=${WG_PORTAL_ADMIN_USER:-admin@wgportal.local}
+      - WG_PORTAL_CORE_ADMIN_PASSWORD=${WG_PORTAL_ADMIN_PASSWORD:?generate one with openssl rand -hex 16}
+      - WG_PORTAL_WEB_SESSION_SECRET=${WG_PORTAL_SESSION_SECRET:?generate one with openssl rand -hex 32}
+      - WG_PORTAL_WEB_CSRF_SECRET=${WG_PORTAL_CSRF_SECRET:?generate one with openssl rand -hex 32}
+      - WG_PORTAL_WEB_EXTERNAL_URL=${WG_PORTAL_URL:-http://localhost:8888}
     volumes:
-      # - /etc/wireguard:/etc/wireguard
+      # WireGuard configs (private keys), database and config: gitignored
       - ./wg/etc:/etc/wireguard
       - ./wg/data:/app/data
       - ./wg/config:/app/config
 
   wireguard:
-    image: lscr.io/linuxserver/wireguard:latest
+    image: lscr.io/linuxserver/wireguard:1.0.20260223
     container_name: wireguard
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
     ports:
       - '51820:51820/udp' # WireGuard port, needs to match the port in wg-portal interface config
-      - '8888:8888/tcp' # Noticed that the port of the web UI is exposed in the wireguard container.
+      # wg-portal's web UI (shared network). Loopback by default: use the
+      # Traefik overlay or an SSH tunnel for remote access.
+      - '${UI_BIND_IP:-127.0.0.1}:8888:8888/tcp'
     volumes:
       - ./wg/etc:/config/wg_confs # We share the configuration (wgx.conf) between wg-portal and wireguard
     sysctls:

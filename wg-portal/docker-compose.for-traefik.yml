@@ -1,0 +1,22 @@
+services:
+  # Labels go on `wireguard`: wg-portal runs in its network namespace, so the
+  # UI on port 8888 is reached through this container.
+  wireguard:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # Service
+      - 'traefik.http.services.wg-portal.loadbalancer.server.port=8888'
+      # HTTPS Host
+      - 'traefik.http.routers.wg-portal.rule=Host(`${DOMAIN:?Variable DOMAIN not set}`)'
+      - 'traefik.http.routers.wg-portal.entrypoints=websecure'
+      - 'traefik.http.routers.wg-portal.tls=true'
+      - 'traefik.http.routers.wg-portal.tls.certResolver=webcert'
+      - 'traefik.http.routers.wg-portal.service=wg-portal'
+
+networks:
+  traefik:
+    external: true
