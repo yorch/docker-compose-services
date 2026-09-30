@@ -1,18 +1,20 @@
 services:
   app:
-    image: donaldzou/wgdashboard:latest
+    # Upstream now also publishes ghcr.io/wgdashboard/wgdashboard; this stays on
+    # the Docker Hub image it was using (latest there is v4.3.3).
+    image: donaldzou/wgdashboard:v4.3.3
     restart: unless-stopped
     environment:
-      # Set container timezone, default: Europe/Amsterdam.
-      - tz=America/New_York
-      # Set public IP to ensure the correct one is chosen, defaulting to the IP give by ifconfig.me.
-      - public_ip=${PUBLIC_IP}
-      # Set the port WGDashboard will use for its web-server.
-      - wgd_port=${PORT_WEB}
-      # Default DNS for WireGuard clients.
-      - global_dns=${GLOBAL_DNS}
+      - tz=${TZ:-Etc/UTC}
+      # Public IP for client configs; detected via ifconfig.me when empty
+      - public_ip=${PUBLIC_IP:-}
+      - wgd_port=${PORT_WEB:-10086}
+      - global_dns=${GLOBAL_DNS:-1.1.1.1}
+      # Web account. Without these the image accepts admin/admin, which the
+      # Traefik overlay would publish.
+      - username=${WGD_USERNAME:-admin}
+      - password=${WGD_PASSWORD:?generate one with openssl rand -hex 16}
     ports:
-      # - ${PORT_WEB}:${PORT_WEB}/tcp
       - 51820:51820/udp
     volumes:
       - ./data/config:/etc/amnezia/amneziawg
