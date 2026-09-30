@@ -25,3 +25,6 @@ qbittorrent/downloads/
 
 # wg-portal state: WireGuard private keys, database, config
 wg-portal/wg/
+
+# siglens server logs live outside ./data
+siglens/logs/
