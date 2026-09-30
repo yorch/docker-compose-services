@@ -28,29 +28,28 @@ once per host:
 ../traefik3/setup.sh   # docker network create traefik
 ```
 
+The core refuses requests without `SUPERTOKENS_API_KEY` (`api-key` header), so exposing it
+through Traefik does not let anyone else create users or sessions. The core is only called
+by your backend, so you can also skip the Traefik overlay and reach it over a private
+network.
+
 ## Services
 
-| Service       | Description         |
-| ------------- | ------------------- |
-| `supertokens` | SuperTokens core    |
-| `postgres`    | PostgreSQL database |
+| Service | Description         |
+| ------- | ------------------- |
+| `app`   | SuperTokens core    |
+| `db`    | PostgreSQL database |
 
 ## Environment Variables
 
-| Variable                    | Description                  | Required |
-| --------------------------- | ---------------------------- | -------- |
-| `POSTGRESQL_CONNECTION_URI` | PostgreSQL connection string | Yes      |
-| `API_KEYS`                  | API keys for core access     | -        |
-
-### Database Configuration
-
-| Variable                   | Description       |
-| -------------------------- | ----------------- |
-| `POSTGRESQL_HOST`          | Database host     |
-| `POSTGRESQL_PORT`          | Database port     |
-| `POSTGRESQL_USER`          | Database user     |
-| `POSTGRESQL_PASSWORD`      | Database password |
-| `POSTGRESQL_DATABASE_NAME` | Database name     |
+| Variable              | Description                                                 | Required |
+| --------------------- | ----------------------------------------------------------- | -------- |
+| `SUPERTOKENS_API_KEY` | Key your backend sends to the core (`openssl rand -hex 32`) | Yes      |
+| `POSTGRES_PASSWORD`   | Database password (`openssl rand -hex 24`)                  | Yes      |
+| `POSTGRES_USER`       | Database user (default `supertokens`)                       | No       |
+| `POSTGRES_DB`         | Database name (default `supertokens`)                       | No       |
+| `DOMAIN`              | Hostname Traefik routes to the core (Traefik only)          | Traefik  |
+| `DEV_BIND_IP`         | Host interface for the dev port (default `127.0.0.1`)       | No       |
 
 ## Ports
 
@@ -82,6 +81,7 @@ Configure your backend to connect to the core:
 SuperTokens.init({
   supertokens: {
     connectionURI: 'http://localhost:3567',
+    apiKey: process.env.SUPERTOKENS_API_KEY,
   },
   // ... other config
 });
