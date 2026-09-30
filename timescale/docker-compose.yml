@@ -8,4 +8,4 @@ services:
     volumes:
       - ./data/timescale:/home/postgres/pgdata/data
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?generate one with openssl rand -hex 24}
