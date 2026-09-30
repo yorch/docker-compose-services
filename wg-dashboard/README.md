@@ -13,6 +13,11 @@ Web-based dashboard for WireGuard VPN management.
 ## Quick Start
 
 ```bash
+cp .env.sample .env  # then set WGD_PASSWORD
+
+# Dev - web UI on http://localhost:10086 (loopback only)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
 # Behind Traefik - HTTPS through the reverse proxy
 docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
@@ -24,14 +29,21 @@ once per host:
 ../traefik3/setup.sh   # docker network create traefik
 ```
 
+Sign in with `WGD_USERNAME` / `WGD_PASSWORD`. Without them the image accepts
+`admin`/`admin`, so the password is required.
+
 ## Environment Variables
 
-| Variable     | Description             | Default            |
-| ------------ | ----------------------- | ------------------ |
-| `tz`         | Container timezone      | `Europe/Amsterdam` |
-| `public_ip`  | Public IP address       | ifconfig.me result |
-| `wgd_port`   | Dashboard web port      | -                  |
-| `global_dns` | Default DNS for clients | -                  |
+| Variable       | Description                              | Default     |
+| -------------- | ---------------------------------------- | ----------- |
+| `WGD_PASSWORD` | Web account password (**required**)      | -           |
+| `WGD_USERNAME` | Web account username                     | `admin`     |
+| `DOMAIN`       | Hostname Traefik routes to the dashboard | -           |
+| `PUBLIC_IP`    | Public IP written into client configs    | auto-detect |
+| `GLOBAL_DNS`   | Default DNS for WireGuard clients        | `1.1.1.1`   |
+| `PORT_WEB`     | Web port (container, and dev host port)  | `10086`     |
+| `TZ`           | Container timezone                       | `Etc/UTC`   |
+| `DEV_BIND_IP`  | Host interface for the dev web UI        | `127.0.0.1` |
 
 ## Volumes
 
