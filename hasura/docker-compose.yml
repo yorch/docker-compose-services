@@ -4,20 +4,28 @@ services:
     restart: unless-stopped
     environment:
       ## postgres database to store Hasura metadata
-      - HASURA_GRAPHQL_METADATA_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - HASURA_GRAPHQL_METADATA_DATABASE_URL=postgres://${POSTGRES_USER:-hasura}:${POSTGRES_PASSWORD:?generate one with openssl rand -hex 24}@db:5432/${POSTGRES_DB:-hasura}
       ## this env var can be used to add the above postgres database to Hasura as a data source. this can be removed/updated based on your needs
-      - PG_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      - HASURA_GRAPHQL_DEV_MODE=${HASURA_GRAPHQL_DEV_MODE}
-      - HASURA_GRAPHQL_ENABLE_CONSOLE=${HASURA_GRAPHQL_ENABLE_CONSOLE}
-      - HASURA_GRAPHQL_ENABLED_LOG_TYPES=${HASURA_GRAPHQL_ENABLED_LOG_TYPES}
+      - PG_DATABASE_URL=postgres://${POSTGRES_USER:-hasura}:${POSTGRES_PASSWORD:?generate one with openssl rand -hex 24}@db:5432/${POSTGRES_DB:-hasura}
+      - HASURA_GRAPHQL_DEV_MODE=${HASURA_GRAPHQL_DEV_MODE:-false}
+      - HASURA_GRAPHQL_ENABLE_CONSOLE=${HASURA_GRAPHQL_ENABLE_CONSOLE:-true}
+      - HASURA_GRAPHQL_ENABLED_LOG_TYPES=${HASURA_GRAPHQL_ENABLED_LOG_TYPES:-startup, http-log, webhook-log, websocket-log, query-log}
       # - HASURA_GRAPHQL_CONSOLE_ASSETS_DIR=${HASURA_GRAPHQL_CONSOLE_ASSETS_DIR}
-      # - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
+      # Without it the console and API give full read/write on the database to
+      # anyone who can reach the engine.
+      - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET:?generate one with openssl rand -hex 32}
       - HASURA_GRAPHQL_METADATA_DEFAULTS={"backend_configs":{"dataconnector":{"athena":{"uri":"http://data-connector-agent:8081/api/v1/athena"},"mariadb":{"uri":"http://data-connector-agent:8081/api/v1/mariadb"},"mysql8":{"uri":"http://data-connector-agent:8081/api/v1/mysql"},"oracle":{"uri":"http://data-connector-agent:8081/api/v1/oracle"},"snowflake":{"uri":"http://data-connector-agent:8081/api/v1/snowflake"}}}}
     depends_on:
       data-connector-agent:
         condition: service_healthy
       db:
         condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:8080/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   data-connector-agent:
     image: hasura/graphql-data-connector:v2.45.1
@@ -40,9 +48,9 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-hasura}
+      - POSTGRES_USER=${POSTGRES_USER:-hasura}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?generate one with openssl rand -hex 24}
     healthcheck:
       test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 5s
