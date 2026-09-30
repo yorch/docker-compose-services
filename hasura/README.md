@@ -18,7 +18,9 @@ Instant GraphQL APIs over PostgreSQL and other databases.
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
-Access the Hasura Console at `http://localhost:8080`
+Access the Hasura Console at `http://localhost:8080` and enter `HASURA_GRAPHQL_ADMIN_SECRET`
+when asked. API clients send it as the `x-hasura-admin-secret` header (or use JWT/webhook
+auth for end users).
 
 ## Services
 
@@ -30,13 +32,16 @@ Access the Hasura Console at `http://localhost:8080`
 
 ## Environment Variables
 
-| Variable                               | Description             | Default |
-| -------------------------------------- | ----------------------- | ------- |
-| `HASURA_GRAPHQL_METADATA_DATABASE_URL` | Metadata storage URL    | -       |
-| `PG_DATABASE_URL`                      | Primary data source URL | -       |
-| `HASURA_GRAPHQL_DEV_MODE`              | Enable development mode | `true`  |
-| `HASURA_GRAPHQL_ENABLE_CONSOLE`        | Enable web console      | `true`  |
-| `HASURA_GRAPHQL_ADMIN_SECRET`          | Admin secret key        | -       |
+| Variable                        | Description                                           | Default     |
+| ------------------------------- | ----------------------------------------------------- | ----------- |
+| `HASURA_GRAPHQL_ADMIN_SECRET`   | Admin secret for the console and API (**required**)   | -           |
+| `POSTGRES_PASSWORD`             | Database password (**required**)                      | -           |
+| `POSTGRES_USER` / `POSTGRES_DB` | Database user / name                                  | `hasura`    |
+| `HASURA_GRAPHQL_DEV_MODE`       | Verbose errors; enable only locally                   | `false`     |
+| `HASURA_GRAPHQL_ENABLE_CONSOLE` | Serve the web console                                 | `true`      |
+| `DEV_BIND_IP`                   | Host interface for the dev Postgres / connector ports | `127.0.0.1` |
+
+The metadata database and the default data source both point at the bundled `db`.
 
 ### Logging
 
