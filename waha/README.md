@@ -40,19 +40,31 @@ Access the dashboard at `http://localhost:3000`
 
 ## Environment Variables
 
-| Variable                    | Description              | Required |
-| --------------------------- | ------------------------ | -------- |
-| `WAHA_API_KEY`              | API authentication key   | Yes      |
-| `WAHA_DASHBOARD_USERNAME`   | Dashboard login username | Yes      |
-| `WAHA_DASHBOARD_PASSWORD`   | Dashboard login password | Yes      |
-| `WHATSAPP_SWAGGER_USERNAME` | Swagger UI username      | No       |
-| `WHATSAPP_SWAGGER_PASSWORD` | Swagger UI password      | No       |
+| Variable                    | Description                                    | Required |
+| --------------------------- | ---------------------------------------------- | -------- |
+| `DOMAIN`                    | Hostname Traefik routes to WAHA (Traefik only) | Traefik  |
+| `WAHA_API_KEY`              | API key, sent as `X-Api-Key`                   | Yes      |
+| `WAHA_DASHBOARD_USERNAME`   | Dashboard login (default `admin`)              | No       |
+| `WAHA_DASHBOARD_PASSWORD`   | Dashboard password                             | Yes      |
+| `WHATSAPP_SWAGGER_USERNAME` | Swagger UI login (default `admin`)             | No       |
+| `WHATSAPP_SWAGGER_PASSWORD` | Swagger UI password                            | Yes      |
 
 ## Volumes
 
-| Host Path | Container Path | Description              |
-| --------- | -------------- | ------------------------ |
-| `./data`  | `/app/data`    | Session and storage data |
+| Host Path         | Container Path   | Description                      |
+| ----------------- | ---------------- | -------------------------------- |
+| `./data/sessions` | `/app/.sessions` | WhatsApp sessions (sqlite store) |
+| `./data/media`    | `/app/.media`    | Downloaded media                 |
+
+### Keeping sessions from an older setup
+
+Earlier versions of this folder mounted `./data:/app/data`, a path WAHA does not use, so
+sessions lived only inside the container. Copy them out **before** recreating it with
+this version, or you will have to pair your phone again:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml cp app:/app/.sessions ./data/sessions
+```
 
 ## API Usage
 
