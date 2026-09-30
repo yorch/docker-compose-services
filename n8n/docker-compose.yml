@@ -1,3 +1,5 @@
+# The sandbox service API, runner and sandbox images ship as one release and are
+# only supported together, so a single N8N_SANDBOX_VERSION pins all three.
 x-common-env: &common-env
   DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
   DB_POSTGRESDB_HOST: db
@@ -31,6 +33,16 @@ services:
       <<: *common-env
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: ${N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS}
       N8N_HOST: ${N8N_HOST}
+      # n8n Assistant. The sandbox runs AI-generated code, so it lives behind the
+      # opt-in `sandbox` profile (see below) and is off unless that profile is on.
+      N8N_ENABLED_MODULES: ${N8N_ENABLED_MODULES:-}
+      N8N_INSTANCE_AI_MODEL: ${N8N_INSTANCE_AI_MODEL:-}
+      N8N_INSTANCE_AI_MODEL_API_KEY: ${N8N_INSTANCE_AI_MODEL_API_KEY:-}
+      N8N_INSTANCE_AI_SANDBOX_ENABLED: '${N8N_INSTANCE_AI_SANDBOX_ENABLED:-false}'
+      N8N_INSTANCE_AI_SANDBOX_API_URL: ${N8N_INSTANCE_AI_SANDBOX_API_URL:-http://sandbox-api:8080}
+      N8N_INSTANCE_AI_SANDBOX_API_KEY: ${N8N_SANDBOX_SERVICE_API_KEY:-}
+      N8N_INSTANCE_AI_SANDBOX_IMAGE: ghcr.io/n8n-io/n8n-sandbox-service-sandbox:${N8N_SANDBOX_VERSION:-1.5.0}
+      N8N_INSTANCE_AI_SEARXNG_URL: ${N8N_INSTANCE_AI_SEARXNG_URL:-}
       # N8N_NATIVE_PYTHON_RUNNER: true
       N8N_PORT: ${N8N_PORT}
       N8N_PROTOCOL: ${N8N_PROTOCOL}
@@ -154,3 +166,115 @@ services:
     labels:
       - 'com.centurylinklabs.watchtower.enable=true'
       - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
+
+  # ---------------------------------------------------------------------------
+  # n8n Assistant sandbox (opt-in).
+  #
+  # These three services run AI-generated code for n8n Assistant. `sandbox-runner-1`
+  # is `privileged: true` because it uses Docker-in-Docker to create a throwaway
+  # container per execution: treat it as equivalent to root on the host.
+  #
+  # They are behind the `sandbox` profile, so a plain `up -d` never starts them and
+  # no port is ever published - n8n reaches `sandbox-api` by service name over the
+  # Compose network. Do not add a `ports:` entry to any of them. Enable with:
+  #
+  #   docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+  #     --profile sandbox up -d
+  #
+  # Watchtower is deliberately not enabled on these: a silent mid-execution update
+  # of the runner would kill in-flight sandboxes.
+  # ---------------------------------------------------------------------------
+  sandbox-certs:
+    image: ghcr.io/n8n-io/n8n-sandbox-service-api:${N8N_SANDBOX_VERSION:-1.5.0}
+    profiles: [sandbox]
+    # Generates the mTLS material the other two need, then exits.
+    user: '0:0'
+    entrypoint: ['sh', '-c']
+    command:
+      - >
+        bootstrap-mtls.sh --out-dir /tls --api-san sandbox-api
+        --control-san-prefix sandbox-runner --world-readable &&
+        chown -R sandbox-api:sandbox-api /tls/api && chmod -R a+rX /tls
+    environment:
+      NUM_RUNNERS: '1'
+    volumes:
+      - sandbox-tls:/tls
+
+  sandbox-api:
+    image: ghcr.io/n8n-io/n8n-sandbox-service-api:${N8N_SANDBOX_VERSION:-1.5.0}
+    profiles: [sandbox]
+    restart: unless-stopped
+    depends_on:
+      sandbox-certs:
+        condition: service_completed_successfully
+    # Only the variables this container needs - the n8n encryption key, database
+    # password and model API key must never reach the sandbox.
+    environment:
+      SANDBOX_API_KEYS: ${SANDBOX_API_KEYS:?generate one with openssl rand -hex 32}
+      SANDBOX_API_RUNNER_REGISTRATION_TOKEN: ${SANDBOX_API_RUNNER_REGISTRATION_TOKEN:?generate one with openssl rand -hex 32}
+      SANDBOX_API_RUNNER_API_KEY: ${SANDBOX_API_RUNNER_API_KEY:?generate one with openssl rand -hex 32}
+      SANDBOX_API_GRPC_TLS_CERT_FILE: /tls/api/grpc-server.crt
+      SANDBOX_API_GRPC_TLS_KEY_FILE: /tls/api/grpc-server.key
+      SANDBOX_API_GRPC_TLS_CLIENT_CA_FILE: /tls/api/ca.crt
+      SANDBOX_API_RUNNER_CONTROL_GRPC_TLS_CA_FILE: /tls/api/ca.crt
+      SANDBOX_API_RUNNER_CONTROL_GRPC_TLS_CERT_FILE: /tls/api/control-grpc-api-client.crt
+      SANDBOX_API_RUNNER_CONTROL_GRPC_TLS_KEY_FILE: /tls/api/control-grpc-api-client.key
+      SANDBOX_API_RUNNER_CONTROL_GRPC_TLS_SERVER_NAME: sandbox-runner-1
+    volumes:
+      - sandbox-tls:/tls:ro
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/healthz']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  sandbox-runner-1:
+    image: ghcr.io/n8n-io/n8n-sandbox-service-runner-dind:${N8N_SANDBOX_VERSION:-1.5.0}
+    profiles: [sandbox]
+    restart: unless-stopped
+    # Docker-in-Docker needs full privileges. Keep this off any internet-facing host.
+    privileged: true
+    depends_on:
+      sandbox-api:
+        condition: service_healthy
+    environment:
+      SANDBOX_RUNNER_API_KEYS: ${SANDBOX_API_RUNNER_API_KEY:?generate one with openssl rand -hex 32}
+      SANDBOX_RUNNER_REGISTRATION_TOKEN: ${SANDBOX_API_RUNNER_REGISTRATION_TOKEN:?generate one with openssl rand -hex 32}
+      SANDBOX_RUNNER_API_GRPC_ADDR: sandbox-api:9090
+      SANDBOX_RUNNER_HTTP_BASE_URL: https://sandbox-runner-1:8080
+      SANDBOX_RUNNER_CONTROL_GRPC_LISTEN_ADDR: ':9091'
+      SANDBOX_RUNNER_CONTROL_GRPC_ADVERTISE_ADDR: sandbox-runner-1:9091
+      SANDBOX_RUNNER_ID: runner-1
+      SANDBOX_RUNNER_DOCKER_SANDBOX_IMAGE: ghcr.io/n8n-io/n8n-sandbox-service-sandbox:${N8N_SANDBOX_VERSION:-1.5.0}
+      SANDBOX_RUNNER_REGISTRATION_GRPC_CA_FILE: /tls/runner/ca.crt
+      SANDBOX_RUNNER_REGISTRATION_GRPC_CERT_FILE: /tls/runner/grpc-client.crt
+      SANDBOX_RUNNER_REGISTRATION_GRPC_KEY_FILE: /tls/runner/grpc-client.key
+      SANDBOX_RUNNER_REGISTRATION_GRPC_SERVER_NAME: sandbox-api
+      SANDBOX_RUNNER_CONTROL_GRPC_TLS_CERT_FILE: /tls/runner/control-grpc-server.crt
+      SANDBOX_RUNNER_CONTROL_GRPC_TLS_KEY_FILE: /tls/runner/control-grpc-server.key
+      SANDBOX_RUNNER_CONTROL_GRPC_TLS_CLIENT_CA_FILE: /tls/runner/ca.crt
+    volumes:
+      - sandbox-tls:/tls:ro
+
+  # Web-search backend for n8n Assistant, reached by service name. The stock image
+  # only serves HTML; `searxng-settings.yml` switches on the JSON API n8n needs.
+  searxng:
+    image: ghcr.io/searxng/searxng:latest
+    profiles: [sandbox]
+    restart: unless-stopped
+    environment:
+      - SEARXNG_SECRET=${SEARXNG_SECRET:?generate one with openssl rand -hex 32}
+    volumes:
+      - ./searxng-settings.yml:/etc/searxng/settings.yml:ro
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/healthz']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  # Named volume (not a bind mount) because the certs are generated at runtime and
+  # only need to persist between the three sandbox services. Never commit them.
+  sandbox-tls:

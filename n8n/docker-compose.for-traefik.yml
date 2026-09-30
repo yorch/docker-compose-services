@@ -7,7 +7,7 @@ services:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
       # Basic Auth Middleware
-      - 'traefik.http.middlewares.n8n.basicauth.users=${USERNAME?Variable USERNAME not set}:${HASHED_PASSWORD?Variable HASHED_PASSWORD not set}'
+      - 'traefik.http.middlewares.n8n.basicauth.users=${BASIC_AUTH_USER:?Variable BASIC_AUTH_USER not set}:${BASIC_AUTH_PASSWORD_HASH:?generate with htpasswd -nbB, see README}'
       # Service
       - 'traefik.http.services.n8n.loadbalancer.server.port=${N8N_PORT}'
       # HTTPS Host
@@ -34,6 +34,22 @@ services:
       - default
 
   redis:
+    networks:
+      - default
+
+  searxng:
+    networks:
+      - default
+
+  sandbox-api:
+    networks:
+      - default
+
+  sandbox-runner-1:
+    networks:
+      - default
+
+  sandbox-certs:
     networks:
       - default
 

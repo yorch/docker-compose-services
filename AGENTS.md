@@ -105,7 +105,27 @@ Repo-level:
 ```bash
 yarn format          # prettier --write . (also formats compose YAML)
 yarn update-readme   # regenerate the service table in README.md
+./setup-env.sh n8n   # create/fill a service's .env from its .env.sample
 ```
+
+`./setup-env.sh` is the supported way to create a `.env`. It fills only the
+secrets this repo makes up for itself (database passwords, session secrets,
+encryption keys) and leaves third-party credentials blank, because a generated
+Google or Slack secret is worse than an empty one — the service starts, looks
+configured, and fails at the first login. It never overwrites a key that already
+has a value, so it is safe to re-run against a live deployment.
+
+Several samples ship a **placeholder** password (`12345`, `password`,
+`glitchtip`). The script replaces one of those only when the service has never
+run, decided by whether its `./data` holds anything: Postgres keeps its password
+inside the cluster and n8n's encryption key decrypts stored credentials, so
+replacing either against an existing install breaks a live stack. `N8N_ENCRYPTION_KEY`
+is never touched at all. Use `--check` to see which keys a run would replace.
+
+Use `--all` to cover every service, and `--check` to see what a run would do
+without writing. Add new self-generated keys to `is_generatable` in the script;
+a key that must _equal_ another value belongs in `RELATED_SECRETS`, and one
+whose rotation destroys data belongs in `NEVER_ROTATE`.
 
 Yarn 4 (`packageManager: yarn@4.12.0`). There are no tests, no build, and no linter.
 "Quality gate" here means: `yarn format`, `yarn update-readme`, and `docker compose config`
@@ -298,10 +318,12 @@ is generated. Never hand-edit it; run `yarn update-readme`.
 3. Add `.env.sample` documenting **every** `${VAR}` the compose files reference. A var
    used without a `:-default` and missing from the sample means anyone copying it gets an
    empty value — which is how `gitea` shipped a database that could not start.
+   If the service generates a secret of its own, add its key name to `is_generatable`
+   in `setup-env.sh` so `./setup-env.sh` fills it.
 4. Add `run-for-traefik.sh` (copy from any existing service) if the stack needs a non-default `-f` combination.
 5. Write `README.md` — the line right after the `# Title` becomes the root README
    description, and the Quick Start block must show every applicable `-f` combination.
-6. Run `yarn update-readme` and `yarn format`.
+6. Run `yarn update-readme`, `yarn format`, and `./setup-env.sh --check <service>`.
 7. Add any new proper nouns to `cSpell.words`.
 
 Before committing docs changes, these two checks catch the mistakes that have actually
