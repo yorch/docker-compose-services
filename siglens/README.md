@@ -46,19 +46,28 @@ stays on the compose network, reachable from other containers as
 
 ## Environment Variables
 
-| Variable      | Description                               | Default |
-| ------------- | ----------------------------------------- | ------- |
-| `DOMAIN`      | Hostname Traefik serves the UI on         | —       |
-| `INGEST_PORT` | Host port for data ingestion (dev only)   | `8081`  |
-| `UI_PORT`     | Host port for UI and query API (dev only) | `5122`  |
+| Variable                   | Description                                         | Default |
+| -------------------------- | --------------------------------------------------- | ------- |
+| `DOMAIN`                   | Hostname Traefik serves the UI on                   | —       |
+| `BASIC_AUTH_USER`          | Basic-auth user for the UI (Traefik only, required) | —       |
+| `BASIC_AUTH_PASSWORD_HASH` | bcrypt hash, single-quoted (Traefik only, required) | —       |
+| `INGEST_PORT`              | Host port for data ingestion (dev only)             | `8081`  |
+| `UI_PORT`                  | Host port for UI and query API (dev only)           | `5122`  |
+
+SigLens has no login of its own, so behind Traefik the UI requires basic auth
+(`BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD_HASH`). Generate the hash with:
+
+```bash
+docker run --rm httpd:2.4-alpine htpasswd -nbB admin 'your-password' | cut -d: -f2
+```
 
 ## Volumes
 
-| Host Path  | Container Path    | Description         |
-| ---------- | ----------------- | ------------------- |
-| `./data`   | `/siglens/data`   | Indexed log data    |
-| `./logs`   | `/siglens/logs`   | SigLens server logs |
-| `./config` | `/siglens/config` | Configuration files |
+| Host Path              | Container Path         | Description                      |
+| ---------------------- | ---------------------- | -------------------------------- |
+| `./data`               | `/siglens/data`        | Indexed log data                 |
+| `./logs`               | `/siglens/logs`        | SigLens server logs (gitignored) |
+| `./config/server.yaml` | `/siglens/config.yaml` | Server configuration             |
 
 ## Configuration
 
