@@ -28,33 +28,29 @@ once per host:
 ../traefik3/setup.sh   # docker network create traefik
 ```
 
-Access the web vault at `http://localhost:8080`
+Access the web vault at `http://localhost:8080` (dev; set
+`VAULTWARDEN_URL=http://localhost:8080`) or `https://${VAULTWARDEN_DOMAIN}` behind Traefik.
+
+**Signups are closed by default.** Set `ADMIN_TOKEN`, open `/admin`, and invite users by
+email. Without SMTP, an invited address can register directly. To allow open
+registration temporarily, set `SIGNUPS_ALLOWED=true`.
 
 ## Environment Variables
 
-| Variable      | Description                   | Required |
-| ------------- | ----------------------------- | -------- |
-| `ADMIN_TOKEN` | Admin panel password (hashed) | Yes      |
-| `DOMAIN`      | Public domain URL             | Yes      |
-
-### Security Settings
-
-| Variable              | Description             | Default |
-| --------------------- | ----------------------- | ------- |
-| `SIGNUPS_ALLOWED`     | Allow new registrations | `true`  |
-| `INVITATIONS_ALLOWED` | Allow invitations       | `true`  |
-| `SHOW_PASSWORD_HINT`  | Show password hints     | `false` |
+| Variable              | Description                                                   | Default                         |
+| --------------------- | ------------------------------------------------------------- | ------------------------------- |
+| `VAULTWARDEN_DOMAIN`  | Public hostname (Traefik host)                                | required                        |
+| `VAULTWARDEN_URL`     | Full public URL passed as `DOMAIN`                            | `https://${VAULTWARDEN_DOMAIN}` |
+| `ADMIN_TOKEN`         | argon2 hash of the `/admin` password; empty disables `/admin` | empty                           |
+| `SIGNUPS_ALLOWED`     | Open registration                                             | `false`                         |
+| `INVITATIONS_ALLOWED` | Allow inviting users from `/admin` and organizations          | `true`                          |
 
 ### Email (Optional)
 
-| Variable        | Description              |
-| --------------- | ------------------------ |
-| `SMTP_HOST`     | SMTP server              |
-| `SMTP_PORT`     | SMTP port                |
-| `SMTP_FROM`     | From address             |
-| `SMTP_USERNAME` | SMTP username            |
-| `SMTP_PASSWORD` | SMTP password            |
-| `SMTP_SECURITY` | starttls, force_tls, off |
+`SMTP_*` settings are read directly from `.env` (via `env_file`), because Vaultwarden
+refuses to start when an SMTP variable is present but empty. Set `SMTP_HOST` and
+`SMTP_FROM` together, plus `SMTP_PORT`, `SMTP_SECURITY` (`starttls`, `force_tls`, `off`),
+`SMTP_USERNAME` and `SMTP_PASSWORD` as needed.
 
 ## Volumes
 
@@ -64,17 +60,14 @@ Access the web vault at `http://localhost:8080`
 
 ## Admin Panel
 
-Generate an admin token:
+Generate the `ADMIN_TOKEN` hash (prompts for the password):
 
 ```bash
-# Using argon2 (recommended)
-echo -n "YourAdminPassword" | argon2 "$(openssl rand -base64 32)" -e -id -k 65540 -t 3 -p 4
-
-# Or use a plain token (less secure)
-openssl rand -base64 48
+docker run --rm -it vaultwarden/server:1.37.3 /vaultwarden hash
 ```
 
-Access admin panel at `/admin`.
+Put the resulting `$argon2id$…` string in `.env` **single-quoted**. It contains `$`,
+which compose would otherwise interpolate. The admin panel is at `/admin`.
 
 ## Backups
 
@@ -82,13 +75,13 @@ Backup the entire `./data` directory:
 
 ```bash
 # Stop the container
-docker compose down
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml down
 
 # Backup
 tar -czf vaultwarden-backup.tar.gz ./data
 
 # Restart
-docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
 
 ## Bitwarden Clients

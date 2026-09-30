@@ -1,6 +1,22 @@
 services:
   vaultwarden:
-    image: vaultwarden/server:latest
+    image: vaultwarden/server:1.37.3
     restart: unless-stopped
     volumes:
       - ./data:/data
+    # Optional settings such as SMTP_* are read straight from .env: Vaultwarden
+    # treats an empty SMTP_* variable as "SMTP configured" and refuses to start,
+    # so they cannot be passed through as ${VAR:-}.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Public URL clients and the web vault use (attachments, WebAuthn, emails)
+      - DOMAIN=${VAULTWARDEN_URL:-https://${VAULTWARDEN_DOMAIN:?Variable VAULTWARDEN_DOMAIN not set}}
+      # Closed by default: anyone who reaches the vault could otherwise register.
+      # Invite users from /admin instead.
+      - SIGNUPS_ALLOWED=${SIGNUPS_ALLOWED:-false}
+      - INVITATIONS_ALLOWED=${INVITATIONS_ALLOWED:-true}
+      - SHOW_PASSWORD_HINT=false
+      # argon2 PHC hash (see README); empty disables the /admin panel
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-}

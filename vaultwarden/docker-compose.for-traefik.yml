@@ -8,7 +8,7 @@ services:
       # Service
       - 'traefik.http.services.vaultwarden.loadbalancer.server.port=80'
       # HTTPS Host
-      - 'traefik.http.routers.vaultwarden.rule=Host(`${VAULTWARDEN_DOMAIN}`)'
+      - 'traefik.http.routers.vaultwarden.rule=Host(`${VAULTWARDEN_DOMAIN:?Variable VAULTWARDEN_DOMAIN not set}`)'
       - 'traefik.http.routers.vaultwarden.entrypoints=websecure'
       - 'traefik.http.routers.vaultwarden.tls=true'
       - 'traefik.http.routers.vaultwarden.tls.certResolver=webcert'
