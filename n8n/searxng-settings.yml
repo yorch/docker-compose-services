@@ -1,0 +1,7 @@
+# The stock SearXNG image only serves HTML. n8n Assistant's web search needs the
+# JSON API, which has to be switched on explicitly.
+use_default_settings: true
+search:
+  formats:
+    - html
+    - json

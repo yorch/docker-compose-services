@@ -37,6 +37,22 @@ services:
     networks:
       - default
 
+  searxng:
+    networks:
+      - default
+
+  sandbox-api:
+    networks:
+      - default
+
+  sandbox-runner-1:
+    networks:
+      - default
+
+  sandbox-certs:
+    networks:
+      - default
+
   adminer:
     networks:
       - default
