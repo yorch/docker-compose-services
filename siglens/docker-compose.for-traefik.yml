@@ -15,11 +15,15 @@ services:
       # Service
       - 'traefik.http.services.siglens.loadbalancer.server.port=5122'
       # HTTPS Host
-      - 'traefik.http.routers.siglens.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.siglens.rule=Host(`${DOMAIN:?Variable DOMAIN not set}`)'
       - 'traefik.http.routers.siglens.entrypoints=websecure'
       - 'traefik.http.routers.siglens.tls=true'
       - 'traefik.http.routers.siglens.tls.certResolver=webcert'
       - 'traefik.http.routers.siglens.service=siglens'
+      # SigLens has no login of its own and the UI serves every ingested log:
+      # basic auth is required (see AGENTS.md)
+      - 'traefik.http.routers.siglens.middlewares=siglens-auth'
+      - 'traefik.http.middlewares.siglens-auth.basicauth.users=${BASIC_AUTH_USER:?Variable BASIC_AUTH_USER not set}:${BASIC_AUTH_PASSWORD_HASH:?generate with htpasswd -nbB, see README}'
 
 networks:
   traefik:
