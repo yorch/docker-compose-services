@@ -8,11 +8,15 @@ services:
       # Service
       - 'traefik.http.services.octobot.loadbalancer.server.port=5001'
       # HTTPS Host
-      - 'traefik.http.routers.octobot.rule=Host(`${OCTOBOT_DOMAIN}`)'
+      - 'traefik.http.routers.octobot.rule=Host(`${OCTOBOT_DOMAIN:?Variable OCTOBOT_DOMAIN not set}`)'
       - 'traefik.http.routers.octobot.entrypoints=websecure'
       - 'traefik.http.routers.octobot.tls=true'
       - 'traefik.http.routers.octobot.tls.certResolver=webcert'
       - 'traefik.http.routers.octobot.service=octobot'
+      # The web UI has no login by default and controls live trading with the
+      # exchange keys in data/user: basic auth is required (see AGENTS.md)
+      - 'traefik.http.routers.octobot.middlewares=octobot-auth'
+      - 'traefik.http.middlewares.octobot-auth.basicauth.users=${BASIC_AUTH_USER:?Variable BASIC_AUTH_USER not set}:${BASIC_AUTH_PASSWORD_HASH:?generate with htpasswd -nbB, see README}'
 
 networks:
   traefik:
