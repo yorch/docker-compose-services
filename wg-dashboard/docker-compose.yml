@@ -1,8 +1,7 @@
 services:
   app:
-    # Upstream now also publishes ghcr.io/wgdashboard/wgdashboard; this stays on
-    # the Docker Hub image it was using (latest there is v4.3.3).
-    image: donaldzou/wgdashboard:v4.3.3
+    # Upstream's registry (multi-arch); v4.3.3 is what `latest` resolves to
+    image: ghcr.io/wgdashboard/wgdashboard:v4.3.3
     restart: unless-stopped
     environment:
       - tz=${TZ:-Etc/UTC}
