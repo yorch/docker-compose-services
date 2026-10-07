@@ -6,9 +6,9 @@ services:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
       # Service
-      - 'traefik.http.services.wg-dashboard.loadbalancer.server.port=${PORT_WEB}'
+      - 'traefik.http.services.wg-dashboard.loadbalancer.server.port=${PORT_WEB:-10086}'
       # HTTPS Host
-      - 'traefik.http.routers.wg-dashboard.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.wg-dashboard.rule=Host(`${DOMAIN:?Variable DOMAIN not set}`)'
       - 'traefik.http.routers.wg-dashboard.entrypoints=websecure'
       - 'traefik.http.routers.wg-dashboard.tls=true'
       - 'traefik.http.routers.wg-dashboard.tls.certResolver=webcert'
