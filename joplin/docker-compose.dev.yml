@@ -1,8 +1,19 @@
 services:
   app:
     ports:
-      - 22300:22300
+      - ${APP_PORT:-22300}:${APP_PORT:-22300}
 
   db:
     ports:
       - ${DEV_BIND_IP:-127.0.0.1}:5432:5432
+
+  # DB admin UI: dev only, never routed through Traefik (see AGENTS.md).
+  # Opt-in: starts only with `--profile adminer`.
+  adminer:
+    image: adminer:5
+    profiles: [adminer]
+    depends_on:
+      - db
+    restart: unless-stopped
+    ports:
+      - ${DEV_BIND_IP:-127.0.0.1}:8080:8080
