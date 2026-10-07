@@ -78,4 +78,4 @@ cap_add:
 ## Links
 
 - [WireGuard Website](https://www.wireguard.com/)
-- [GitHub Repository](https://github.com/donaldzou/WGDashboard)
+- [GitHub Repository](https://github.com/WGDashboard/WGDashboard)
