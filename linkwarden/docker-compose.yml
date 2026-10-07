@@ -1,15 +1,23 @@
 services:
   app:
-    image: ghcr.io/linkwarden/linkwarden:latest
+    image: ghcr.io/linkwarden/linkwarden:v2.16.3
     restart: unless-stopped
+    # Passes every optional setting in .env (OAuth providers, AI, email, ...);
+    # the entries below override it and fail fast on the required ones.
     env_file: .env
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-linkwarden}:${POSTGRES_PASSWORD:?generate one with openssl rand -hex 24}@db:5432/${POSTGRES_DB:-linkwarden}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:?generate one with openssl rand -hex 32}
+      # Use the bundled Meilisearch (a blank MEILI_HOST leaves search unindexed)
+      - MEILI_HOST=${MEILI_HOST:-http://meilisearch:7700}
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:?generate one with openssl rand -hex 32}
     volumes:
       - ./data/app:/data/data
     depends_on:
-      - db
-      - meilisearch
+      db:
+        condition: service_healthy
+      meilisearch:
+        condition: service_started
 
   db:
     image: postgres:17-alpine
@@ -17,9 +25,9 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-linkwarden}
+      - POSTGRES_USER=${POSTGRES_USER:-linkwarden}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?generate one with openssl rand -hex 24}
     healthcheck:
       test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 10s
@@ -31,12 +39,7 @@ services:
     restart: unless-stopped
     environment:
       - MEILI_NO_ANALYTICS=true
-      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - MEILI_ENV=production
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:?generate one with openssl rand -hex 32}
     volumes:
       - ./data/meilisearch:/meili_data
-
-  adminer:
-    image: adminer:latest
-    restart: unless-stopped
-    depends_on:
-      - db
