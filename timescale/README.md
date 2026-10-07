@@ -14,29 +14,39 @@ PostgreSQL for time-series data.
 ## Quick Start
 
 ```bash
-# Dev - publishes ports on localhost
+cp .env.sample .env  # then set POSTGRES_PASSWORD (and PGADMIN_DEFAULT_PASSWORD)
+
+# Dev - publishes PostgreSQL on port 5432
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Dev + pgAdmin (opt-in profile) on 127.0.0.1:8080
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile pgadmin up -d
 ```
+
+pgAdmin is never routed through Traefik (see AGENTS.md). To inspect a remote instance,
+SSH-tunnel to it.
 
 ## Environment Variables
 
-| Variable            | Description         | Required |
-| ------------------- | ------------------- | -------- |
-| `POSTGRES_PASSWORD` | PostgreSQL password | Yes      |
-| `POSTGRES_USER`     | PostgreSQL user     | -        |
-| `POSTGRES_DB`       | Default database    | -        |
+| Variable                   | Description                                       | Required |
+| -------------------------- | ------------------------------------------------- | -------- |
+| `POSTGRES_PASSWORD`        | Password for the `postgres` user                  | Yes      |
+| `PGADMIN_DEFAULT_PASSWORD` | pgAdmin login password (dev overlay)              | Dev      |
+| `PGADMIN_DEFAULT_EMAIL`    | pgAdmin login email (default `admin@example.com`) | No       |
+| `DEV_BIND_IP`              | Host interface for pgAdmin (default `127.0.0.1`)  | No       |
 
 ## Ports
 
-| Port   | Description |
-| ------ | ----------- |
-| `5432` | PostgreSQL  |
+| Port   | Description                     |
+| ------ | ------------------------------- |
+| `5432` | PostgreSQL                      |
+| `8080` | pgAdmin (dev profile, loopback) |
 
 ## Volumes
 
-| Host Path | Container Path             | Description   |
-| --------- | -------------------------- | ------------- |
-| `./data`  | `/var/lib/postgresql/data` | Database data |
+| Host Path          | Container Path               | Description   |
+| ------------------ | ---------------------------- | ------------- |
+| `./data/timescale` | `/home/postgres/pgdata/data` | Database data |
 
 ## Creating Hypertables
 

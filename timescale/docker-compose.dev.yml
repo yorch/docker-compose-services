@@ -2,3 +2,17 @@ services:
   timescale:
     ports:
       - 5432:5432
+
+  # DB admin UI: dev only, never routed through Traefik (see AGENTS.md).
+  # Opt-in: starts only with `--profile pgadmin`.
+  pgadmin:
+    image: dpage/pgadmin4:7.8
+    profiles: [pgadmin]
+    restart: unless-stopped
+    depends_on:
+      - timescale
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD:?generate one with openssl rand -hex 16}
+    ports:
+      - ${DEV_BIND_IP:-127.0.0.1}:8080:80
