@@ -16,6 +16,9 @@ Open-source ERP and business applications suite.
 # Dev - publishes ports on localhost
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
+# Dev + Adminer (opt-in profile) on 127.0.0.1:8080
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile adminer up -d
+
 # Behind Traefik - HTTPS through the reverse proxy
 docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 ```
@@ -27,34 +30,33 @@ once per host:
 ../traefik3/setup.sh   # docker network create traefik
 ```
 
-Access Odoo at `http://localhost:8069`
+Access Odoo at `http://localhost:8069`.
+
+The database manager (`/web/database/manager`: create, back up, restore, drop) is
+protected by `ODOO_MASTER_PASSWORD`. Without it, Odoo shows a freshly generated master
+password to whoever opens that page first. The stack writes it into Odoo's config via an
+inline compose `configs:` entry (Docker Compose 2.23+), together with `proxy_mode` for
+Traefik.
 
 ## Services
 
-| Service      | Description         |
-| ------------ | ------------------- |
-| `app`        | Odoo application    |
-| `db`         | PostgreSQL database |
-| `adminer`    | Database admin UI   |
-| `watchtower` | Auto-updates        |
+| Service       | Description                                                             |
+| ------------- | ----------------------------------------------------------------------- |
+| `app`         | Odoo application                                                        |
+| `db`          | PostgreSQL database                                                     |
+| `auto-update` | Watchtower, updating containers labelled with `WATCHTOWER_SCOPE`        |
+| `adminer`     | Database admin UI, **dev overlay only**, opt-in via `--profile adminer` |
 
 ## Environment Variables
 
-### Odoo Configuration
-
-| Variable   | Description       | Required |
-| ---------- | ----------------- | -------- |
-| `HOST`     | Database hostname | Yes      |
-| `USER`     | Database user     | Yes      |
-| `PASSWORD` | Database password | Yes      |
-
-### PostgreSQL Configuration
-
-| Variable            | Description       |
-| ------------------- | ----------------- |
-| `POSTGRES_DB`       | Database name     |
-| `POSTGRES_USER`     | Database user     |
-| `POSTGRES_PASSWORD` | Database password |
+| Variable               | Description                                      | Required |
+| ---------------------- | ------------------------------------------------ | -------- |
+| `ODOO_MASTER_PASSWORD` | Database manager master password                 | Yes      |
+| `POSTGRES_PASSWORD`    | Database password                                | Yes      |
+| `POSTGRES_USER`        | Database user (default `odoo`)                   | No       |
+| `DOMAIN`               | Hostname Traefik routes to Odoo                  | Traefik  |
+| `WATCHTOWER_SCOPE`     | Watchtower scope for this stack (default `odoo`) | No       |
+| `DEV_BIND_IP`          | Host interface for dev Postgres / Adminer        | No       |
 
 ## Volumes
 

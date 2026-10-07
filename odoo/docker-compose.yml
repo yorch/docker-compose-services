@@ -1,21 +1,35 @@
+# Odoo's config, generated from .env. Without admin_passwd the database manager
+# (/web/database/manager) shows a freshly generated master password to whoever
+# opens it first, who can then create, back up or drop databases.
+configs:
+  odoo_conf:
+    content: |
+      [options]
+      addons_path = /mnt/extra-addons
+      data_dir = /var/lib/odoo
+      admin_passwd = ${ODOO_MASTER_PASSWORD:?generate one with openssl rand -hex 24}
+      proxy_mode = True
+
 services:
   app:
     image: odoo:19
     restart: unless-stopped
     volumes:
       - ./data/odoo:/var/lib/odoo
-      # - ./config:/etc/odoo
       - ./addons:/mnt/extra-addons
+    configs:
+      - source: odoo_conf
+        target: /etc/odoo/odoo.conf
     environment:
       - HOST=db
-      - USER=${POSTGRES_USER}
-      - PASSWORD=${POSTGRES_PASSWORD}
+      - USER=${POSTGRES_USER:-odoo}
+      - PASSWORD=${POSTGRES_PASSWORD:?generate one with openssl rand -hex 24}
     depends_on:
       db:
         condition: service_healthy
     labels:
       - 'com.centurylinklabs.watchtower.enable=true'
-      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
+      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE:-odoo}'
 
   db:
     image: postgres:17-alpine
@@ -24,8 +38,8 @@ services:
       - ./data/postgres:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=postgres
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER:-odoo}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?generate one with openssl rand -hex 24}
     healthcheck:
       test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 10s
@@ -33,16 +47,7 @@ services:
       retries: 10
     labels:
       - 'com.centurylinklabs.watchtower.enable=true'
-      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
-
-  adminer:
-    image: adminer:latest
-    restart: unless-stopped
-    depends_on:
-      - db
-    labels:
-      - 'com.centurylinklabs.watchtower.enable=true'
-      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
+      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE:-odoo}'
 
   auto-update:
     image: nickfedor/watchtower:1
@@ -60,7 +65,7 @@ services:
       # Monitor and update containers that have a `com.centurylinklabs.watchtower.enable` label set to `true`
       - WATCHTOWER_LABEL_ENABLE=true
       # Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument. This enables running multiple instances.
-      - WATCHTOWER_SCOPE=${WATCHTOWER_SCOPE}
+      - WATCHTOWER_SCOPE=${WATCHTOWER_SCOPE:-odoo}
     labels:
       - 'com.centurylinklabs.watchtower.enable=true'
-      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE}'
+      - 'com.centurylinklabs.watchtower.scope=${WATCHTOWER_SCOPE:-odoo}'
