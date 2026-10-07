@@ -1,0 +1,8 @@
+services:
+  app:
+    ports:
+      # Web UI over plain HTTP, loopback only
+      - ${DEV_BIND_IP:-127.0.0.1}:51821:51821/tcp
+    environment:
+      # Allows the login cookie over HTTP; never use this without TLS in front
+      - INSECURE=true

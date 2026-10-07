@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/wg-easy/wg-easy:15
+    image: ghcr.io/wg-easy/wg-easy:15.4.0
     container_name: wg-easy
     restart: unless-stopped
     networks:
@@ -13,8 +13,14 @@ services:
     environment:
       - PORT=51821
       - HOST=0.0.0.0
-      # If not using a reverse proxy, SHOULD NOT USE
-      # - INSECURE=true
+      # Unattended setup: creates the admin on first start so the setup wizard
+      # is never exposed (whoever finished it first would own the VPN). Only
+      # read on the first start; see README.
+      - INIT_ENABLED=true
+      - INIT_USERNAME=${WG_EASY_USERNAME:-admin}
+      - INIT_PASSWORD=${WG_EASY_PASSWORD:?generate one with openssl rand -hex 16}
+      - INIT_HOST=${WG_HOST:?public hostname or IP clients connect to}
+      - INIT_PORT=51820
     volumes:
       - ./data/etc:/etc/wireguard
       - /lib/modules:/lib/modules:ro

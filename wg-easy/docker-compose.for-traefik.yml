@@ -8,7 +8,7 @@ services:
       # Service
       - 'traefik.http.services.wg-easy.loadbalancer.server.port=51821'
       # HTTPS Host
-      - 'traefik.http.routers.wg-easy.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.wg-easy.rule=Host(`${DOMAIN:?Variable DOMAIN not set}`)'
       - 'traefik.http.routers.wg-easy.entrypoints=websecure'
       - 'traefik.http.routers.wg-easy.tls=true'
       - 'traefik.http.routers.wg-easy.tls.certResolver=webcert'
