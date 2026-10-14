@@ -1,0 +1,3 @@
+# Lets shellcheck (and editors) follow `source registry-lib.sh`, which sits next to the scripts.
+external-sources=true
+source-path=SCRIPTDIR

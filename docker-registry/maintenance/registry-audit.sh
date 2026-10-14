@@ -12,9 +12,13 @@
 #                1  the audit could not complete (S3 errors, tags that could not be verified)
 set -Eeuo pipefail
 
-cd "$(dirname "${BASH_SOURCE[0]}")"
+# The scripts live in maintenance/ but work on the service folder (.env, data/, the compose files),
+# so run from there. `cd ..` keeps the path the folder was reached by (it can be a symlink),
+# which matters because compose labels its containers with that path.
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$script_dir/.."
 # shellcheck source=registry-lib.sh
-source ./registry-lib.sh
+source "$script_dir/registry-lib.sh"
 
 usage() {
   printf 'Usage: %s [--verify-refs]\n' "$0"
@@ -174,7 +178,7 @@ case "$rc" in
     printf '\n%s\n' 'Audit finished: no problems found.'
     ;;
   10)
-    printf '\n%s\n' 'Audit finished: dangling tags found (prune-empty-repos.sh --dangling-tags can remove them).' >&2
+    printf '\n%s\n' 'Audit finished: dangling tags found (maintenance/prune-empty-repos.sh --dangling-tags can remove them).' >&2
     ;;
   20)
     printf '\n%s\n' 'Audit finished: a live image references blobs that no longer exist.' >&2

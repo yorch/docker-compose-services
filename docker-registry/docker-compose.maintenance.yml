@@ -18,7 +18,7 @@ services:
     entrypoint:
       - sh
       - -c
-      - apk add --no-cache bash coreutils gawk grep sed findutils tzdata >/dev/null && exec bash ./maintenance.sh daemon
+      - apk add --no-cache bash coreutils gawk grep sed findutils tzdata >/dev/null && exec bash ./maintenance/maintenance.sh daemon
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${MAINTENANCE_PROJECT_DIR}:${MAINTENANCE_PROJECT_DIR}

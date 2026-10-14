@@ -138,30 +138,30 @@ storage until garbage collection runs. These scripts clean that up for the S3 ba
 They read the S3 settings from the running registry, so the stack must be up, and they run
 the AWS CLI in a throwaway `amazon/aws-cli` container, so the host only needs Docker.
 
-| Script                                    | What it does                                                                                                                                                                   |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `./registry-audit.sh [--verify-refs]`     | Read-only report: tags, revisions and layer links per repository, repositories with no tags, dangling tags, missing blobs                                                      |
-| `./prune-empty-repos.sh [--delete] ...`   | Removes repositories with no tags (named, or `--empty` for all of them), tags whose manifest is gone (`--dangling-tags`) or layer links to deleted blobs (`--dangling-layers`) |
-| `./prune-old-tags.sh [--delete] --keep N` | Tag retention: keeps the newest N tags of each repository, apart from protected ones (`latest`, `main` by default)                                                             |
-| `./garbage-collect.sh [--delete] ...`     | Deletes unreferenced blobs, and with `--delete-untagged` manifests no tag points to                                                                                            |
+| Script                                                | What it does                                                                                                                                                                   |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `./maintenance/registry-audit.sh [--verify-refs]`     | Read-only report: tags, revisions and layer links per repository, repositories with no tags, dangling tags, missing blobs                                                      |
+| `./maintenance/prune-empty-repos.sh [--delete] ...`   | Removes repositories with no tags (named, or `--empty` for all of them), tags whose manifest is gone (`--dangling-tags`) or layer links to deleted blobs (`--dangling-layers`) |
+| `./maintenance/prune-old-tags.sh [--delete] --keep N` | Tag retention: keeps the newest N tags of each repository, apart from protected ones (`latest`, `main` by default)                                                             |
+| `./maintenance/garbage-collect.sh [--delete] ...`     | Deletes unreferenced blobs, and with `--delete-untagged` manifests no tag points to                                                                                            |
 
 Everything is a dry run unless you pass `--delete`, which asks you to type `DELETE` (or
 pass `--yes` when there is no terminal). The bucket is not versioned, so deletions are
 permanent. Consider enabling S3 versioning with a lifecycle rule.
 
 ```bash
-./registry-audit.sh                                  # what needs cleaning?
-./prune-empty-repos.sh my/old-image                  # dry run, then add --delete
-./prune-empty-repos.sh --empty --min-age 24          # every repository without tags, unless touched in the last day
-./prune-empty-repos.sh --dangling-tags --all         # tags that show "manifest unknown"
-./prune-empty-repos.sh --dangling-layers --all       # layer links to blobs that are gone
-./prune-old-tags.sh --keep 10 --protect latest,main,v* --all   # dry run of a retention rule
-./garbage-collect.sh --dry-run --delete-untagged     # what garbage collection would remove
-./garbage-collect.sh --delete --delete-untagged      # does it
+./maintenance/registry-audit.sh                                  # what needs cleaning?
+./maintenance/prune-empty-repos.sh my/old-image                  # dry run, then add --delete
+./maintenance/prune-empty-repos.sh --empty --min-age 24          # every repository without tags, unless touched in the last day
+./maintenance/prune-empty-repos.sh --dangling-tags --all         # tags that show "manifest unknown"
+./maintenance/prune-empty-repos.sh --dangling-layers --all       # layer links to blobs that are gone
+./maintenance/prune-old-tags.sh --keep 10 --protect latest,main,v* --all   # dry run of a retention rule
+./maintenance/garbage-collect.sh --dry-run --delete-untagged     # what garbage collection would remove
+./maintenance/garbage-collect.sh --delete --delete-untagged      # does it
 ```
 
-`registry-audit.sh` exits with `0` when nothing is wrong, `10` for dangling tags only (which
-`prune-empty-repos.sh --dangling-tags` removes), `20` when a live image references blobs
+`maintenance/registry-audit.sh` exits with `0` when nothing is wrong, `10` for dangling tags only (which
+`maintenance/prune-empty-repos.sh --dangling-tags` removes), `20` when a live image references blobs
 that no longer exist (nothing can repair that), and `1` when it could not finish.
 
 Things worth knowing:
@@ -173,15 +173,15 @@ Things worth knowing:
   it finishes, which can take hours on a large bucket. Run it inside `tmux` or with
   `nohup`. `--stop-registry` stops the registry completely instead. Garbage collection
   retries when S3 resets a connection (`--retries`). If a run is killed half way (container
-  killed, host rebooted) the registry stays read-only: `./garbage-collect.sh --revert`
+  killed, host rebooted) the registry stays read-only: `./maintenance/garbage-collect.sh --revert`
   puts it back.
 - **Read-only mode needs a config file.** `storage.maintenance.readonly.enabled` cannot be
   set through environment variables, and `REGISTRY_STORAGE=s3` in the environment silently
-  discards it. While it runs, `garbage-collect.sh` replaces the registry's environment with
+  discards it. While it runs, `maintenance/garbage-collect.sh` replaces the registry's environment with
   a short list and refuses to continue if `docker-compose.yml` defines variables it does
   not know about.
 - **Retention removes tags, not manifests.** The images of removed tags stay in storage as
-  untagged manifests until `garbage-collect.sh --delete --delete-untagged` runs.
+  untagged manifests until `maintenance/garbage-collect.sh --delete --delete-untagged` runs.
 - **S3-compatible storage works too.** `REGISTRY_STORAGE_S3_REGIONENDPOINT` (and
   `_FORCEPATHSTYLE`, `_SECURE`, `REGISTRY_STORAGE_REDIRECT_DISABLE`) are passed on to the
   scripts when the registry uses them.
@@ -202,7 +202,7 @@ stack with this script, which adds `docker-compose.maintenance.yml`:
 
 - **Dry run by default.** Until you set `MAINTENANCE_DRY_RUN=false` in `.env` every step only
   logs what it would delete. Read a first run before turning deletions on:
-  `docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml -f docker-compose.maintenance.yml exec maintenance bash ./maintenance.sh run weekly`
+  `docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml -f docker-compose.maintenance.yml exec maintenance bash ./maintenance/maintenance.sh run weekly`
 - **It stops before deleting anything** if the audit finds a live image with missing blobs
   or cannot finish. The failure is in the log and the job's exit status.
 - **Repositories without tags** are only removed once nothing has touched them for
@@ -211,7 +211,7 @@ stack with this script, which adds `docker-compose.maintenance.yml`:
   each repository. `MAINTENANCE_PROTECTED_TAGS` (`latest,main,v*`) are never removed and do
   not count towards N.
 - **Logs** are in `./data/maintenance/logs/`, one file per job plus `history.log`, and are
-  deleted after `MAINTENANCE_LOG_RETENTION_DAYS` (90). `./maintenance.sh status` prints the
+  deleted after `MAINTENANCE_LOG_RETENTION_DAYS` (90). `./maintenance/maintenance.sh status` prints the
   settings and the latest runs.
 - **The service mounts the Docker socket**, which is root-equivalent on the host: the
   monthly job recreates the registry in read-only mode, and every job starts throw-away

@@ -10,9 +10,13 @@
 # registry container gets a generated config file and a reduced environment (see the guard below).
 set -Eeuo pipefail
 
-cd "$(dirname "${BASH_SOURCE[0]}")"
+# The scripts live in maintenance/ but work on the service folder (.env, data/, the compose files),
+# so run from there. `cd ..` keeps the path the folder was reached by (it can be a symlink),
+# which matters because compose labels its containers with that path.
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$script_dir/.."
 # shellcheck source=registry-lib.sh
-source ./registry-lib.sh
+source "$script_dir/registry-lib.sh"
 
 usage() {
   printf 'Usage: %s [--dry-run] [--delete] [--yes] [--delete-untagged] [--stop-registry] [--retries N]\n' "$0"

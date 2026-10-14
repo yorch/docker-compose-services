@@ -11,9 +11,13 @@
 # Default is a dry run. Nothing is deleted without --delete and a typed confirmation.
 set -Eeuo pipefail
 
-cd "$(dirname "${BASH_SOURCE[0]}")"
+# The scripts live in maintenance/ but work on the service folder (.env, data/, the compose files),
+# so run from there. `cd ..` keeps the path the folder was reached by (it can be a symlink),
+# which matters because compose labels its containers with that path.
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$script_dir/.."
 # shellcheck source=registry-lib.sh
-source ./registry-lib.sh
+source "$script_dir/registry-lib.sh"
 
 usage() {
   printf 'Usage: %s [--delete] --keep N [--protect PATTERNS] (REPOSITORY... | --all)\n' "$0"
@@ -199,4 +203,4 @@ fi
 
 run_inner exec
 
-printf '\n%s\n' 'Manifests no tag points to any more are removed by: ./garbage-collect.sh --delete --delete-untagged'
+printf '\n%s\n' 'Manifests no tag points to any more are removed by: ./maintenance/garbage-collect.sh --delete --delete-untagged'

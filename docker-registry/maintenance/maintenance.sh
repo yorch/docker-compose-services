@@ -14,9 +14,13 @@
 # TODO: alerting. For now a failed job is only visible in its log and in logs/history.log.
 set -Eeuo pipefail
 
-cd "$(dirname "${BASH_SOURCE[0]}")"
+# The scripts live in maintenance/ but work on the service folder (.env, data/, the compose files),
+# so run from there. `cd ..` keeps the path the folder was reached by (it can be a symlink),
+# which matters because compose labels its containers with that path.
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$script_dir/.."
 # shellcheck source=registry-lib.sh
-source ./registry-lib.sh
+source "$script_dir/registry-lib.sh"
 
 usage() {
   printf 'Usage: %s [daemon]                     run the scheduler (default)\n' "$0"
@@ -106,7 +110,7 @@ job_body() { # weekly|monthly
   log "job '$job' started (dry run: $DRY_RUN)"
 
   rc=0
-  step 'audit' ./registry-audit.sh --verify-refs || rc=$?
+  step 'audit' ./maintenance/registry-audit.sh --verify-refs || rc=$?
   case "$rc" in
     0) ;;
     10) log 'the audit found dangling tags; they are removed below' ;;
@@ -115,25 +119,25 @@ job_body() { # weekly|monthly
   esac
 
   if [[ "$KEEP_TAGS" -gt 0 ]]; then
-    step 'tag retention' ./prune-old-tags.sh --keep "$KEEP_TAGS" --protect "$PROTECTED_TAGS" --all ${del[@]+"${del[@]}"} || return 1
+    step 'tag retention' ./maintenance/prune-old-tags.sh --keep "$KEEP_TAGS" --protect "$PROTECTED_TAGS" --all ${del[@]+"${del[@]}"} || return 1
   else
     log '--- tag retention: off (MAINTENANCE_KEEP_TAGS=0)'
   fi
-  step 'dangling tags' ./prune-empty-repos.sh --dangling-tags --all ${del[@]+"${del[@]}"} || return 1
-  step 'empty repositories' ./prune-empty-repos.sh --empty --min-age "$MIN_AGE_HOURS" ${del[@]+"${del[@]}"} || return 1
-  step 'dangling layer links' ./prune-empty-repos.sh --dangling-layers --all ${del[@]+"${del[@]}"} || return 1
+  step 'dangling tags' ./maintenance/prune-empty-repos.sh --dangling-tags --all ${del[@]+"${del[@]}"} || return 1
+  step 'empty repositories' ./maintenance/prune-empty-repos.sh --empty --min-age "$MIN_AGE_HOURS" ${del[@]+"${del[@]}"} || return 1
+  step 'dangling layer links' ./maintenance/prune-empty-repos.sh --dangling-layers --all ${del[@]+"${del[@]}"} || return 1
 
   if [[ "$job" == monthly ]]; then
     if [[ "$DRY_RUN" == false ]]; then
-      step 'garbage collection' ./garbage-collect.sh --delete --delete-untagged --yes || return 1
+      step 'garbage collection' ./maintenance/garbage-collect.sh --delete --delete-untagged --yes || return 1
     else
-      step 'garbage collection (dry run)' ./garbage-collect.sh --dry-run --delete-untagged || return 1
+      step 'garbage collection (dry run)' ./maintenance/garbage-collect.sh --dry-run --delete-untagged || return 1
     fi
   fi
 
   if [[ "$DRY_RUN" == false ]]; then
     rc=0
-    step 'final audit' ./registry-audit.sh --verify-refs || rc=$?
+    step 'final audit' ./maintenance/registry-audit.sh --verify-refs || rc=$?
     [[ "$rc" -eq 0 ]] || { log "the final audit reported status $rc"; return 1; }
   fi
   log "job '$job' finished"
@@ -215,7 +219,7 @@ heal_interrupted_gc() {
     return 0
   fi
   log 'WARNING: an earlier garbage collection was interrupted and left the registry read-only; reverting'
-  ./garbage-collect.sh --revert || log 'could not revert; run ./garbage-collect.sh --revert by hand'
+  ./maintenance/garbage-collect.sh --revert || log 'could not revert; run ./maintenance/garbage-collect.sh --revert by hand'
 }
 
 daemon() {

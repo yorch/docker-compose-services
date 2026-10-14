@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Shared helpers for the registry maintenance scripts (registry-audit.sh, prune-empty-repos.sh,
-# prune-old-tags.sh). Sourced, never executed. The caller must already have cd'ed into this folder.
+# prune-old-tags.sh). Sourced, never executed. The caller must already have cd'ed into the service folder
+# (the parent of maintenance/).
+
+# Set by work_init: the scratch directory, and the path to hand to `docker run -v` for it.
+work=''
+work_mount=''
 
 # The registry container of this compose project (empty when there is none). It must be running,
 # unless "-a" is given, which also finds a stopped one.
