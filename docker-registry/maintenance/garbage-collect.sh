@@ -105,6 +105,7 @@ fi
 if [[ "$revert_only" -eq 1 ]]; then
   [[ -n "$existing" ]] || { printf '%s\n' 'No registry container found.' >&2; exit 1; }
   rm -f docker-compose.gc-readonly.yml registry-readonly.gc.yml
+  flush_registry_cache || true
   "${compose[@]}" up -d --no-deps registry
   "${compose[@]}" restart ui >/dev/null 2>&1 || true
   printf '%s\n' 'The registry was recreated from the normal compose files (read-write).'
@@ -166,6 +167,7 @@ if [[ "$stop_registry" -eq 1 ]]; then
     "${compose[@]}" stop registry
   fi
   restart_registry() {
+    flush_registry_cache || true
     if [[ "$registry_was_running" -eq 1 ]]; then
       "${compose[@]}" start registry
     fi
@@ -193,7 +195,7 @@ known='REGISTRY_AUTH REGISTRY_AUTH_HTPASSWD_REALM REGISTRY_AUTH_HTPASSWD_PATH
 REGISTRY_STORAGE_S3_ACCESSKEY REGISTRY_STORAGE_S3_SECRETKEY
 REGISTRY_HTTP_ADDR REGISTRY_STORAGE REGISTRY_STORAGE_S3_BUCKET REGISTRY_STORAGE_S3_REGION
 REGISTRY_STORAGE_DELETE_ENABLED REGISTRY_HEALTH_STORAGEDRIVER_ENABLED
-REGISTRY_REDIS_ADDR REGISTRY_REDIS_DB REGISTRY_REDIS_PASSWORD
+REGISTRY_REDIS_ADDR REGISTRY_REDIS_ADDRS REGISTRY_REDIS_DB REGISTRY_REDIS_PASSWORD REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR
 REGISTRY_STORAGE_S3_REGIONENDPOINT REGISTRY_STORAGE_S3_FORCEPATHSTYLE REGISTRY_STORAGE_S3_SECURE
 REGISTRY_STORAGE_REDIRECT_DISABLE'
 current_keys="$("${compose[@]}" config 2>/dev/null \
@@ -283,6 +285,7 @@ revert() {
   reverted=1
   printf '%s\n' 'Putting the registry back in read-write mode...'
   rm -f "$override_file" "$config_file"
+  flush_registry_cache || true
   "${compose[@]}" up -d --no-deps registry
   wait_for_registry && printf '%s\n' 'Registry is back to normal.' || printf '%s\n' 'WARNING: registry did not report healthy; check docker compose logs registry.' >&2
   "${compose[@]}" restart ui >/dev/null 2>&1 || true

@@ -31,12 +31,15 @@ services:
       # - REGISTRY_HTTP_TLS_LETSENCRYPT_CACHEFILE=/var/lib/registry/letsencrypt.cache
       # - REGISTRY_HTTP_TLS_LETSENCRYPT_EMAIL=${REGISTRY_HTTP_TLS_LETSENCRYPT_EMAIL}
       # - REGISTRY_HTTP_TLS_LETSENCRYPT_HOST=${REGISTRY_HTTP_TLS_LETSENCRYPT_HOST}
-      # Redis
-      - REGISTRY_REDIS_ADDR=redis:6379
+      # Redis blob descriptor cache. Registry v3 takes the addresses as a list (a plain host:port is a
+      # config error), and only uses redis when the cache itself is switched to it.
+      - 'REGISTRY_REDIS_ADDRS=["redis:6379"]'
       - REGISTRY_REDIS_DB=0
-      - REGISTRY_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REGISTRY_REDIS_PASSWORD=${REDIS_PASSWORD:?Variable REDIS_PASSWORD not set}
+      - REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR=redis
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   # ui:
   #   image: konradkleine/docker-registry-frontend:v2
@@ -71,5 +74,18 @@ services:
   redis:
     image: redis:alpine
     restart: unless-stopped
+    # Only a cache: it refills by itself, so nothing is persisted. The plain redis image ignores a
+    # REDIS_PASSWORD variable, so the password has to be passed to the server.
+    command:
+      - sh
+      - -c
+      - exec redis-server --requirepass "$$REDIS_PASSWORD" --save "" --appendonly no
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Variable REDIS_PASSWORD not set}
+      # lets redis-cli (the healthcheck, docker compose exec) log in without the password on a command line
+      - REDISCLI_AUTH=${REDIS_PASSWORD}
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping | grep -q PONG']
+      interval: 10s
+      timeout: 3s
+      retries: 5

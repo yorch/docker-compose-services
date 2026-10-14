@@ -8,7 +8,7 @@ Private Docker registry with web UI and authentication.
 - Web UI for browsing images
 - Basic authentication (htpasswd)
 - S3 storage backend support
-- Redis caching
+- Redis blob cache (shared by restarts of the registry)
 - Image deletion support
 - Optional scheduled cleanup of the S3 storage (see [Maintenance](#maintenance))
 
@@ -46,7 +46,7 @@ once per host:
 | ---------- | ------------------ |
 | `registry` | Docker Registry v3 |
 | `ui`       | Web UI (Joxit)     |
-| `redis`    | Cache              |
+| `redis`    | Blob cache         |
 
 Opt-in, with `docker-compose.maintenance.yml` (see [Maintenance](#maintenance)):
 
@@ -129,6 +129,27 @@ docker push your-registry.com/myimage:latest
 docker pull your-registry.com/myimage:latest
 ```
 
+## Redis Blob Cache
+
+The registry remembers which blobs exist in redis (`storage.cache.blobdescriptor`), which saves
+a round trip to S3 for most layers of a push or pull. A few things matter here:
+
+- **Registry v3 needs the list form and the cache switch.** `REGISTRY_REDIS_ADDRS` takes a list
+  (`["redis:6379"]`, a plain `host:port` is a config error), and nothing is cached in redis unless
+  `REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR=redis` is set as well. The old `REGISTRY_REDIS_ADDR` is
+  ignored (the log says `redis not configured`).
+- **The password is enforced.** The plain `redis:alpine` image ignores a `REDIS_PASSWORD`
+  variable, so the compose file passes it to `redis-server --requirepass`. Nothing is persisted:
+  it is a cache and refills by itself. `docker compose exec redis redis-cli ...` logs in for you.
+- **Deleting objects in S3 behind the registry's back leaves stale answers in the cache.** A push
+  could then skip uploading a layer that no longer exists, which breaks the image without any
+  error. The maintenance scripts flush the cache after anything that deletes repositories, layer
+  links or blobs. If you delete objects in S3 by hand, flush it yourself:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml exec redis redis-cli FLUSHDB
+```
+
 ## Maintenance
 
 Deleting tags (in the UI or with the API) does not free space. It only removes the tag
@@ -180,6 +201,8 @@ Things worth knowing:
   discards it. While it runs, `maintenance/garbage-collect.sh` replaces the registry's environment with
   a short list and refuses to continue if `docker-compose.yml` defines variables it does
   not know about.
+- **The redis blob cache is flushed** after `prune-empty-repos.sh --delete` and after garbage
+  collection, including a run that was interrupted (see [Redis Blob Cache](#redis-blob-cache)).
 - **Retention removes tags, not manifests.** The images of removed tags stay in storage as
   untagged manifests until `maintenance/garbage-collect.sh --delete --delete-untagged` runs.
 - **S3-compatible storage works too.** `REGISTRY_STORAGE_S3_REGIONENDPOINT` (and
