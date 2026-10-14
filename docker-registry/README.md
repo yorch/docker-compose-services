@@ -40,6 +40,24 @@ once per host:
 ../traefik3/setup.sh   # docker network create traefik
 ```
 
+### Day to day
+
+`./run-for-traefik.sh` and `./run-with-maintenance.sh` start the stack and record which compose
+files it uses (`COMPOSE_FILE` in `.env`), so plain `docker compose` works in this folder, with no
+`-f` flags:
+
+```bash
+docker compose ps
+docker compose logs -f registry
+docker compose logs -f maintenance
+docker compose exec maintenance bash ./maintenance/maintenance.sh status
+docker compose down
+```
+
+If you started the stack with one of the raw `docker compose -f ...` commands above, record the
+files once with `../mode.sh . for-traefik` (add `maintenance` for the scheduled cleanup).
+`../mode.sh .` shows what is recorded.
+
 ## Services
 
 | Service    | Description        |
@@ -147,7 +165,7 @@ a round trip to S3 for most layers of a push or pull. A few things matter here:
   links or blobs. If you delete objects in S3 by hand, flush it yourself:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml exec redis redis-cli FLUSHDB
+docker compose exec redis redis-cli FLUSHDB
 ```
 
 ## Maintenance
@@ -225,7 +243,7 @@ stack with this script, which adds `docker-compose.maintenance.yml`:
 
 - **Dry run by default.** Until you set `MAINTENANCE_DRY_RUN=false` in `.env` every step only
   logs what it would delete. Read a first run before turning deletions on:
-  `docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml -f docker-compose.maintenance.yml exec maintenance bash ./maintenance/maintenance.sh run weekly`
+  `docker compose exec maintenance bash ./maintenance/maintenance.sh run weekly`
 - **It stops before deleting anything** if the audit finds a live image with missing blobs
   or cannot finish. The failure is in the log and the job's exit status.
 - **Repositories without tags** are only removed once nothing has touched them for

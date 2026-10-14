@@ -208,6 +208,20 @@ tick() {
   fi
 }
 
+# The project folder is mounted at the same absolute path inside this container, taken from where
+# compose was run. If compose was really started from another folder (explicit -f paths, another
+# working directory) the paths in the compose labels would not exist in here, and garbage collection
+# would only fail weeks later. Better to say so now.
+check_project_dir() {
+  local label
+  label="$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project.working_dir"}}' "$HOSTNAME" 2> /dev/null || true)"
+  if [[ -n "$label" && "$label" != "$PWD" ]]; then
+    log "ERROR: compose started this container from $label, but the project folder is mounted at $PWD."
+    log "       Run compose from $label (cd there first), or set MAINTENANCE_PROJECT_DIR=$label in .env."
+    exit 1
+  fi
+}
+
 # A garbage collection that was cut short (container killed, host rebooted) leaves its generated
 # files behind and the registry running read-only. Undo that, unless a collection is running right now.
 heal_interrupted_gc() {
@@ -224,6 +238,7 @@ heal_interrupted_gc() {
 
 daemon() {
   validate_settings || exit 1
+  check_project_dir
   log "scheduler started: weekly '$WEEKLY_AT', garbage collection '${GC_AT:-off}', dry run: $DRY_RUN, timezone: $(date +%Z)"
   if [[ "$DRY_RUN" == true ]]; then
     log 'DRY RUN: jobs only log what they would delete. Set MAINTENANCE_DRY_RUN=false to enable deletions.'
