@@ -44,6 +44,29 @@ task run-for-traefik    # pull + up -d, base + Traefik overlay
 task stop-for-traefik
 ```
 
+### Day to day: `ps`, `logs`, `down`
+
+Every `docker compose ps`, `logs` or `down` needs the same `-f` list as the `up` that started the
+service. Record that list once per host and plain `docker compose` works from then on:
+
+```bash
+./mode.sh grafana for-traefik                      # or: dev
+./mode.sh docker-registry for-traefik maintenance  # more overlays are just more words
+cd grafana
+docker compose ps
+docker compose logs -f
+docker compose down
+```
+
+`mode.sh` writes `COMPOSE_FILE=...` into the service's `.env`, which Compose reads on its own.
+`task run-dev` and `task run-for-traefik` record it for you, and an explicit `-f` always wins.
+`./mode.sh <service>` shows what is recorded and which overlays exist.
+
+From the repo root, `./dc.sh grafana logs -f` runs `docker compose` for a service with its
+recorded files. Inside a service folder, Task has the same verbs: `task ps`, `task logs`,
+`task up`, `task down` and `task restart`, with extra arguments after `--`
+(`task logs -- -f registry`).
+
 Or from the repo root, `./dc-dev.sh <service> <args...>` applies the dev overlay and
 forwards anything else to `docker compose`:
 
