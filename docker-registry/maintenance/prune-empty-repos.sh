@@ -356,6 +356,9 @@ fi
 
 run_inner exec
 
+# repositories and layer links are what the blob cache remembers (tag links are not)
+flush_registry_cache || exit 1
+
 if [[ "$dangling" -eq 0 && "$layers" -eq 0 ]]; then
   printf '\n%s\n' 'Blobs stay in the bucket until: ./maintenance/garbage-collect.sh --delete --delete-untagged'
 fi

@@ -7,21 +7,46 @@
 work=''
 work_mount=''
 
-# The registry container of this compose project (empty when there is none). It must be running,
-# unless "-a" is given, which also finds a stopped one.
-registry_container() {
-  local found ps_args=()
-  if [[ "${1:-}" == -a ]]; then ps_args=(-a); fi
+# A container of this compose project, by service name (empty when there is none). It must be
+# running, unless "-a" is given, which also finds a stopped one.
+service_container() { # service [-a]
+  local service="$1" found ps_args=()
+  if [[ "${2:-}" == -a ]]; then ps_args=(-a); fi
   found="$(docker ps -q ${ps_args[@]+"${ps_args[@]}"} \
     --filter "label=com.docker.compose.project.working_dir=$PWD" \
-    --filter 'label=com.docker.compose.service=registry' | head -n1)"
+    --filter "label=com.docker.compose.service=$service" | head -n1)"
   if [[ -z "$found" ]]; then
     # the label holds the path the stack was started from, which can differ from $PWD (symlinks)
     found="$(docker ps -q ${ps_args[@]+"${ps_args[@]}"} \
       --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME:-$(basename "$PWD")}" \
-      --filter 'label=com.docker.compose.service=registry' | head -n1)"
+      --filter "label=com.docker.compose.service=$service" | head -n1)"
   fi
   printf '%s' "$found"
+}
+
+registry_container() { service_container registry "$@"; }
+
+# The registry keeps "this blob exists" answers in redis. Anything that deletes objects behind its back
+# (the prune scripts, garbage collection) leaves stale answers there, and a push could then skip
+# uploading a layer that is no longer in storage, which breaks the image without any error. So the
+# cache is flushed after such a change. Returns 1 when it could not be.
+flush_registry_cache() {
+  local redis_cid db
+  redis_cid="$(service_container redis)"
+  if [[ -z "$redis_cid" ]]; then
+    printf '%s\n' 'No redis container in this stack: no blob cache to flush.'
+    return 0
+  fi
+  db="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$(registry_container -a)" 2>/dev/null \
+    | sed -n 's/^REGISTRY_REDIS_DB=//p' | head -n1)"
+  # redis-cli logs in with REDISCLI_AUTH from the container's own environment
+  if docker exec "$redis_cid" redis-cli -n "${db:-0}" FLUSHDB > /dev/null 2>&1; then
+    printf '%s\n' 'Flushed the registry blob cache (redis).'
+  else
+    printf '%s\n' 'WARNING: could not flush the registry blob cache in redis. Until it is flushed the registry may trust' \
+      'blobs that were deleted. Run: docker compose exec redis redis-cli FLUSHDB' >&2
+    return 1
+  fi
 }
 
 # Settings come from the running registry (falling back to .env). Credentials are exported so that
