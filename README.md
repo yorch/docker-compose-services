@@ -59,7 +59,7 @@ docker compose down
 ```
 
 `mode.sh` writes `COMPOSE_FILE=...` into the service's `.env`, which Compose reads on its own.
-`task run-dev` and `task run-for-traefik` record it for you, and an explicit `-f` always wins.
+`task run-dev`, `task run-for-traefik` and the services' `run-*.sh` scripts record it for you, and an explicit `-f` always wins.
 `./mode.sh <service>` shows what is recorded and which overlays exist.
 
 From the repo root, `./dc.sh grafana logs -f` runs `docker compose` for a service with its

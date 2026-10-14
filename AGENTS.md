@@ -107,8 +107,9 @@ list as the `up` that started the stack, which is long once an overlay such as `
 involved. `./mode.sh <service> <mode>...` writes it to `COMPOSE_FILE` in the service's `.env`
 (for example `./mode.sh docker-registry for-traefik maintenance`), and Compose reads that on
 its own, so a plain `docker compose ps` in the folder works. `./mode.sh <service>` shows what is
-recorded, `--clear` forgets it. `task run-dev`, `task run-for-traefik` and `run-*.sh` scripts
-that call `mode.sh` record it for you. An explicit `-f` always wins over `COMPOSE_FILE`, so
+recorded, `--clear` forgets it. `task run-dev`, `task run-for-traefik` and every `run-*.sh`
+script (they call `mode.sh`) record it for you; `./setup-env.sh --check` lists the services that
+have overlays but no recorded mode. An explicit `-f` always wins over `COMPOSE_FILE`, so
 the raw commands in the READMEs stay valid, and `./dc.sh <service> <args...>` runs
 `docker compose` for a service with its recorded files (refusing, with a hint, when it has
 overlays and none are recorded). `COMPOSE_FILE` exported in a shell overrides the `.env`.
@@ -338,7 +339,7 @@ is generated. Never hand-edit it; run `yarn update-readme`.
    empty value — which is how `gitea` shipped a database that could not start.
    If the service generates a secret of its own, add its key name to `is_generatable`
    in `setup-env.sh` so `./setup-env.sh` fills it.
-4. Add `run-for-traefik.sh` (copy from any existing service) if the stack needs a non-default `-f` combination, and have it record the set with `../mode.sh .` so plain `docker compose` works afterwards.
+4. Add `run-for-traefik.sh` (copy from any existing service, it already records the mode with `../mode.sh .`) if the stack needs a non-default `-f` combination.
 5. Write `README.md` — the line right after the `# Title` becomes the root README
    description, and the Quick Start block must show every applicable `-f` combination.
 6. Run `yarn update-readme`, `yarn format`, and `./setup-env.sh --check <service>`.
