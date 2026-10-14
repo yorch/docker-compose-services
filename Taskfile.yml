@@ -31,6 +31,9 @@ tasks:
 
   run-dev:
     cmds:
+      - task: record-mode
+        vars:
+          MODES: dev
       - task: cmd-dev
         vars:
           CMD: pull
@@ -56,6 +59,9 @@ tasks:
 
   run-for-traefik:
     cmds:
+      - task: record-mode
+        vars:
+          MODES: for-traefik
       - task: cmd-for-traefik
         vars:
           CMD: pull
@@ -68,3 +74,73 @@ tasks:
       - task: cmd-for-traefik
         vars:
           CMD: down
+
+  # Remembers the compose files in the service's .env (COMPOSE_FILE), so the plain verbs below, and
+  # `docker compose` itself, work without -f flags afterwards. See mode.sh.
+  record-mode:
+    internal: true
+    cmds:
+      - '{{.ROOT_DIR}}/mode.sh "{{.USER_WORKING_DIR}}" {{.MODES}}'
+    requires:
+      vars: [MODES]
+
+  mode:
+    desc: 'Show or record the compose files of this service: task mode -- for-traefik maintenance'
+    cmds:
+      - '{{.ROOT_DIR}}/mode.sh "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  # The verbs below run `docker compose` with whatever mode.sh recorded. Extra arguments go after --,
+  # e.g. `task logs -- -f registry`.
+  compose:
+    internal: true
+    dir: '{{.USER_WORKING_DIR}}'
+    preconditions:
+      - sh: test -f docker-compose.yml
+        msg: 'docker-compose.yml not found'
+      - sh: '[ ! -f .env.sample ] || [ -f .env ]'
+        msg: '.env not found, copy it from .env.sample'
+      # a service with overlays but no recorded file set would silently run its base file alone
+      - sh: '[ -n "$COMPOSE_FILE" ] || grep -q "^COMPOSE_FILE=" .env 2>/dev/null || [ "$(ls docker-compose*.yml | wc -l)" -le 1 ]'
+        msg: 'No compose files recorded. Run `task run-dev` or `task run-for-traefik` once, or `task mode -- <mode>...`'
+    cmds:
+      - docker compose {{.CMD}}
+    requires:
+      vars: [CMD]
+
+  up:
+    desc: 'Pull, then start (docker compose up -d)'
+    cmds:
+      - task: compose
+        vars:
+          CMD: pull
+      - task: compose
+        vars:
+          CMD: up -d {{.CLI_ARGS}}
+
+  down:
+    desc: 'Stop and remove (docker compose down)'
+    cmds:
+      - task: compose
+        vars:
+          CMD: down {{.CLI_ARGS}}
+
+  ps:
+    desc: 'List the containers (docker compose ps)'
+    cmds:
+      - task: compose
+        vars:
+          CMD: ps {{.CLI_ARGS}}
+
+  logs:
+    desc: 'Follow the logs (docker compose logs); default: -f --tail 100'
+    cmds:
+      - task: compose
+        vars:
+          CMD: 'logs {{.CLI_ARGS | default "-f --tail 100"}}'
+
+  restart:
+    desc: 'Restart (docker compose restart)'
+    cmds:
+      - task: compose
+        vars:
+          CMD: restart {{.CLI_ARGS}}

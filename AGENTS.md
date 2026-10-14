@@ -17,7 +17,7 @@ Default to **worktrees and pull requests** for every change, unless the user exp
 A catalog of ~58 independent self-hosted service stacks. Each top-level folder is one
 service and is fully self-contained — there is no shared runtime, no build step, and no
 cross-service imports. The only repo-wide code is `update-readme.ts` (README generator)
-and `Taskfile.yml` / `dc-dev.sh` (thin wrappers over `docker compose`).
+and `Taskfile.yml` / `dc.sh` / `dc-dev.sh` / `mode.sh` (thin wrappers over `docker compose`).
 
 Treat each service folder as its own mini-project. Changes to one service should never
 require touching another.
@@ -89,6 +89,11 @@ task stop-dev
 # Production/Traefik: base + for-traefik.yml (pull, then up -d)
 task run-for-traefik
 task stop-for-traefik
+
+# Any mode, once it is recorded (see below); extra arguments go after --
+task ps
+task logs -- -f registry
+task up / down / restart
 ```
 
 `Taskfile.yml` preconditions fail fast if `docker-compose.yml` or the requested overlay
@@ -96,6 +101,19 @@ is missing, or if a `.env.sample` exists without a corresponding `.env`.
 
 From the repo root, `./dc-dev.sh <service> <args...>` does the same dev merge, creates
 `./data`, and forwards remaining args to `docker compose` (e.g. `./dc-dev.sh grafana logs -f`).
+
+**Recording a service's compose files.** `ps`, `logs`, `down` and `exec` need the same `-f`
+list as the `up` that started the stack, which is long once an overlay such as `maintenance` is
+involved. `./mode.sh <service> <mode>...` writes it to `COMPOSE_FILE` in the service's `.env`
+(for example `./mode.sh docker-registry for-traefik maintenance`), and Compose reads that on
+its own, so a plain `docker compose ps` in the folder works. `./mode.sh <service>` shows what is
+recorded, `--clear` forgets it. `task run-dev`, `task run-for-traefik` and `run-*.sh` scripts
+that call `mode.sh` record it for you. An explicit `-f` always wins over `COMPOSE_FILE`, so
+the raw commands in the READMEs stay valid, and `./dc.sh <service> <args...>` runs
+`docker compose` for a service with its recorded files (refusing, with a hint, when it has
+overlays and none are recorded). `COMPOSE_FILE` exported in a shell overrides the `.env`.
+`.env.sample` files may carry a commented `# COMPOSE_FILE=...` example, never an active one
+(`setup-env.sh` would treat an active key as something to fill in).
 
 Services with non-standard overlays ship their own scripts — run those directly
 (`./run.sh`, `./run-with-gluetun.sh`, …).
@@ -320,7 +338,7 @@ is generated. Never hand-edit it; run `yarn update-readme`.
    empty value — which is how `gitea` shipped a database that could not start.
    If the service generates a secret of its own, add its key name to `is_generatable`
    in `setup-env.sh` so `./setup-env.sh` fills it.
-4. Add `run-for-traefik.sh` (copy from any existing service) if the stack needs a non-default `-f` combination.
+4. Add `run-for-traefik.sh` (copy from any existing service) if the stack needs a non-default `-f` combination, and have it record the set with `../mode.sh .` so plain `docker compose` works afterwards.
 5. Write `README.md` — the line right after the `# Title` becomes the root README
    description, and the Quick Start block must show every applicable `-f` combination.
 6. Run `yarn update-readme`, `yarn format`, and `./setup-env.sh --check <service>`.
