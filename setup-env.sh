@@ -16,6 +16,8 @@ set -Eeuo pipefail
 #   3. leaves every third-party credential blank - a generated Google or Slack
 #      client secret is worse than a blank one, because it looks filled in
 #   4. reports which keys still need a value, so a human knows what to paste
+#      (in --check mode it also notes a service that has compose overlays but no
+#      COMPOSE_FILE recorded in its .env; see ./mode.sh)
 #   5. replaces a key still holding the sample's placeholder (e.g. the `12345`
 #      several samples ship) ONLY when the service has never run, and only for
 #      keys that are safe to rotate - `--check` shows the decision without
@@ -425,6 +427,15 @@ process() {
     fi
   done
 
+  # A service with overlays and no recorded COMPOSE_FILE runs only its base file under plain
+  # `docker compose`. Informational, and only in --check, so a normal run is not made noisier.
+  local unrecorded=0
+  if [ "${MODE}" = check ] \
+    && [ "$(find . -maxdepth 1 -name 'docker-compose.*.yml' | wc -l | tr -d ' ')" -gt 0 ] \
+    && ! grep -q '^COMPOSE_FILE=' .env 2>/dev/null; then
+    unrecorded=1
+  fi
+
   popd >/dev/null
   echo "==> ${svc}"
   if [ "${created}" = 1 ]; then
@@ -433,6 +444,10 @@ process() {
     else
       echo "    created .env from .env.sample"
     fi
+  fi
+  if [ "${unrecorded}" = 1 ]; then
+    echo "    compose files not recorded - plain 'docker compose' would use the base file only:"
+    echo "      ./mode.sh ${svc}   (shows the overlays), then ./mode.sh ${svc} <mode>..."
   fi
   [ ${#filled[@]} -gt 0 ] && {
     if [ "${MODE}" = write ]; then
