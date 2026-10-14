@@ -11,20 +11,27 @@
 set -Eeuo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
+# shellcheck source=registry-lib.sh
+source ./registry-lib.sh
 
 usage() {
-  printf 'Usage: %s [--dry-run] [--delete] [--delete-untagged] [--stop-registry] [--retries N]\n' "$0"
+  printf 'Usage: %s [--dry-run] [--delete] [--yes] [--delete-untagged] [--stop-registry] [--retries N]\n' "$0"
+  printf '       %s --revert\n' "$0"
   printf '\n'
   printf '  --dry-run          Report unreferenced blobs without deleting them (default)\n'
   printf '  --delete           Delete unreferenced blobs from S3 (registry runs read-only meanwhile)\n'
+  printf '  --yes              With --delete: skip the typed DELETE prompt (for runs without a terminal)\n'
   printf '  --delete-untagged  Also delete manifests not referenced by a tag\n'
   printf '  --stop-registry    With --delete: stop the registry completely instead of read-only mode\n'
   printf '  --retries N        Attempts when GC fails, e.g. on an S3 connection reset (default 6)\n'
+  printf '  --revert           Undo an interrupted --delete: put the registry back in read-write mode\n'
   printf '\n'
   printf 'A full run takes hours on a large bucket: run it inside tmux/screen or with nohup.\n'
 }
 
 mode="--dry-run"
+assume_yes=0
+revert_only=0
 delete_untagged=""
 stop_registry=0
 retries=6
@@ -36,6 +43,12 @@ while [[ $# -gt 0 ]]; do
       ;;
     --delete)
       mode=""
+      ;;
+    --yes)
+      assume_yes=1
+      ;;
+    --revert)
+      revert_only=1
       ;;
     --delete-untagged)
       delete_untagged="--delete-untagged"
@@ -61,8 +74,8 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-if [[ -n "$delete_untagged" && "$mode" == "--dry-run" ]]; then
-  printf '%s\n' 'Refusing --delete-untagged without --delete.' >&2
+if [[ "$assume_yes" -eq 1 && "$mode" == "--dry-run" ]]; then
+  printf '%s\n' '--yes only applies together with --delete.' >&2
   exit 2
 fi
 if [[ "$stop_registry" -eq 1 && "$mode" == "--dry-run" ]]; then
@@ -71,14 +84,27 @@ if [[ "$stop_registry" -eq 1 && "$mode" == "--dry-run" ]]; then
 fi
 
 # Use whichever compose files the running stack was started with (e.g. the traefik variant).
-existing="$(docker ps -q \
-  --filter "label=com.docker.compose.project.working_dir=$PWD" \
-  --filter "label=com.docker.compose.service=registry" | head -n1)"
+if [[ "$revert_only" -eq 1 ]]; then existing="$(registry_container -a)"; else existing="$(registry_container)"; fi
 compose=(docker compose)
 if [[ -n "$existing" ]]; then
   files="$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project.config_files"}}' "$existing")"
   IFS=',' read -r -a file_list <<< "$files"
-  for f in "${file_list[@]}"; do compose+=(-f "$f"); done
+  for f in "${file_list[@]}"; do
+    # a registry left behind by an interrupted read-only run lists this override among its files
+    if [[ "$f" == */docker-compose.gc-readonly.yml ]]; then continue; fi
+    compose+=(-f "$f")
+  done
+fi
+
+# An interrupted --delete (container killed, host rebooted) leaves the registry running read-only,
+# because the generated config is part of the container that compose created.
+if [[ "$revert_only" -eq 1 ]]; then
+  [[ -n "$existing" ]] || { printf '%s\n' 'No registry container found.' >&2; exit 1; }
+  rm -f docker-compose.gc-readonly.yml registry-readonly.gc.yml
+  "${compose[@]}" up -d --no-deps registry
+  "${compose[@]}" restart ui >/dev/null 2>&1 || true
+  printf '%s\n' 'The registry was recreated from the normal compose files (read-write).'
+  exit 0
 fi
 
 gc_args=(registry garbage-collect)
@@ -86,7 +112,8 @@ gc_args=(registry garbage-collect)
 [[ -n "$delete_untagged" ]] && gc_args+=("$delete_untagged")
 gc_args+=(/etc/distribution/config.yml)
 
-log_file="gc-$(date -u +%Y%m%dT%H%M%SZ).log"
+mkdir -p "${GC_LOG_DIR:-.}"
+log_file="${GC_LOG_DIR:-.}/gc-$(date -u +%Y%m%dT%H%M%SZ).log"
 
 # GC through `docker exec` in the running registry, retrying on failure.
 run_gc_with_retries() {
@@ -117,11 +144,15 @@ fi
 
 # ------------------------------------------------------------------------------------ delete
 printf '%s\n' 'WARNING: unreferenced blobs will be deleted from S3 (the bucket has no versioning).'
-read -r -p 'Type DELETE to continue: ' confirmation
-[[ "$confirmation" == "DELETE" ]] || {
-  printf '%s\n' 'Cancelled.'
-  exit 1
-}
+if [[ "$assume_yes" -eq 1 ]]; then
+  printf '%s\n' '--yes given: continuing without the typed confirmation.'
+else
+  read -r -p 'Type DELETE to continue: ' confirmation || confirmation=''
+  [[ "$confirmation" == "DELETE" ]] || {
+    printf '%s\n' 'Cancelled.'
+    exit 1
+  }
+fi
 
 # ---- legacy behaviour: stop the registry for the whole run
 if [[ "$stop_registry" -eq 1 ]]; then
@@ -158,7 +189,9 @@ known='REGISTRY_AUTH REGISTRY_AUTH_HTPASSWD_REALM REGISTRY_AUTH_HTPASSWD_PATH
 REGISTRY_STORAGE_S3_ACCESSKEY REGISTRY_STORAGE_S3_SECRETKEY
 REGISTRY_HTTP_ADDR REGISTRY_STORAGE REGISTRY_STORAGE_S3_BUCKET REGISTRY_STORAGE_S3_REGION
 REGISTRY_STORAGE_DELETE_ENABLED REGISTRY_HEALTH_STORAGEDRIVER_ENABLED
-REGISTRY_REDIS_ADDR REGISTRY_REDIS_DB REGISTRY_REDIS_PASSWORD'
+REGISTRY_REDIS_ADDR REGISTRY_REDIS_DB REGISTRY_REDIS_PASSWORD
+REGISTRY_STORAGE_S3_REGIONENDPOINT REGISTRY_STORAGE_S3_FORCEPATHSTYLE REGISTRY_STORAGE_S3_SECURE
+REGISTRY_STORAGE_REDIRECT_DISABLE'
 current_keys="$("${compose[@]}" config 2>/dev/null \
   | awk '/^  registry:/{f=1; next} /^  [a-z]/{f=0} f && /^    environment:/{e=1; next} f && e && /^      [A-Za-z0-9_]+:/{sub(/:.*/, ""); gsub(/ /, ""); print; next} f && /^    [a-z]/{e=0}')"
 unknown="$(comm -23 <(sort -u <<< "$current_keys") <(tr ' ' '\n' <<< "$known" | sed '/^$/d' | sort -u))"
@@ -168,6 +201,18 @@ if [[ -n "$unknown" ]]; then
   printf '%s\n' 'Add them to the override below (or use --stop-registry).' >&2
   exit 1
 fi
+
+# Optional settings for S3-compatible storage (MinIO, Ceph, ...); AWS itself needs none of them.
+s3_extra=''
+for pair in regionendpoint:REGISTRY_STORAGE_S3_REGIONENDPOINT forcepathstyle:REGISTRY_STORAGE_S3_FORCEPATHSTYLE secure:REGISTRY_STORAGE_S3_SECURE; do
+  value="$(dotenv "${pair#*:}")"
+  if [[ -n "$value" ]]; then s3_extra+=$'\n'"    ${pair%%:*}: $value"; fi
+done
+
+# Serve blobs through the registry instead of redirecting clients to presigned storage URLs
+storage_extra=''
+value="$(dotenv REGISTRY_STORAGE_REDIRECT_DISABLE)"
+if [[ -n "$value" ]]; then storage_extra=$'\n''  redirect:'$'\n''    disable: '"$value"; fi
 
 config_file="registry-readonly.gc.yml"
 override_file="docker-compose.gc-readonly.yml"
@@ -182,9 +227,9 @@ storage:
     blobdescriptor: inmemory
   s3:
     bucket: $bucket
-    region: $region
+    region: $region$s3_extra
   delete:
-    enabled: true
+    enabled: true$storage_extra
   maintenance:
     readonly:
       enabled: true
@@ -214,11 +259,14 @@ services:
       - ./registry-readonly.gc.yml:/etc/distribution/config.yml:ro
 YML
 
+# The container is freshly created, so its whole log is short: look for the line that says it listens.
+# (Not the last few lines: debug logging and traffic push that line out of any small window.)
 wait_for_registry() {
+  local id
   for _ in $(seq 1 20); do
     sleep 2
-    if [[ "$("${compose[@]}" ps --status running --services | grep -cx registry)" -eq 1 ]] \
-      && "${compose[@]}" logs --no-color --tail 20 registry 2>&1 | grep -q 'listening on'; then
+    id="$("${compose[@]}" ps -q --status running registry 2>/dev/null | head -n1)"
+    if [[ -n "$id" ]] && docker logs "$id" 2>&1 | grep -q 'listening on'; then
       return 0
     fi
   done

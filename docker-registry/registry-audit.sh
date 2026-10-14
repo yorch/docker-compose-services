@@ -5,14 +5,23 @@
 # dangling tags (a tag whose revision link or manifest blob is missing, which shows up as
 # "manifest unknown" in the UI). With --verify-refs it also checks that every blob referenced by a
 # live manifest exists. Nothing is modified.
+#
+# Exit status:   0  nothing wrong
+#               10  only dangling tags, which prune-empty-repos.sh --dangling-tags can remove
+#               20  a live image references blobs that are missing (nothing can repair this)
+#                1  the audit could not complete (S3 errors, tags that could not be verified)
 set -Eeuo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
+# shellcheck source=registry-lib.sh
+source ./registry-lib.sh
 
 usage() {
   printf 'Usage: %s [--verify-refs]\n' "$0"
   printf '\n'
   printf '  --verify-refs  Also check that every blob referenced by a live manifest exists (slower)\n'
+  printf '\n'
+  printf 'Exit status: 0 clean, 10 dangling tags only, 20 live image with missing blobs, 1 incomplete\n'
 }
 
 verify_refs=0
@@ -33,85 +42,19 @@ for arg in "$@"; do
   esac
 done
 
-cid="$(docker ps -q \
-  --filter "label=com.docker.compose.project.working_dir=$PWD" \
-  --filter "label=com.docker.compose.service=registry" | head -n1)"
-if [[ -z "$cid" ]]; then
-  printf '%s\n' 'Registry container is not running; cannot read the S3 settings.' >&2
-  exit 1
-fi
-
-# Settings come from the running container (falling back to .env); credentials are exported so
-# `docker run -e VAR` passes them without putting them on a command line or on disk.
-container_env() {
-  docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$cid" | sed -n "s/^$1=//p" | head -n1
-}
-dotenv() {
-  [[ -f .env ]] && sed -n "s/^$1=//p" .env | head -n1 || true
-}
-setting() {
-  local value
-  value="$(container_env "$1")"
-  [[ -n "$value" ]] || value="$(dotenv "$1")"
-  printf '%s' "$value"
-}
-
-AWS_ACCESS_KEY_ID="$(setting REGISTRY_STORAGE_S3_ACCESSKEY)"
-AWS_SECRET_ACCESS_KEY="$(setting REGISTRY_STORAGE_S3_SECRETKEY)"
-AWS_DEFAULT_REGION="$(setting REGISTRY_STORAGE_S3_REGION)"
-BUCKET="$(setting REGISTRY_STORAGE_S3_BUCKET)"
+load_s3_settings
 VERIFY_REFS="$verify_refs"
-export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION BUCKET VERIFY_REFS
+export VERIFY_REFS
 
-if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" || -z "$BUCKET" ]]; then
-  printf '%s\n' 'Missing S3 settings (access key, secret key or bucket).' >&2
-  exit 1
-fi
-
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work_init
+write_inner_common
 
 cat > "$work/audit.sh" <<'INNER'
 set -uo pipefail
 cd /work
+. /work/common.sh
 B="s3://$BUCKET/docker/registry/v2"
 PREFIX='docker/registry/v2/repositories/'
-
-# S3 connection resets are common from some hosts, so every call retries.
-ls_retry() {
-  local i rc
-  for i in 1 2 3 4 5 6; do
-    rc=0
-    aws s3 ls "$1" --recursive > "$2" 2> "$2.err" || rc=$?
-    [[ "$rc" -eq 0 ]] && return 0
-    # `aws s3 ls` exits 1 with no output and no error text when the prefix is simply empty
-    [[ "$rc" -eq 1 && ! -s "$2.err" ]] && return 0
-    echo "listing $1 failed (exit $rc, attempt $i), retrying" >&2
-    sleep 5
-  done
-  return 1
-}
-cp_retry() {
-  local i
-  for i in 1 2 3; do
-    aws s3 cp "$1" - 2>/dev/null && return 0
-    sleep 2
-  done
-  return 1
-}
-
-# head-object on one exact key: returns 0 = exists, 1 = confirmed missing, 2 = could not tell.
-# Used to re-check candidates live, because a push between the listing and the tag read would
-# otherwise make a brand-new tag look dangling.
-s3_state() {
-  local i out
-  for i in 1 2 3; do
-    out="$(aws s3api head-object --bucket "$BUCKET" --key "$1" 2>&1)" && return 0
-    grep -qE 'Not Found|404|NoSuchKey' <<< "$out" && return 1
-    sleep 2
-  done
-  return 2
-}
 
 ls_retry "$B/repositories/" repos.raw || { echo 'Could not list repositories (S3 errors).' >&2; exit 1; }
 ls_retry "$B/blobs/sha256/" blobs.raw || { echo 'Could not list blobs (S3 errors).' >&2; exit 1; }
@@ -146,12 +89,13 @@ grep -E '/_manifests/tags/[^/]+/current/link$' keys.txt \
   | sed -E "s#^${PREFIX}(.*)/_manifests/tags/([^/]+)/current/link\$#\\1\\t\\2#" | sort > tags.tsv
 
 : > dangling.txt
+: > unverified.txt
 : > live.txt
 while IFS=$'\t' read -r repo tag; do
   d="$(cp_retry "$B/repositories/$repo/_manifests/tags/$tag/current/link")"
   d="${d#sha256:}"
   if [[ -z "$d" ]]; then
-    echo "$repo:$tag -> tag link unreadable" >> dangling.txt
+    echo "$repo:$tag -> tag link unreadable" >> unverified.txt
     continue
   fi
   # the listings are a snapshot; anything missing from them is re-checked directly in S3
@@ -165,16 +109,20 @@ while IFS=$'\t' read -r repo tag; do
   elif [[ "$blob" -eq 1 ]]; then
     echo "$repo:$tag -> manifest blob missing (sha256:${d:0:12})" >> dangling.txt
   elif [[ "$rev" -eq 2 || "$blob" -eq 2 ]]; then
-    echo "$repo:$tag -> could not verify (S3 errors), treating as a problem (sha256:${d:0:12})" >> dangling.txt
+    echo "$repo:$tag -> could not verify against S3 (sha256:${d:0:12})" >> unverified.txt
   else
     echo "$d" >> live.txt
   fi
 done < tags.tsv
 
-echo "Tags checked: $(wc -l < tags.tsv | tr -d ' ')   dangling: $(wc -l < dangling.txt | tr -d ' ')"
+echo "Tags checked: $(wc -l < tags.tsv | tr -d ' ')   dangling: $(wc -l < dangling.txt | tr -d ' ')   unverified: $(wc -l < unverified.txt | tr -d ' ')"
 if [[ -s dangling.txt ]]; then
   echo 'Dangling tags:'
   sed 's/^/  /' dangling.txt
+fi
+if [[ -s unverified.txt ]]; then
+  echo 'Tags that could not be verified:'
+  sed 's/^/  /' unverified.txt
 fi
 
 missing=0
@@ -185,12 +133,16 @@ if [[ "$VERIFY_REFS" == 1 ]]; then
   sort -u live.txt > todo.txt
   : > seen.txt
   : > refs.txt
+  : > unreadable.txt
   while [[ -s todo.txt ]]; do
     : > next.txt
     while read -r d; do
       grep -qxF "$d" seen.txt && continue
       echo "$d" >> seen.txt
-      cp_retry "$B/blobs/sha256/${d:0:2}/$d/data" > one.json || continue
+      if ! cp_retry "$B/blobs/sha256/${d:0:2}/$d/data" > one.json; then
+        echo "$d" >> unreadable.txt
+        continue
+      fi
       grep -o 'sha256:[0-9a-f]\{64\}' one.json | sed 's/^sha256://' | sort -u > one.txt
       cat one.txt >> refs.txt
       if grep -q '"manifests"' one.json; then cat one.txt >> next.txt; fi
@@ -202,16 +154,34 @@ if [[ "$VERIFY_REFS" == 1 ]]; then
   missing="$(wc -l < missing.txt | tr -d ' ')"
   echo "Live manifests walked: $(wc -l < seen.txt | tr -d ' ')   blobs referenced: $(wc -l < refs_u.txt | tr -d ' ')   referenced but missing: $missing"
   if [[ "$missing" -gt 0 ]]; then sed 's/^/  missing: sha256:/' missing.txt | head -20; fi
+  if [[ -s unreadable.txt ]]; then
+    echo "Manifests that could not be read: $(wc -l < unreadable.txt | tr -d ' ')"
+    cat unreadable.txt >> unverified.txt
+  fi
 fi
 
-[[ ! -s dangling.txt && "$missing" -eq 0 ]]
+# most serious first
+if [[ "$missing" -gt 0 ]]; then exit 20; fi
+if [[ -s unverified.txt ]]; then exit 1; fi
+if [[ -s dangling.txt ]]; then exit 10; fi
+exit 0
 INNER
 
-if docker run --rm \
-  -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION -e BUCKET -e VERIFY_REFS \
-  -v "$work:/work" --entrypoint bash amazon/aws-cli /work/audit.sh; then
-  printf '\n%s\n' 'Audit finished: no problems found.'
-else
-  printf '\n%s\n' 'Audit finished: problems found (or the audit could not complete). See above.' >&2
-  exit 1
-fi
+rc=0
+aws_run audit.sh -e VERIFY_REFS || rc=$?
+case "$rc" in
+  0)
+    printf '\n%s\n' 'Audit finished: no problems found.'
+    ;;
+  10)
+    printf '\n%s\n' 'Audit finished: dangling tags found (prune-empty-repos.sh --dangling-tags can remove them).' >&2
+    ;;
+  20)
+    printf '\n%s\n' 'Audit finished: a live image references blobs that no longer exist.' >&2
+    ;;
+  *)
+    printf '\n%s\n' 'Audit could not complete or verify everything (see above).' >&2
+    rc=1
+    ;;
+esac
+exit "$rc"
