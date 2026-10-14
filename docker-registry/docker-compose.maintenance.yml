@@ -1,0 +1,36 @@
+# Scheduled cleanup of the registry's S3 storage. Opt-in: start it with ./run-with-maintenance.sh.
+# What it does and how to configure it: "Maintenance" in the README, MAINTENANCE_* in .env.sample.
+#
+# This mounts the Docker socket, which is root-equivalent on the host: garbage collection puts the
+# registry in read-only mode (it recreates the container) and every job starts throw-away aws-cli
+# containers. The project folder is mounted at the same absolute path inside the container, because
+# compose and the scripts resolve file paths against the host.
+services:
+  maintenance:
+    image: docker:cli
+    restart: unless-stopped
+    # a running garbage collection needs time to put the registry back in read-write mode
+    stop_grace_period: 3m
+    depends_on:
+      - registry
+    working_dir: ${MAINTENANCE_PROJECT_DIR:?run ./run-with-maintenance.sh, or set MAINTENANCE_PROJECT_DIR to the absolute path of this folder}
+    # the image is Alpine with the docker CLI and compose plugin; the scripts need GNU tools and bash
+    entrypoint:
+      - sh
+      - -c
+      - apk add --no-cache bash coreutils gawk grep sed findutils tzdata >/dev/null && exec bash ./maintenance/maintenance.sh daemon
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${MAINTENANCE_PROJECT_DIR}:${MAINTENANCE_PROJECT_DIR}
+      - ./data/maintenance:/maintenance
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - MAINTENANCE_PROJECT_DIR=${MAINTENANCE_PROJECT_DIR}
+      - MAINTENANCE_DRY_RUN=${MAINTENANCE_DRY_RUN:-true}
+      - MAINTENANCE_WEEKLY_AT=${MAINTENANCE_WEEKLY_AT:-Mon 06:00}
+      - MAINTENANCE_GC_AT=${MAINTENANCE_GC_AT:-first-Sun 03:00}
+      - MAINTENANCE_MIN_AGE_HOURS=${MAINTENANCE_MIN_AGE_HOURS:-24}
+      - MAINTENANCE_KEEP_TAGS=${MAINTENANCE_KEEP_TAGS:-0}
+      - MAINTENANCE_PROTECTED_TAGS=${MAINTENANCE_PROTECTED_TAGS:-latest,main,v*}
+      - MAINTENANCE_LOG_RETENTION_DAYS=${MAINTENANCE_LOG_RETENTION_DAYS:-90}
+      - MAINTENANCE_TZ=${MAINTENANCE_TZ:-}

@@ -28,3 +28,8 @@ wg-portal/wg/
 
 # siglens server logs live outside ./data
 siglens/logs/
+
+# docker-registry: files its maintenance scripts generate while they run
+docker-registry/gc-*.log
+docker-registry/registry-readonly.gc.yml
+docker-registry/docker-compose.gc-readonly.yml
