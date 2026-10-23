@@ -1,8 +1,8 @@
 services:
   jaeger:
-    image: jaegertracing/all-in-one:1.76.0
+    image: jaegertracing/jaeger:2.22.0
     ports:
-      # https://www.jaegertracing.io/docs/1.42/getting-started/
+      # https://www.jaegertracing.io/docs/2.22/getting-started/
       # UDP agent accept jaeger.thrift over Thrift-compact protocol (used by most SDKs)
       - 6831:6831/udp
       # UDP agent accept jaeger.thrift over Thrift-binary protocol (used by Node.js SDK)
@@ -24,8 +24,6 @@ services:
       # HTTP collector Zipkin compatible endpoint (optional)
       # - 9411:9411
     restart: unless-stopped
-    environment:
-      # - COLLECTOR_ZIPKIN_HOST_PORT=:9411
-      - COLLECTOR_OTLP_ENABLED=true
-    # All-in-one comes with memory storage, so it's volatile
-    # TODO: Add storage like ElasticSearch (https://www.jaegertracing.io/docs/1.42/faq/#what-is-the-recommended-storage-backend)
+    # v2's default all-in-one configuration enables OTLP and the legacy Jaeger
+    # receivers, and uses memory storage, so trace data is volatile.
+    # TODO: Add storage like ElasticSearch (https://www.jaegertracing.io/docs/2.22/storage/)
