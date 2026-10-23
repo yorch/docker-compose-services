@@ -1,6 +1,6 @@
 services:
   graphql-engine:
-    image: hasura/graphql-engine:v2.45.1
+    image: hasura/graphql-engine:v2.51.2
     restart: unless-stopped
     environment:
       ## postgres database to store Hasura metadata
@@ -28,7 +28,7 @@ services:
       start_period: 10s
 
   data-connector-agent:
-    image: hasura/graphql-data-connector:v2.45.1
+    image: hasura/graphql-data-connector:v2.51.2
     restart: unless-stopped
     environment:
       - QUARKUS_LOG_LEVEL=ERROR # FATAL, ERROR, WARN, INFO, DEBUG, TRACE
