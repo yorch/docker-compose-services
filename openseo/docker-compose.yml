@@ -1,6 +1,6 @@
 services:
   open-seo:
-    image: ghcr.io/every-app/open-seo:v0.1.7
+    image: ghcr.io/every-app/open-seo:v0.1.14
     restart: unless-stopped
     deploy:
       resources:
