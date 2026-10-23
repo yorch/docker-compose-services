@@ -4,7 +4,7 @@ x-database-url: &database-url 'DATABASE_URL=postgresql://${POSTGRES_USER:-postgr
 
 services:
   simstudio:
-    image: ghcr.io/simstudioai/simstudio:${SIM_VERSION:-v0.9.3}
+    image: ghcr.io/simstudioai/simstudio:${SIM_VERSION:-v0.9.32}
     restart: unless-stopped
     deploy:
       resources:
@@ -47,7 +47,7 @@ services:
       start_period: 10s
 
   realtime:
-    image: ghcr.io/simstudioai/realtime:${SIM_VERSION:-v0.9.3}
+    image: ghcr.io/simstudioai/realtime:${SIM_VERSION:-v0.9.32}
     restart: unless-stopped
     deploy:
       resources:
@@ -78,7 +78,7 @@ services:
       start_period: 10s
 
   migrations:
-    image: ghcr.io/simstudioai/migrations:${SIM_VERSION:-v0.9.3}
+    image: ghcr.io/simstudioai/migrations:${SIM_VERSION:-v0.9.32}
     working_dir: /app/packages/db
     environment:
       - *database-url
@@ -91,7 +91,7 @@ services:
   # Runs scheduled workflows, polling triggers and other background jobs.
   # Exits cleanly (and stays stopped) when CRON_SECRET is unset.
   cron:
-    image: ghcr.io/simstudioai/cron:${SIM_VERSION:-v0.9.3}
+    image: ghcr.io/simstudioai/cron:${SIM_VERSION:-v0.9.32}
     restart: on-failure
     environment:
       - SIM_URL=http://simstudio:3000
