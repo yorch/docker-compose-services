@@ -25,7 +25,7 @@ x-errbit-env: &errbit-env
 
 services:
   app:
-    image: errbit/errbit:0.11.5
+    image: errbit/errbit:0.11.6
     restart: unless-stopped
     depends_on:
       errbit-init:
@@ -43,7 +43,7 @@ services:
   # the admin password every time it runs, so it only runs while there are no
   # users; later starts just (re)create indexes.
   errbit-init:
-    image: errbit/errbit:0.11.5
+    image: errbit/errbit:0.11.6
     restart: 'no'
     environment:
       <<: *errbit-env
