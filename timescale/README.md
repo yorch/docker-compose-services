@@ -48,6 +48,10 @@ SSH-tunnel to it.
 | ------------------ | ---------------------------- | ------------- |
 | `./data/timescale` | `/home/postgres/pgdata/data` | Database data |
 
+`pg18` is a PostgreSQL major upgrade. The data directory path is unchanged, but a
+`pg17` data directory cannot be started by `pg18`: dump and restore (or run
+`pg_upgrade`) before switching an existing deployment.
+
 ## Creating Hypertables
 
 ```sql

@@ -1,9 +1,9 @@
 services:
   timescale:
     # Includes the TimescaleDB Toolkit, and support for PostGIS and Patroni
-    image: timescale/timescaledb-ha:pg17
+    image: timescale/timescaledb-ha:pg18
     # Smaller image
-    # image: timescale/timescaledb:latest-pg17
+    # image: timescale/timescaledb:latest-pg18
     restart: unless-stopped
     volumes:
       - ./data/timescale:/home/postgres/pgdata/data
