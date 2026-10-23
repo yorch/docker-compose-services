@@ -182,7 +182,7 @@ docker volume rm n8n_sandbox-tls
 | `N8N_INSTANCE_AI_MODEL_API_KEY`   | API key for that model's provider         | -                         |
 | `N8N_INSTANCE_AI_SANDBOX_ENABLED` | Route Assistant code execution to sandbox | `false`                   |
 | `N8N_INSTANCE_AI_SANDBOX_API_URL` | Sandbox API address                       | `http://sandbox-api:8080` |
-| `N8N_SANDBOX_VERSION`             | Sandbox image version for all three       | `1.5.0`                   |
+| `N8N_SANDBOX_VERSION`             | Sandbox image version for all three       | `1.11.0`                  |
 | `N8N_INSTANCE_AI_SEARXNG_URL`     | SearXNG address for Assistant web search  | `http://searxng:8080`     |
 
 ## Volumes
