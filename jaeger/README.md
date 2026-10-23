@@ -44,16 +44,16 @@ Access the Jaeger UI at `http://localhost:16686`
 
 ## Ports
 
-| Port    | Protocol | Description                 |
-| ------- | -------- | --------------------------- |
-| `6831`  | UDP      | Thrift-compact (most SDKs)  |
-| `6832`  | UDP      | Thrift-binary (Node.js SDK) |
-| `5778`  | HTTP     | Agent configs (sampling)    |
-| `4317`  | gRPC     | OTLP collector              |
-| `4318`  | HTTP     | OTLP collector              |
-| `14250` | gRPC     | model.proto                 |
-| `14268` | HTTP     | jaeger.thrift direct        |
-| `16686` | HTTP     | Web UI                      |
+| Port    | Protocol | Description                        |
+| ------- | -------- | ---------------------------------- |
+| `6831`  | UDP      | Legacy Thrift-compact (most SDKs)  |
+| `6832`  | UDP      | Legacy Thrift-binary (Node.js SDK) |
+| `5778`  | HTTP     | Agent configs (sampling)           |
+| `4317`  | gRPC     | OTLP collector                     |
+| `4318`  | HTTP     | OTLP collector                     |
+| `14250` | gRPC     | Legacy model.proto                 |
+| `14268` | HTTP     | Legacy jaeger.thrift direct        |
+| `16686` | HTTP     | Web UI                             |
 
 ## Environment Variables
 
@@ -63,8 +63,9 @@ Access the Jaeger UI at `http://localhost:16686`
 | `BASIC_AUTH_USER`          | Basic-auth user for the UI and HotROD (Traefik only)    | Traefik  |
 | `BASIC_AUTH_PASSWORD_HASH` | bcrypt hash for that user, single-quoted (Traefik only) | Traefik  |
 
-The collector ports (4317/4318 and the legacy agent ports) are published by the base
-file in every setup, so applications on other hosts can send traces.
+The collector ports (OTLP on 4317/4318 and the legacy Jaeger receivers) are published
+by the base file in every setup, so applications on other hosts can send traces. The
+legacy receivers remain in the v2 all-in-one config but are deprecated — prefer OTLP.
 
 ## Storage
 
