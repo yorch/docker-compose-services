@@ -8,7 +8,7 @@ x-wordpress-db-env: &wordpress-db-env
 
 services:
   app:
-    image: wordpress:6.9.4-php8.3-apache
+    image: wordpress:7.1.3-php8.3-apache
     restart: unless-stopped
     volumes:
       - ./data/html:/var/www/html
