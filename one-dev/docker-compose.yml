@@ -2,7 +2,7 @@
 
 services:
   app:
-    image: 1dev/server:16.7.3
+    image: 1dev/server:16.9.7
     restart: unless-stopped
     deploy:
       resources:
