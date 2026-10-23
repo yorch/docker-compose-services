@@ -1,6 +1,6 @@
 services:
   hotrod:
-    image: jaegertracing/example-hotrod:2.21.0
+    image: jaegertracing/example-hotrod:2.22.0
     restart: unless-stopped
     environment:
       # Current HotROD exports over OTLP; the old Jaeger exporter variable is ignored

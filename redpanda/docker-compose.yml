@@ -2,7 +2,7 @@
 # https://docs.redpanda.com/docs/get-started/quick-start/?quickstart=docker
 services:
   redpanda-0:
-    image: redpandadata/redpanda:v22.3.13
+    image: redpandadata/redpanda:v22.3.25
     command:
       - redpanda
       - start
@@ -37,7 +37,7 @@ services:
       - 19644:9644
 
   console:
-    image: redpandadata/console:v2.2.0
+    image: redpandadata/console:v2.8.17
     entrypoint: /bin/sh
     command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
     environment:

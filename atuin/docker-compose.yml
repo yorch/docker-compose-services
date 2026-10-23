@@ -2,7 +2,7 @@ services:
   atuin:
     # Upstream advises pinning a tagged release and reading the release notes
     # before upgrading. Tags carry no `v` prefix.
-    image: ghcr.io/atuinsh/atuin:18.22
+    image: ghcr.io/atuinsh/atuin:18.24.2-1
     command: start
     restart: unless-stopped
     depends_on:

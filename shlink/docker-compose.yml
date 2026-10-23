@@ -1,6 +1,6 @@
 services:
   app:
-    image: shlinkio/shlink:4.4.6
+    image: shlinkio/shlink:4.6.0
     restart: unless-stopped
     depends_on:
       db:

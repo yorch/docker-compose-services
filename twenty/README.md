@@ -45,7 +45,7 @@ Access the CRM at `http://localhost:3000` (dev) or `https://${DOMAIN}` (Traefik)
 | `PG_DATABASE_PASSWORD` | PostgreSQL password (URL-safe, no `@:/#?`) | -                    | Yes      |
 | `ENCRYPTION_KEY`       | Encryption key for secrets                 | -                    | Yes      |
 | `SERVER_URL`           | Public URL of the server                   | -                    | Yes      |
-| `TWENTY_VERSION`       | Image tag                                  | `v2.43.0`            | No       |
+| `TWENTY_VERSION`       | Image tag                                  | `v2.51.0`            | No       |
 | `PG_DATABASE_USER`     | PostgreSQL user                            | `postgres`           | No       |
 | `PG_DATABASE_HOST`     | PostgreSQL host                            | `db`                 | No       |
 | `PG_DATABASE_PORT`     | PostgreSQL port                            | `5432`               | No       |

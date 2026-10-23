@@ -1,6 +1,6 @@
 services:
   app:
-    image: supabase/logflare:1.12.5
+    image: supabase/logflare:1.53.1
     restart: unless-stopped
     hostname: 127.0.0.1
     environment:

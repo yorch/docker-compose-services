@@ -1,7 +1,7 @@
 services:
   octobot:
     # `stable` resolved to 3.0.0-beta2 when pinned
-    image: drakkarsoftware/octobot:3.0.0-beta2
+    image: drakkarsoftware/octobot:3.0.0-beta3
     restart: unless-stopped
     volumes:
       - ./data/backtesting:/octobot/backtesting

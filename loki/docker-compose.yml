@@ -1,6 +1,6 @@
 services:
   loki:
-    image: grafana/loki:3.7.6
+    image: grafana/loki:3.7.9
     restart: unless-stopped
     # Replaces the image's default CMD, which points at the baked-in
     # /etc/loki/local-config.yaml - that config has no retention and writes to

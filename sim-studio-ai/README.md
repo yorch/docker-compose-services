@@ -49,25 +49,25 @@ page's own origin, so no extra socket URL is needed.
 
 ## Environment Variables
 
-| Variable                                    | Description                                                               | Required |
-| ------------------------------------------- | ------------------------------------------------------------------------- | -------- |
-| `DOMAIN`                                    | Hostname Traefik routes to the app (Traefik only)                         | Traefik  |
-| `NEXT_PUBLIC_APP_URL`                       | Public URL of the app; also used as the auth URL                          | Yes      |
-| `POSTGRES_PASSWORD`                         | Database password (`openssl rand -hex 24`)                                | Yes      |
-| `BETTER_AUTH_SECRET`                        | Auth secret, shared by app and realtime (`openssl rand -hex 32`)          | Yes      |
-| `ENCRYPTION_KEY`                            | Encrypts stored credentials; **cannot be changed later**                  | Yes      |
-| `INTERNAL_API_SECRET`                       | Shared secret between app and realtime (`openssl rand -hex 32`)           | Yes      |
-| `CRON_SECRET`                               | Enables scheduled workflows; without it `cron` exits                      | No       |
-| `SIM_VERSION`                               | Image tag for simstudio, realtime, migrations and cron (default `v0.9.3`) | No       |
-| `POSTGRES_USER`                             | Database user (default `postgres`)                                        | No       |
-| `POSTGRES_DB`                               | Database name (default `simstudio`)                                       | No       |
-| `RESEND_API_KEY`                            | Resend key for email; emails are logged to the console without it         | No       |
-| `FREESTYLE_API_KEY`                         | Freestyle key for sandboxed code execution                                | No       |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth login                                                        | No       |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth login                                                        | No       |
-| `OLLAMA_URL`                                | Ollama endpoint for local models                                          | No       |
-| `TZ`                                        | Timezone for the `cron` schedules (default `UTC`)                         | No       |
-| `DEV_BIND_IP`                               | Host interface for the dev overlay's Postgres port (default `127.0.0.1`)  | No       |
+| Variable                                    | Description                                                                | Required |
+| ------------------------------------------- | -------------------------------------------------------------------------- | -------- |
+| `DOMAIN`                                    | Hostname Traefik routes to the app (Traefik only)                          | Traefik  |
+| `NEXT_PUBLIC_APP_URL`                       | Public URL of the app; also used as the auth URL                           | Yes      |
+| `POSTGRES_PASSWORD`                         | Database password (`openssl rand -hex 24`)                                 | Yes      |
+| `BETTER_AUTH_SECRET`                        | Auth secret, shared by app and realtime (`openssl rand -hex 32`)           | Yes      |
+| `ENCRYPTION_KEY`                            | Encrypts stored credentials; **cannot be changed later**                   | Yes      |
+| `INTERNAL_API_SECRET`                       | Shared secret between app and realtime (`openssl rand -hex 32`)            | Yes      |
+| `CRON_SECRET`                               | Enables scheduled workflows; without it `cron` exits                       | No       |
+| `SIM_VERSION`                               | Image tag for simstudio, realtime, migrations and cron (default `v0.9.32`) | No       |
+| `POSTGRES_USER`                             | Database user (default `postgres`)                                         | No       |
+| `POSTGRES_DB`                               | Database name (default `simstudio`)                                        | No       |
+| `RESEND_API_KEY`                            | Resend key for email; emails are logged to the console without it          | No       |
+| `FREESTYLE_API_KEY`                         | Freestyle key for sandboxed code execution                                 | No       |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth login                                                         | No       |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth login                                                         | No       |
+| `OLLAMA_URL`                                | Ollama endpoint for local models                                           | No       |
+| `TZ`                                        | Timezone for the `cron` schedules (default `UTC`)                          | No       |
+| `DEV_BIND_IP`                               | Host interface for the dev overlay's Postgres port (default `127.0.0.1`)   | No       |
 
 ## Upgrading
 

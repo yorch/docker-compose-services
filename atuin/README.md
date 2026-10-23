@@ -105,8 +105,9 @@ directory Docker creates for a missing bind-mount path on Linux.
 
 ## Upgrading
 
-The image is pinned to a minor release (`18.22`), so pulls pick up patch
-releases only. Read the
+The image is pinned to a specific build (`18.24.2-1`). Upstream marked the
+plain `18.24.2` container as unsafe because it ships stale CA certificates, so
+that rebuild tag is the one to use. Read the
 [release notes](https://github.com/atuinsh/atuin/releases) before moving to a
 newer minor: upstream warns that some upgrades need manual steps.
 
