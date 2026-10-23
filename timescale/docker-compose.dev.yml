@@ -6,7 +6,7 @@ services:
   # DB admin UI: dev only, never routed through Traefik (see AGENTS.md).
   # Opt-in: starts only with `--profile pgadmin`.
   pgadmin:
-    image: dpage/pgadmin4:7.8
+    image: dpage/pgadmin4:9.18.0
     profiles: [pgadmin]
     restart: unless-stopped
     depends_on:

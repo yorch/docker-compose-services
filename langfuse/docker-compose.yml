@@ -169,7 +169,7 @@ services:
     # Redis is the queue between web and worker, not a cache. noeviction stops
     # it discarding queued ingestion jobs under memory pressure, and the volume
     # keeps the queue across restarts.
-    image: redis:7-alpine
+    image: redis:8-alpine
     restart: unless-stopped
     command: >
       --requirepass ${REDIS_AUTH}

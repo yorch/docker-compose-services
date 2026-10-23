@@ -103,7 +103,7 @@ services:
 
   # Pub/sub for live status streaming; there is no fallback without it
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
