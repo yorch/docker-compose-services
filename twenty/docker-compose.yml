@@ -23,7 +23,7 @@ x-depends_on: &default-depends_on
 
 services:
   server:
-    image: twentycrm/twenty:${TWENTY_VERSION:-v2.43.0}
+    image: twentycrm/twenty:${TWENTY_VERSION:-v2.51.0}
     restart: unless-stopped
     volumes:
       - ./data/server:/app/packages/twenty-server/.local-storage
@@ -46,7 +46,7 @@ services:
   # The worker hardcodes DISABLE_DB_MIGRATIONS and DISABLE_CRON_JOBS_REGISTRATION
   # to true (the server runs them), so it cannot use the shared anchor.
   worker:
-    image: twentycrm/twenty:${TWENTY_VERSION:-v2.43.0}
+    image: twentycrm/twenty:${TWENTY_VERSION:-v2.51.0}
     restart: unless-stopped
     command: ['yarn', 'worker:prod']
     volumes:
