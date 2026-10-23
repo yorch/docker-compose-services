@@ -1,6 +1,6 @@
 services:
   app:
-    image: devlikeapro/waha:latest-2026.9.1
+    image: devlikeapro/waha:latest-2026.9.2
     restart: unless-stopped
     volumes:
       # WAHA keeps sessions (incl. its sqlite store) in /app/.sessions and
