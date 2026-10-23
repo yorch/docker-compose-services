@@ -2,7 +2,7 @@ services:
   app:
     # All-in-one image: Next.js frontend, FastAPI backend and the collaboration
     # server, behind an internal nginx on port 80 that routes between them.
-    image: ghcr.io/learnhouse/app:1.3.6
+    image: ghcr.io/learnhouse/app:1.4.2
     restart: unless-stopped
     depends_on:
       db:
