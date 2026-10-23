@@ -1,6 +1,6 @@
 services:
   clickhouse:
-    image: clickhouse/clickhouse-server:26.3.17.4
+    image: clickhouse/clickhouse-server:26.3.60.2
     restart: unless-stopped
     volumes:
       - ./data/clickhouse:/var/lib/clickhouse
@@ -51,7 +51,7 @@ services:
       start_period: 10s
 
   redis:
-    image: redis:8.6.4-alpine
+    image: redis:8.10.2-alpine
     restart: unless-stopped
     volumes:
       - ./data/redis:/data

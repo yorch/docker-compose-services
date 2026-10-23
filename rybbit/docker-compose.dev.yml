@@ -6,7 +6,7 @@
 # production with two routers on the same Host rule.
 services:
   caddy:
-    image: caddy:2.10.0
+    image: caddy:2.11.7
     restart: unless-stopped
     volumes:
       # Plain http on localhost, so Caddy issues no certificates and has no
