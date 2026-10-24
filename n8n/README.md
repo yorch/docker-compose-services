@@ -28,10 +28,11 @@ docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml \
   -f docker-compose.sandbox.yml up -d
 ```
 
-Recording the mode once makes the long `-f` list unnecessary afterwards:
+Recording the mode once makes the long `-f` list unnecessary afterwards. The other
+commands on this page run from this service folder, so `mode.sh` is one level up:
 
 ```bash
-./mode.sh n8n dev sandbox     # or: ./mode.sh n8n for-traefik sandbox
+../mode.sh . dev sandbox      # or: ../mode.sh . for-traefik sandbox
 docker compose ps             # uses the recorded files
 ```
 
@@ -192,6 +193,17 @@ docker volume rm n8n_sandbox-tls
 | Variable           | Description           | Default |
 | ------------------ | --------------------- | ------- |
 | `WATCHTOWER_SCOPE` | Watchtower scope name | -       |
+
+### Traefik and Dev Overlay
+
+| Variable                   | Description                                                                  | Default     |
+| -------------------------- | ---------------------------------------------------------------------------- | ----------- |
+| `DOMAIN`                   | Hostname Traefik routes to n8n                                               | -           |
+| `DOMAIN_ADMINER`           | Hostname for the adminer UI                                                  | -           |
+| `DOMAIN_REDISINSIGHT`      | Hostname for the redisinsight UI                                             | -           |
+| `BASIC_AUTH_USER`          | Username for the Traefik basic auth middleware                               | -           |
+| `BASIC_AUTH_PASSWORD_HASH` | bcrypt hash for that middleware; single-quote it, because it contains `$`    | -           |
+| `DEV_BIND_IP`              | Host interface the dev overlay publishes its datastore and admin-UI ports on | `127.0.0.1` |
 
 ### n8n Assistant Configuration
 

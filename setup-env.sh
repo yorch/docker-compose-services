@@ -318,6 +318,16 @@ DERIVE_FROM=(
   "N8N_SANDBOX_SERVICE_API_KEY=SANDBOX_API_KEYS"
 )
 
+# Remove one key from the pending array. bash has no delete-by-value, and the
+# array is local to process(), which this reaches through dynamic scoping.
+drop_pending() {
+  local keep=() item
+  for item in ${pending[@]+"${pending[@]}"}; do
+    [ "${item}" = "$1" ] || keep+=("${item}")
+  done
+  pending=(${keep[@]+"${keep[@]}"})
+}
+
 process() {
   local svc="$1"
   local filled=() kept=() pending=() weak=() rotated=() frozen=() derived=()
@@ -326,8 +336,9 @@ process() {
   # partway through a --all run.
   local -a pending_secrets=()
   local -a keys=()
-  local entry key secret_ish val dtarget dsource dvalue pkey
-  local -a kept_pending=()
+  local entry key secret_ish val dtarget dsource dvalue
+  local dcurrent drest dmatches dtoken in_sample skey
+  local -a mismatch=()
   # Reset per service: set below to .env, or to .env.sample in check mode when
   # there is no .env to inspect.
   ENVFILE=""
@@ -424,11 +435,53 @@ process() {
   # Derive keys that must equal another key's value. Done after the main loop so
   # the source has already been generated, and skipped when the source is itself
   # blank - which leaves the target pending and therefore reported.
+  #
+  # DERIVE_FROM is repo-wide, but a key only belongs to the services that define
+  # it in their sample. Without the membership test below, every service would
+  # report a key it has never heard of (and add it to "needs a value").
   for entry in ${DERIVE_FROM[@]+"${DERIVE_FROM[@]}"}; do
     dtarget="${entry%%=*}"
     dsource="${entry#*=}"
-    is_blank "${dtarget}" || continue
+
+    in_sample=0
+    for skey in ${keys[@]+"${keys[@]}"}; do
+      if [ "${skey}" = "${dtarget}" ]; then
+        in_sample=1
+        break
+      fi
+    done
+    [ "${in_sample}" = 1 ] || continue
+
     dvalue="$(sed -n "s/^${dsource}=//p" "${ENVFILE:-.env}" | head -1 | tr -d "'\"")"
+
+    # Already set: leave it alone, but only if it is actually one of the source's
+    # values. A stale key from an older .env would otherwise keep failing
+    # authentication with nothing to point at. Never overwrite - the source may
+    # legitimately hold several keys and the operator may have chosen another.
+    if ! is_blank "${dtarget}"; then
+      dcurrent="$(sed -n "s/^${dtarget}=//p" "${ENVFILE:-.env}" | head -1 | tr -d "'\"")"
+      drest="${dvalue},"
+      dmatches=0
+      while [ -n "${drest}" ]; do
+        dtoken="${drest%%,*}"
+        drest="${drest#*,}"
+        if [ "${dtoken}" = "${dcurrent}" ]; then
+          dmatches=1
+          break
+        fi
+      done
+      [ "${dmatches}" = 1 ] || mismatch+=("${dtarget} is not any value in ${dsource}")
+      continue
+    fi
+
+    # A blank source that this repo generates means a real run makes it and then
+    # derives the target, so report it as derived rather than as needing a value.
+    if [ -z "${dvalue}" ] && is_generatable "${dsource}"; then
+      derived+=("${dtarget}=${dsource}")
+      drop_pending "${dtarget}"
+      continue
+    fi
+
     dvalue="${dvalue%%,*}" # first entry, when the source is a comma-separated list
     if [ -z "${dvalue}" ]; then
       pending+=("${dtarget}")
@@ -443,11 +496,7 @@ process() {
     derived+=("${dtarget}=${dsource}")
     # It was queued as pending when the main loop saw it blank; it is not pending
     # any more, so drop it or the report would claim it still needs a value.
-    kept_pending=()
-    for pkey in ${pending[@]+"${pending[@]}"}; do
-      [ "${pkey}" = "${dtarget}" ] || kept_pending+=("${pkey}")
-    done
-    pending=(${kept_pending[@]+"${kept_pending[@]}"})
+    drop_pending "${dtarget}"
   done
 
   # A service with overlays and no recorded COMPOSE_FILE runs only its base file under plain
@@ -487,6 +536,13 @@ process() {
     else
       echo "    would replace the sample's placeholder (fresh install): ${rotated[*]}"
     fi
+  fi
+
+  # A key that is set but is not one of its source's values. Not overwritten -
+  # the source may hold several keys and the operator may have picked another.
+  if [ ${#mismatch[@]} -gt 0 ]; then
+    echo "    WARNING - set, but must match its source key and does not:"
+    printf '      %s\n' ${mismatch[@]+"${mismatch[@]}"}
   fi
 
   # Keys copied from another key's value, so the two cannot disagree.
