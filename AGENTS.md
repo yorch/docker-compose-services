@@ -143,7 +143,7 @@ is never touched at all. Use `--check` to see which keys a run would replace.
 
 Use `--all` to cover every service, and `--check` to see what a run would do
 without writing. Add new self-generated keys to `is_generatable` in the script;
-a key that must _equal_ another value belongs in `RELATED_SECRETS`, and one
+a key that must _equal_ another key's value belongs in `DERIVE_FROM`, and one
 whose rotation destroys data belongs in `NEVER_ROTATE`.
 
 Yarn 4 (`packageManager: yarn@4.12.0`). There are no tests, no build, and no linter.

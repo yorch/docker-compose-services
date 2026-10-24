@@ -44,10 +44,9 @@ set -Eeuo pipefail
 #
 # Adding a secret this repo makes up for itself (a new *_MASTER_KEY, a shared
 # token between two containers) means adding the key name to is_generatable.
-# A key that must EQUAL another value rather than be random belongs in
-# RELATED_SECRETS instead, so it is reported with an instruction rather than
-# filled with something that cannot work. A key whose rotation destroys data
-# belongs in NEVER_ROTATE.
+# A key that must EQUAL another key's value rather than be random belongs in
+# DERIVE_FROM instead, so it is copied from its source rather than invented.
+# A key whose rotation destroys data belongs in NEVER_ROTATE.
 #
 # Usage notes:
 #   - Run from the repo root. The service argument is a folder name, e.g. `n8n`,
@@ -132,7 +131,7 @@ is_generatable() {
     # which is why the third-party test runs first and does not match it - so
     # they are listed explicitly. Add new ones here when a service ships a
     # secret the repo makes up for itself.
-    SANDBOX_API_KEYS | N8N_SANDBOX_SERVICE_API_KEY) return 0 ;;
+    SANDBOX_API_KEYS) return 0 ;;
     SANDBOX_API_RUNNER_REGISTRATION_TOKEN | SANDBOX_API_RUNNER_API_KEY) return 0 ;;
     SEARXNG_SECRET | N8N_RUNNERS_AUTH_TOKEN | N8N_ENCRYPTION_KEY) return 0 ;;
     # Added with the "require a shared secret" wave of PRs: each is a value
@@ -306,25 +305,47 @@ generate() {
 
 declare -a PROBLEMS=()
 
-# Secrets whose correct value is not independent: one has to equal another, or
-# match a member of a list. Generating them separately produces a service that
-# starts and then fails authentication, so they are named here and reported
-# with an instruction rather than filled. Kept as "key|what it must equal".
-RELATED_SECRETS=(
-  "SANDBOX_API_RUNNER_API_KEY|must be THE SAME value as SANDBOX_API_KEYS's first entry, and is also the runner's SANDBOX_RUNNER_API_KEYS"
-  "N8N_SANDBOX_SERVICE_API_KEY|must equal one of the values in SANDBOX_API_KEYS"
+# Secrets whose correct value is not independent: one has to EQUAL another key's
+# first value. Generating them separately produces a service that starts and then
+# fails authentication with a value no amount of editing makes right, so they are
+# derived instead. Kept as "target=source".
+#
+# Only n8n's client key belongs here. SANDBOX_API_RUNNER_API_KEY feeds both the API
+# and the runner from one variable, so the two sides already agree and it can be a
+# random secret of its own - reusing SANDBOX_API_KEYS for it would collapse two
+# trust boundaries into one.
+DERIVE_FROM=(
+  "N8N_SANDBOX_SERVICE_API_KEY=SANDBOX_API_KEYS"
 )
+
+# Strip only the whitespace around a value. Env values may be written with
+# padding around a list separator, and that padding is not part of the value.
+# Nothing else may be normalised: see the derivation pass.
+trim_edges() {
+  printf '%s' "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+}
+
+# Remove one key from the pending array. bash has no delete-by-value, and the
+# array is local to process(), which this reaches through dynamic scoping.
+drop_pending() {
+  local keep=() item
+  for item in ${pending[@]+"${pending[@]}"}; do
+    [ "${item}" = "$1" ] || keep+=("${item}")
+  done
+  pending=(${keep[@]+"${keep[@]}"})
+}
 
 process() {
   local svc="$1"
-  local filled=() kept=() pending=() weak=() rotated=() frozen=()
+  local filled=() kept=() pending=() weak=() rotated=() frozen=() derived=()
   # Declared up front, not at first use: a service whose branch returns early
   # would otherwise leave these unset, and `set -u` turns that into a crash
   # partway through a --all run.
-  local -a related_blank=()
   local -a pending_secrets=()
   local -a keys=()
-  local entry rkey rhint key secret_ish val
+  local entry key secret_ish val dtarget dsource dvalue
+  local dcurrent drest dmatches dtoken in_sample skey
+  local -a mismatch=() unsafe=()
   # Reset per service: set below to .env, or to .env.sample in check mode when
   # there is no .env to inspect.
   ENVFILE=""
@@ -418,13 +439,89 @@ process() {
     fi
   done
 
-  # Record which relational secrets are still blank, while we are still inside
-  # the service directory and .env is reachable.
-  for entry in ${RELATED_SECRETS[@]+"${RELATED_SECRETS[@]}"}; do
-    rkey="${entry%%|*}"
-    if grep -qE "^${rkey}=$" "${ENVFILE:-.env}" 2>/dev/null; then
-      related_blank+=("${entry}")
+  # Derive keys that must equal another key's value. Done after the main loop so
+  # the source has already been generated, and skipped when the source is itself
+  # blank - which leaves the target pending and therefore reported.
+  #
+  # DERIVE_FROM is repo-wide, but a key only belongs to the services that define
+  # it in their sample. Without the membership test below, every service would
+  # report a key it has never heard of (and add it to "needs a value").
+  for entry in ${DERIVE_FROM[@]+"${DERIVE_FROM[@]}"}; do
+    dtarget="${entry%%=*}"
+    dsource="${entry#*=}"
+
+    in_sample=0
+    for skey in ${keys[@]+"${keys[@]}"}; do
+      if [ "${skey}" = "${dtarget}" ]; then
+        in_sample=1
+        break
+      fi
+    done
+    [ "${in_sample}" = 1 ] || continue
+
+    # Read the source verbatim. Quotes and whitespace must NOT be stripped: the
+    # member is copied byte-for-byte into the target so both .env lines are parsed
+    # identically. Normalising here is what previously gave Compose one value for
+    # the API and another for n8n - a quoted '$', or a stray quote, is
+    # reinterpreted on one side only.
+    dvalue="$(sed -n "s/^${dsource}=//p" "${ENVFILE:-.env}" | head -1)"
+
+    # Already set: leave it alone, but only if it is actually one of the source's
+    # values. A stale key from an older .env would otherwise keep failing
+    # authentication with nothing to point at. Never overwrite - the source may
+    # legitimately hold several keys and the operator may have chosen another.
+    if ! is_blank "${dtarget}"; then
+      dcurrent="$(sed -n "s/^${dtarget}=//p" "${ENVFILE:-.env}" | head -1)"
+      drest="${dvalue},"
+      dmatches=0
+      while [ -n "${drest}" ]; do
+        dtoken="${drest%%,*}"
+        drest="${drest#*,}"
+        dtoken="$(trim_edges "${dtoken}")"
+        if [ "${dtoken}" = "${dcurrent}" ]; then
+          dmatches=1
+          break
+        fi
+      done
+      [ "${dmatches}" = 1 ] || mismatch+=("${dtarget} is not any value in ${dsource}")
+      continue
     fi
+
+    # Whitespace around a comma makes the member boundaries ambiguous: whether the
+    # API trims it is its business, and guessing wrong produces two different
+    # keys. Refuse rather than pick.
+    case "${dvalue}" in
+      *,*)
+        if printf '%s' "${dvalue}" | grep -qE '[[:space:]],|,[[:space:]]|^[[:space:]]|[[:space:]]$'; then
+          unsafe+=("${dsource} has whitespace around its commas; remove it, or set ${dtarget} by hand")
+          continue
+        fi
+        ;;
+    esac
+
+    # A blank source that this repo generates means a real run makes it and then
+    # derives the target, so report it as derived rather than as needing a value.
+    if [ -z "$(trim_edges "${dvalue}")" ] && is_generatable "${dsource}"; then
+      derived+=("${dtarget}=${dsource}")
+      drop_pending "${dtarget}"
+      continue
+    fi
+
+    dvalue="$(trim_edges "${dvalue%%,*}")" # first member, edges trimmed only
+    if [ -z "${dvalue}" ]; then
+      pending+=("${dtarget}")
+      continue
+    fi
+    if [ "${MODE}" = write ]; then
+      VALUE="${dvalue}"
+      export VALUE
+      set_from_env "${dtarget}"
+      unset VALUE
+    fi
+    derived+=("${dtarget}=${dsource}")
+    # It was queued as pending when the main loop saw it blank; it is not pending
+    # any more, so drop it or the report would claim it still needs a value.
+    drop_pending "${dtarget}"
   done
 
   # A service with overlays and no recorded COMPOSE_FILE runs only its base file under plain
@@ -466,13 +563,33 @@ process() {
     fi
   fi
 
-  # Reported rather than replaced, with the reason. A sentinel of "abc123"
-  # rather than a real value, so the note names the KEY and not a secret.
+  # Source values that cannot be copied unambiguously.
+  if [ ${#unsafe[@]} -gt 0 ]; then
+    echo "    WARNING - not copied automatically:"
+    printf '      %s\n' ${unsafe[@]+"${unsafe[@]}"}
+  fi
+
+  # A key that is set but is not one of its source's values. Not overwritten -
+  # the source may hold several keys and the operator may have picked another.
+  if [ ${#mismatch[@]} -gt 0 ]; then
+    echo "    WARNING - set, but must match its source key and does not:"
+    printf '      %s\n' ${mismatch[@]+"${mismatch[@]}"}
+  fi
+
+  # Keys copied from another key's value, so the two cannot disagree.
+  if [ ${#derived[@]} -gt 0 ]; then
+    if [ "${MODE}" = write ]; then
+      echo "    copied from their source key so the two match: ${derived[*]}"
+    else
+      echo "    would copy from their source key so the two match: ${derived[*]}"
+    fi
+  fi
+
+  # A placeholder that was NOT replaced: either the service is already running
+  # (a datastore may depend on the value) or the key is not one we generate.
   if [ ${#weak[@]} -gt 0 ]; then
     echo "    still the sample's placeholder - replace before exposing this:"
     printf '      %s\n' ${weak[@]+"${weak[@]}"}
-
-
     if [ "${fresh}" = 0 ]; then
       echo "    (not replaced automatically: this service has already run, and"
       echo "     a datastore may depend on the current value)"
@@ -504,26 +621,6 @@ process() {
     echo "    needs a value you must supply:"
     printf '      %s\n' ${pending_secrets[@]+"${pending_secrets[@]}"}
   fi
-
-  # A key that is set to the sample's placeholder is more dangerous than a
-  # blank one: it looks configured. Report it, but never replace it - it could
-  # be a real password on a machine that is already running.
-  if [ ${#weak[@]} -gt 0 ]; then
-    echo "    still the sample's placeholder - replace before exposing this:"
-    printf '      %s\n' ${weak[@]+"${weak[@]}"}
-  fi
-
-  # Call out the keys that cannot be filled independently, so a blank here is
-  # not mistaken for "optional".
-  # `${related_blank[@]:-}` rather than `${related_blank[@]}`: under `set -u`,
-  # bash 3.2 (which macOS ships) treats an EMPTY array expansion as unbound, so
-  # a service with no related-secret hits would abort the whole run.
-  for entry in ${related_blank[@]+"${related_blank[@]}"}; do
-    rkey="${entry%%|*}"
-    rhint="${entry#*|}"
-    echo "    note: ${rkey} is blank and must match another value —"
-    echo "          ${rhint}"
-  done
 
   if [ ${#filled[@]} -eq 0 ] && [ ${#pending_secrets[@]} -eq 0 ] && [ ${#kept[@]} -gt 0 ]; then
     echo "    nothing to do"

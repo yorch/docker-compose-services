@@ -16,14 +16,24 @@ Workflow automation platform - open-source alternative to Zapier/Make.
 # Dev - publishes ports on localhost
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
-# Dev + n8n Assistant sandbox (opt-in profile) - see "n8n Assistant sandbox" below
-docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile sandbox up -d
+# Dev + n8n Assistant sandbox (opt-in overlay) - see "n8n Assistant sandbox" below
+docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+  -f docker-compose.sandbox.yml up -d
 
 # Behind Traefik - HTTPS through the reverse proxy
 docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml up -d
 
 # Behind Traefik + n8n Assistant sandbox
-docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml --profile sandbox up -d
+docker compose -f docker-compose.yml -f docker-compose.for-traefik.yml \
+  -f docker-compose.sandbox.yml up -d
+```
+
+Recording the mode once makes the long `-f` list unnecessary afterwards. The other
+commands on this page run from this service folder, so `mode.sh` is one level up:
+
+```bash
+../mode.sh . dev sandbox      # or: ../mode.sh . for-traefik sandbox
+docker compose ps             # uses the recorded files
 ```
 
 The Traefik overlay joins an external network that must already exist. Create it
@@ -46,7 +56,8 @@ This setup uses n8n's **queue mode** with external task runners for scalable wor
 ## n8n Assistant sandbox
 
 n8n Assistant can write and run code to answer requests. That code runs in a sandbox
-rather than inside n8n, which is what the optional `sandbox` profile provides:
+rather than inside n8n, which is what the optional `docker-compose.sandbox.yml`
+overlay provides:
 
 | Service            | Purpose                                                              |
 | ------------------ | -------------------------------------------------------------------- |
@@ -55,9 +66,9 @@ rather than inside n8n, which is what the optional `sandbox` profile provides:
 | `sandbox-runner-1` | Runs the sandboxes; a privileged Docker-in-Docker container          |
 | `searxng`          | Web-search backend for Assistant, reached internally by service name |
 
-These services are behind a Compose **profile**, so a plain `up -d` never starts them —
-enable them with `--profile sandbox` as shown above. None of them publishes a port:
-n8n reaches `sandbox-api` by service name over the Compose network.
+These services live in `docker-compose.sandbox.yml`, which the base file never loads:
+a plain `up -d` starts none of them, and no sandbox secret is required for it. None of
+them publishes a port: n8n reaches `sandbox-api` by service name over the Compose network.
 
 > **`sandbox-runner-1` runs `privileged: true`.** Docker-in-Docker needs it, and it
 > is equivalent to root on the host. Never expose it, and do not run it on a host
@@ -71,7 +82,13 @@ n8n:
 N8N_ENABLED_MODULES=instance-ai
 N8N_INSTANCE_AI_MODEL=anthropic/claude-opus-4-8
 N8N_INSTANCE_AI_MODEL_API_KEY=sk-ant-xxx
+N8N_INSTANCE_AI_SANDBOX_ENABLED=true
+N8N_INSTANCE_AI_SANDBOX_PROVIDER=n8n-sandbox
 ```
+
+`N8N_INSTANCE_AI_SANDBOX_PROVIDER=n8n-sandbox` is what selects this bundled sandbox;
+the URL and key are already in the sample. Assistant needs the sandbox overlay running
+as well, or every code-execution request fails at the service lookup.
 
 Assistant stays inert until a model is configured. For a production instance n8n
 recommends a hosted sandbox provider (Daytona) over this bundled one, which is
@@ -81,44 +98,55 @@ aimed at local development and testing.
 
 Generate each of these with `openssl rand -hex 32`:
 
-| Variable                                | Description                                                  |
-| --------------------------------------- | ------------------------------------------------------------ |
-| `SANDBOX_API_KEYS`                      | API keys `sandbox-api` accepts                               |
-| `SANDBOX_API_RUNNER_REGISTRATION_TOKEN` | Shared secret the runner registers with                      |
-| `SANDBOX_API_RUNNER_API_KEY`            | Key the runner uses against the API                          |
-| `N8N_SANDBOX_SERVICE_API_KEY`           | How n8n authenticates; must match a `SANDBOX_API_KEYS` value |
-| `SEARXNG_SECRET`                        | SearXNG session secret                                       |
+| Variable                                | Description                                                        |
+| --------------------------------------- | ------------------------------------------------------------------ |
+| `SANDBOX_API_KEYS`                      | API keys `sandbox-api` accepts                                     |
+| `SANDBOX_API_RUNNER_REGISTRATION_TOKEN` | Shared secret the runner registers with                            |
+| `SANDBOX_API_RUNNER_API_KEY`            | Key the runner uses against the API (one value feeds both sides)   |
+| `N8N_SANDBOX_SERVICE_API_KEY`           | How n8n authenticates; `setup-env.sh` copies it from the first key |
+| `SEARXNG_SECRET`                        | SearXNG session secret                                             |
+
+`../setup-env.sh .` fills all five (from the repository root, `./setup-env.sh n8n`).
+`N8N_SANDBOX_SERVICE_API_KEY` is not generated independently on purpose: it must
+equal a value in `SANDBOX_API_KEYS`, so the script copies the first key across
+instead of inventing a value the API would reject. The first member is copied
+verbatim, quotes included, so Compose parses both lines the same way even when the
+key contains a `$`. A list with whitespace around its commas is refused: whether
+the API trims those spaces is not something the script can know, and guessing
+would give the two containers different keys.
 
 The sandbox containers deliberately receive **only** the variables they need —
 the n8n encryption key, the database password and the model API key never reach
 them.
 
 The mTLS certificates under the `sandbox-tls` volume are generated on first start
-and **do not auto-renew**. To regenerate, remove the volume and bring the profile
-back up:
+and **do not auto-renew**. To regenerate, stop the stack and let Compose remove
+its own volume - naming the volume directly would assume the default Compose
+project name and miss it when `COMPOSE_PROJECT_NAME` is set:
 
 ```bash
-docker compose --profile sandbox down
-docker volume rm n8n_sandbox-tls
+docker compose -f docker-compose.yml -f docker-compose.sandbox.yml down --volumes
+docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+  -f docker-compose.sandbox.yml up -d
 ```
 
 ## Services
 
-| Service            | Description                                    |
-| ------------------ | ---------------------------------------------- |
-| `main`             | Main n8n application                           |
-| `worker`           | Queue worker for executions                    |
-| `runners`          | External task runners (JS/Python)              |
-| `db`               | PostgreSQL database                            |
-| `qdrant`           | Vector database for AI                         |
-| `redis`            | Cache and job queues                           |
-| `adminer`          | Database admin UI                              |
-| `redisinsight`     | Redis admin UI                                 |
-| `auto-update`      | Watchtower auto-updates                        |
-| `sandbox-certs`    | Sandbox mTLS bootstrap, profile `sandbox` only |
-| `sandbox-api`      | Sandbox control plane, profile `sandbox` only  |
-| `sandbox-runner-1` | Privileged sandbox runner, profile `sandbox`   |
-| `searxng`          | Assistant web search, profile `sandbox` only   |
+| Service            | Description                                  |
+| ------------------ | -------------------------------------------- |
+| `main`             | Main n8n application                         |
+| `worker`           | Queue worker for executions                  |
+| `runners`          | External task runners (JS/Python)            |
+| `db`               | PostgreSQL database                          |
+| `qdrant`           | Vector database for AI                       |
+| `redis`            | Cache and job queues                         |
+| `adminer`          | Database admin UI                            |
+| `redisinsight`     | Redis admin UI                               |
+| `auto-update`      | Watchtower auto-updates                      |
+| `sandbox-certs`    | Sandbox mTLS bootstrap, sandbox overlay only |
+| `sandbox-api`      | Sandbox control plane, sandbox overlay only  |
+| `sandbox-runner-1` | Privileged sandbox runner, sandbox overlay   |
+| `searxng`          | Assistant web search, sandbox overlay only   |
 
 ## Environment Variables
 
@@ -173,29 +201,42 @@ docker volume rm n8n_sandbox-tls
 | ------------------ | --------------------- | ------- |
 | `WATCHTOWER_SCOPE` | Watchtower scope name | -       |
 
+### Traefik and Dev Overlay
+
+| Variable                   | Description                                                                  | Default     |
+| -------------------------- | ---------------------------------------------------------------------------- | ----------- |
+| `DOMAIN`                   | Hostname Traefik routes to n8n                                               | -           |
+| `DOMAIN_ADMINER`           | Hostname for the adminer UI                                                  | -           |
+| `DOMAIN_REDISINSIGHT`      | Hostname for the redisinsight UI                                             | -           |
+| `BASIC_AUTH_USER`          | Username for the Traefik basic auth middleware                               | -           |
+| `BASIC_AUTH_PASSWORD_HASH` | bcrypt hash for that middleware; single-quote it, because it contains `$`    | -           |
+| `DEV_BIND_IP`              | Host interface the dev overlay publishes its datastore and admin-UI ports on | `127.0.0.1` |
+
 ### n8n Assistant Configuration
 
-| Variable                          | Description                               | Default                   |
-| --------------------------------- | ----------------------------------------- | ------------------------- |
-| `N8N_ENABLED_MODULES`             | Set to `instance-ai` to enable Assistant  | -                         |
-| `N8N_INSTANCE_AI_MODEL`           | Model identifier for Assistant            | -                         |
-| `N8N_INSTANCE_AI_MODEL_API_KEY`   | API key for that model's provider         | -                         |
-| `N8N_INSTANCE_AI_SANDBOX_ENABLED` | Route Assistant code execution to sandbox | `false`                   |
-| `N8N_INSTANCE_AI_SANDBOX_API_URL` | Sandbox API address                       | `http://sandbox-api:8080` |
-| `N8N_SANDBOX_VERSION`             | Sandbox image version for all three       | `1.11.0`                  |
-| `N8N_INSTANCE_AI_SEARXNG_URL`     | SearXNG address for Assistant web search  | `http://searxng:8080`     |
+| Variable                           | Description                                      | Default                   |
+| ---------------------------------- | ------------------------------------------------ | ------------------------- |
+| `N8N_ENABLED_MODULES`              | Set to `instance-ai` to enable Assistant         | -                         |
+| `N8N_INSTANCE_AI_MODEL`            | Model identifier for Assistant                   | -                         |
+| `N8N_INSTANCE_AI_MODEL_API_KEY`    | API key for that model's provider                | -                         |
+| `N8N_INSTANCE_AI_SANDBOX_ENABLED`  | Route Assistant code execution to sandbox        | `false`                   |
+| `N8N_INSTANCE_AI_SANDBOX_PROVIDER` | Sandbox provider; `n8n-sandbox` for this overlay | `n8n-sandbox`             |
+| `N8N_SANDBOX_SERVICE_URL`          | Sandbox API address                              | `http://sandbox-api:8080` |
+| `N8N_SANDBOX_SERVICE_API_KEY`      | How n8n authenticates to the sandbox             | -                         |
+| `N8N_SANDBOX_VERSION`              | Sandbox image version for all three              | `1.11.0`                  |
+| `N8N_INSTANCE_AI_SEARXNG_URL`      | SearXNG address for Assistant web search         | `http://searxng:8080`     |
 
 ## Volumes
 
-| Host Path             | Container Path             | Description                                          |
-| --------------------- | -------------------------- | ---------------------------------------------------- |
-| `./data/n8n`          | `/home/node/.n8n`          | n8n data                                             |
-| `./data/files`        | `/files`                   | Shared files                                         |
-| `./data/postgres`     | `/var/lib/postgresql/data` | Database data                                        |
-| `./data/qdrant`       | `/qdrant/storage`          | Vector data                                          |
-| `./data/redis`        | `/data`                    | Redis data                                           |
-| `./data/redisinsight` | `/data`                    | RedisInsight data                                    |
-| `sandbox-tls`         | `/tls`                     | Sandbox mTLS certs (named volume, profile `sandbox`) |
+| Host Path             | Container Path             | Description                                        |
+| --------------------- | -------------------------- | -------------------------------------------------- |
+| `./data/n8n`          | `/home/node/.n8n`          | n8n data                                           |
+| `./data/files`        | `/files`                   | Shared files                                       |
+| `./data/postgres`     | `/var/lib/postgresql/data` | Database data                                      |
+| `./data/qdrant`       | `/qdrant/storage`          | Vector data                                        |
+| `./data/redis`        | `/data`                    | Redis data                                         |
+| `./data/redisinsight` | `/data`                    | RedisInsight data                                  |
+| `sandbox-tls`         | `/tls`                     | Sandbox mTLS certs (named volume, sandbox overlay) |
 
 ## AI Features
 
