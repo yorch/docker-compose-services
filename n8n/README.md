@@ -106,21 +106,26 @@ Generate each of these with `openssl rand -hex 32`:
 | `N8N_SANDBOX_SERVICE_API_KEY`           | How n8n authenticates; `setup-env.sh` copies it from the first key |
 | `SEARXNG_SECRET`                        | SearXNG session secret                                             |
 
-`./setup-env.sh n8n` fills all five. `N8N_SANDBOX_SERVICE_API_KEY` is not generated
-independently on purpose: it must equal a value in `SANDBOX_API_KEYS`, so the script
-copies the first key across instead of inventing a value the API would reject.
+`../setup-env.sh .` fills all five (from the repository root, `./setup-env.sh n8n`).
+`N8N_SANDBOX_SERVICE_API_KEY` is not generated independently on purpose: it must
+equal a value in `SANDBOX_API_KEYS`, so the script copies the first key across
+instead of inventing a value the API would reject. If that key holds characters
+Compose would reinterpret, such as `$`, the script refuses and says so rather than
+writing a value the API and n8n would read differently.
 
 The sandbox containers deliberately receive **only** the variables they need —
 the n8n encryption key, the database password and the model API key never reach
 them.
 
 The mTLS certificates under the `sandbox-tls` volume are generated on first start
-and **do not auto-renew**. To regenerate, remove the volume and bring the overlay
-back up:
+and **do not auto-renew**. To regenerate, stop the stack and let Compose remove
+its own volume - naming the volume directly would assume the default Compose
+project name and miss it when `COMPOSE_PROJECT_NAME` is set:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.sandbox.yml down
-docker volume rm n8n_sandbox-tls
+docker compose -f docker-compose.yml -f docker-compose.sandbox.yml down --volumes
+docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+  -f docker-compose.sandbox.yml up -d
 ```
 
 ## Services

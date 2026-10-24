@@ -318,6 +318,21 @@ DERIVE_FROM=(
   "N8N_SANDBOX_SERVICE_API_KEY=SANDBOX_API_KEYS"
 )
 
+# Can this value be copied into .env verbatim? Compose interpolates `$` inside an
+# unquoted .env value and treats `#` as a comment start, and quotes are consumed,
+# so copying such a value would give the two containers different values. The
+# generated secrets here are hex and always safe; an operator-supplied key that is
+# not is reported instead of copied.
+is_compose_safe() {
+  case "$1" in
+    *'$'* | *"'"* | *'"'* | *'#'*) return 1 ;;
+  esac
+  case "$1" in
+    *[[:space:]]*) return 1 ;;
+  esac
+  return 0
+}
+
 # Remove one key from the pending array. bash has no delete-by-value, and the
 # array is local to process(), which this reaches through dynamic scoping.
 drop_pending() {
@@ -338,7 +353,7 @@ process() {
   local -a keys=()
   local entry key secret_ish val dtarget dsource dvalue
   local dcurrent drest dmatches dtoken in_sample skey
-  local -a mismatch=()
+  local -a mismatch=() unsafe=()
   # Reset per service: set below to .env, or to .env.sample in check mode when
   # there is no .env to inspect.
   ENVFILE=""
@@ -465,12 +480,19 @@ process() {
       while [ -n "${drest}" ]; do
         dtoken="${drest%%,*}"
         drest="${drest#*,}"
+        dtoken="$(printf '%s' "${dtoken}" | tr -d '[:space:]')"
         if [ "${dtoken}" = "${dcurrent}" ]; then
           dmatches=1
           break
         fi
       done
-      [ "${dmatches}" = 1 ] || mismatch+=("${dtarget} is not any value in ${dsource}")
+      if ! is_compose_safe "${dcurrent}"; then
+        mismatch+=("${dtarget} contains characters Compose reinvents - quote or escape it by hand")
+      elif [ "${dmatches}" = 1 ]; then
+        :
+      else
+        mismatch+=("${dtarget} is not any value in ${dsource}")
+      fi
       continue
     fi
 
@@ -482,9 +504,13 @@ process() {
       continue
     fi
 
-    dvalue="${dvalue%%,*}" # first entry, when the source is a comma-separated list
+    dvalue="$(printf '%s' "${dvalue%%,*}" | tr -d '[:space:]')" # first entry of the list
     if [ -z "${dvalue}" ]; then
       pending+=("${dtarget}")
+      continue
+    fi
+    if ! is_compose_safe "${dvalue}"; then
+      unsafe+=("${dtarget} cannot be copied from ${dsource}: quote or escape it by hand")
       continue
     fi
     if [ "${MODE}" = write ]; then
@@ -536,6 +562,12 @@ process() {
     else
       echo "    would replace the sample's placeholder (fresh install): ${rotated[*]}"
     fi
+  fi
+
+  # Values that must not be copied verbatim, with the reason.
+  if [ ${#unsafe[@]} -gt 0 ]; then
+    echo "    WARNING - not copied automatically:"
+    printf '      %s\n' ${unsafe[@]+"${unsafe[@]}"}
   fi
 
   # A key that is set but is not one of its source's values. Not overwritten -
