@@ -318,19 +318,11 @@ DERIVE_FROM=(
   "N8N_SANDBOX_SERVICE_API_KEY=SANDBOX_API_KEYS"
 )
 
-# Can this value be copied into .env verbatim? Compose interpolates `$` inside an
-# unquoted .env value and treats `#` as a comment start, and quotes are consumed,
-# so copying such a value would give the two containers different values. The
-# generated secrets here are hex and always safe; an operator-supplied key that is
-# not is reported instead of copied.
-is_compose_safe() {
-  case "$1" in
-    *'$'* | *"'"* | *'"'* | *'#'*) return 1 ;;
-  esac
-  case "$1" in
-    *[[:space:]]*) return 1 ;;
-  esac
-  return 0
+# Strip only the whitespace around a value. Env values may be written with
+# padding around a list separator, and that padding is not part of the value.
+# Nothing else may be normalised: see the derivation pass.
+trim_edges() {
+  printf '%s' "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
 # Remove one key from the pending array. bash has no delete-by-value, and the
@@ -467,50 +459,57 @@ process() {
     done
     [ "${in_sample}" = 1 ] || continue
 
-    dvalue="$(sed -n "s/^${dsource}=//p" "${ENVFILE:-.env}" | head -1 | tr -d "'\"")"
+    # Read the source verbatim. Quotes and whitespace must NOT be stripped: the
+    # member is copied byte-for-byte into the target so both .env lines are parsed
+    # identically. Normalising here is what previously gave Compose one value for
+    # the API and another for n8n - a quoted '$', or a stray quote, is
+    # reinterpreted on one side only.
+    dvalue="$(sed -n "s/^${dsource}=//p" "${ENVFILE:-.env}" | head -1)"
 
     # Already set: leave it alone, but only if it is actually one of the source's
     # values. A stale key from an older .env would otherwise keep failing
     # authentication with nothing to point at. Never overwrite - the source may
     # legitimately hold several keys and the operator may have chosen another.
     if ! is_blank "${dtarget}"; then
-      dcurrent="$(sed -n "s/^${dtarget}=//p" "${ENVFILE:-.env}" | head -1 | tr -d "'\"")"
+      dcurrent="$(sed -n "s/^${dtarget}=//p" "${ENVFILE:-.env}" | head -1)"
       drest="${dvalue},"
       dmatches=0
       while [ -n "${drest}" ]; do
         dtoken="${drest%%,*}"
         drest="${drest#*,}"
-        dtoken="$(printf '%s' "${dtoken}" | tr -d '[:space:]')"
+        dtoken="$(trim_edges "${dtoken}")"
         if [ "${dtoken}" = "${dcurrent}" ]; then
           dmatches=1
           break
         fi
       done
-      if ! is_compose_safe "${dcurrent}"; then
-        mismatch+=("${dtarget} contains characters Compose reinvents - quote or escape it by hand")
-      elif [ "${dmatches}" = 1 ]; then
-        :
-      else
-        mismatch+=("${dtarget} is not any value in ${dsource}")
-      fi
+      [ "${dmatches}" = 1 ] || mismatch+=("${dtarget} is not any value in ${dsource}")
       continue
     fi
 
+    # Whitespace around a comma makes the member boundaries ambiguous: whether the
+    # API trims it is its business, and guessing wrong produces two different
+    # keys. Refuse rather than pick.
+    case "${dvalue}" in
+      *,*)
+        if printf '%s' "${dvalue}" | grep -qE '[[:space:]],|,[[:space:]]|^[[:space:]]|[[:space:]]$'; then
+          unsafe+=("${dsource} has whitespace around its commas; remove it, or set ${dtarget} by hand")
+          continue
+        fi
+        ;;
+    esac
+
     # A blank source that this repo generates means a real run makes it and then
     # derives the target, so report it as derived rather than as needing a value.
-    if [ -z "${dvalue}" ] && is_generatable "${dsource}"; then
+    if [ -z "$(trim_edges "${dvalue}")" ] && is_generatable "${dsource}"; then
       derived+=("${dtarget}=${dsource}")
       drop_pending "${dtarget}"
       continue
     fi
 
-    dvalue="$(printf '%s' "${dvalue%%,*}" | tr -d '[:space:]')" # first entry of the list
+    dvalue="$(trim_edges "${dvalue%%,*}")" # first member, edges trimmed only
     if [ -z "${dvalue}" ]; then
       pending+=("${dtarget}")
-      continue
-    fi
-    if ! is_compose_safe "${dvalue}"; then
-      unsafe+=("${dtarget} cannot be copied from ${dsource}: quote or escape it by hand")
       continue
     fi
     if [ "${MODE}" = write ]; then
@@ -564,7 +563,7 @@ process() {
     fi
   fi
 
-  # Values that must not be copied verbatim, with the reason.
+  # Source values that cannot be copied unambiguously.
   if [ ${#unsafe[@]} -gt 0 ]; then
     echo "    WARNING - not copied automatically:"
     printf '      %s\n' ${unsafe[@]+"${unsafe[@]}"}

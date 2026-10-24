@@ -109,9 +109,11 @@ Generate each of these with `openssl rand -hex 32`:
 `../setup-env.sh .` fills all five (from the repository root, `./setup-env.sh n8n`).
 `N8N_SANDBOX_SERVICE_API_KEY` is not generated independently on purpose: it must
 equal a value in `SANDBOX_API_KEYS`, so the script copies the first key across
-instead of inventing a value the API would reject. If that key holds characters
-Compose would reinterpret, such as `$`, the script refuses and says so rather than
-writing a value the API and n8n would read differently.
+instead of inventing a value the API would reject. The first member is copied
+verbatim, quotes included, so Compose parses both lines the same way even when the
+key contains a `$`. A list with whitespace around its commas is refused: whether
+the API trims those spaces is not something the script can know, and guessing
+would give the two containers different keys.
 
 The sandbox containers deliberately receive **only** the variables they need —
 the n8n encryption key, the database password and the model API key never reach
