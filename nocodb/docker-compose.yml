@@ -22,10 +22,10 @@ services:
       - NC_S3_ACCESS_SECRET=${NC_S3_ACCESS_SECRET}
 
   db:
-    image: postgres:14-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
