@@ -6,7 +6,7 @@ Self-hosted URL shortener.
 
 - Short URL generation
 - Custom slugs
-- QR code generation
+- QR codes in the web client
 - Visit tracking and analytics
 - API-driven
 - Multiple domains support
@@ -51,6 +51,7 @@ API on `https://${SHLINK_DOMAIN}`, web client on `https://web.${SHLINK_DOMAIN}`.
 | `GEOLITE_LICENSE_KEY`   | MaxMind key for visit geolocation; empty disables it               | No       |
 | `IS_HTTPS_ENABLED`      | Generate `https://` short URLs (default `true`)                    | No       |
 | `ANONYMIZE_REMOTE_ADDR` | Anonymize visitor IPs (default `true`)                             | No       |
+| `TRUSTED_PROXIES`       | Proxies in front of Shlink; Traefik overlay defaults to `1`        | No       |
 
 ## Volumes
 
@@ -74,6 +75,15 @@ The web client is a static app that runs in your browser. It is **not** preconfi
 a server: doing so would publish `SHLINK_SERVER_API_KEY` to every visitor in
 `servers.json`. Open the web client, choose _Add a server_, and enter the API URL and
 `INITIAL_API_KEY` once. The key is stored in that browser only.
+
+## Upgrading
+
+Shlink 5 applies its database migrations on startup. Two behaviour changes matter here:
+
+- Proxy detection is no longer automatic. Set `TRUSTED_PROXIES` so visits are attributed
+  to the client instead of the proxy; the Traefik overlay defaults it to `1`.
+- QR code generation moved from the server to the web client, which still renders QR
+  codes for existing short URLs.
 
 ## Links
 
