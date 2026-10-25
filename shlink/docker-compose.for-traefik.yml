@@ -3,6 +3,10 @@ services:
     networks:
       - default
       - traefik
+    environment:
+      # Shlink 5 no longer detects proxies automatically. Trust the single Traefik
+      # hop so visit analytics record the client IP instead of the proxy's.
+      - TRUSTED_PROXIES=${TRUSTED_PROXIES:-1}
     labels:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
