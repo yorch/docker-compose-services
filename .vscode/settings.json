@@ -86,6 +86,8 @@
     "oras",
     "otlp",
     "penpot",
+    "pg_dumpall",
+    "pg_upgrade",
     "pgdata",
     "pgvector",
     "pipefail",
