@@ -92,6 +92,7 @@
     "pocketbase",
     "podman",
     "postgresdb",
+    "preinstall",
     "promtail",
     "puppysignal",
     "qbittorrent",
@@ -142,6 +143,7 @@
     "woodpecker",
     "woodpeckerci",
     "wyze",
+    "yesoreyeram",
     "yorch",
     "zot",
     "zotregistry"

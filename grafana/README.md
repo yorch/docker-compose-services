@@ -39,7 +39,7 @@ Default credentials: `admin` / `admin`
 | `GF_SERVER_ROOT_URL`         | Full public URL         | -       |
 | `GF_SECURITY_ADMIN_USER`     | Admin username          | `admin` |
 | `GF_SECURITY_ADMIN_PASSWORD` | Admin password          | `admin` |
-| `GF_INSTALL_PLUGINS`         | Plugins to auto-install | -       |
+| `GF_PLUGINS_PREINSTALL`      | Plugins to auto-install | -       |
 
 ### Google OAuth (Optional)
 
@@ -58,12 +58,17 @@ Default credentials: `admin` / `admin`
 
 ## Installing Plugins
 
-Set the `GF_INSTALL_PLUGINS` environment variable:
+Set the `GF_PLUGINS_PREINSTALL` environment variable:
 
 ```yaml
 environment:
-  - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel
+  - GF_PLUGINS_PREINSTALL=grafana-clock-panel,yesoreyeram-infinity-datasource
 ```
+
+Grafana 12 removed AngularJS plugin support, so `grafana-simple-json-datasource` no
+longer loads; Infinity is Grafana's recommended JSON replacement. Grafana 13 also
+deprecated `GF_INSTALL_PLUGINS` — the sample uses `GF_PLUGINS_PREINSTALL`, which installs
+in the background and does not stop the server when the plugin registry is unreachable.
 
 Or install manually:
 

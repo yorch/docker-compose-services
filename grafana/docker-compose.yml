@@ -1,6 +1,6 @@
 services:
   grafana:
-    image: grafana/grafana-oss:10.4.19
+    image: grafana/grafana-oss:13.0.2
     restart: unless-stopped
     # https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#override-configuration-with-environment-variables
     environment:
@@ -13,6 +13,6 @@ services:
       - GF_AUTH_GOOGLE_CLIENT_ID=${GF_AUTH_GOOGLE_CLIENT_ID}
       - GF_AUTH_GOOGLE_CLIENT_SECRET=${GF_AUTH_GOOGLE_CLIENT_SECRET}
       - GF_AUTH_GOOGLE_ALLOW_SIGN_UP=${GF_AUTH_GOOGLE_ALLOW_SIGN_UP}
-      - GF_INSTALL_PLUGINS=${GF_INSTALL_PLUGINS}
+      - GF_PLUGINS_PREINSTALL=${GF_PLUGINS_PREINSTALL:-}
     volumes:
       - ./data:/var/lib/grafana
