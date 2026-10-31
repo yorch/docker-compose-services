@@ -1,0 +1,8 @@
+# Cron jobs source /etc/cron.env (written at container startup).
+#
+# Email sync heartbeat - every 5 min; runEmailSync honours each mailbox's UI
+# sync frequency.
+*/5 * * * * set -a; . /etc/cron.env; cd /app && npm run email:sync >> /var/log/cron.log 2>&1
+
+# Rotate the log when it grows past 10 MB.
+0 0 * * * find /var/log -name "cron.log*" -size +10M -delete
