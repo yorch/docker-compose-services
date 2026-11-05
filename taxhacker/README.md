@@ -14,6 +14,18 @@ Self-hosted AI accounting app that reads receipts, invoices and bank statements 
 
 ## Quick Start
 
+Create `.env` first - the compose file refuses to start without the database
+password and the auth secret, and the Traefik overlay also needs basic-auth
+credentials:
+
+```bash
+../setup-env.sh taxhacker   # from the repo root: ./setup-env.sh taxhacker
+```
+
+It generates `POSTGRES_PASSWORD` and `BETTER_AUTH_SECRET` and reports the
+optional values it cannot fill (the LLM API keys). `cp .env.sample .env` works
+too if you would rather fill everything in by hand.
+
 ```bash
 # Dev - publishes ports on localhost
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
@@ -87,13 +99,15 @@ All optional, and all overridable in the app's settings.
 
 ## Volumes
 
-| Host Path         | Container Path        | Description                               |
-| ----------------- | --------------------- | ----------------------------------------- |
-| `./data/app`      | `/app/data`           | Uploaded documents, previews, auth secret |
-| `./data/postgres` | `/var/lib/postgresql` | PostgreSQL 18 cluster                     |
+| Host Path         | Container Path        | Description                  |
+| ----------------- | --------------------- | ---------------------------- |
+| `./data/app`      | `/app/data`           | Uploaded documents, previews |
+| `./data/postgres` | `/var/lib/postgresql` | PostgreSQL 18 cluster        |
 
 Back up `./data/app` together with a `pg_dump` of `postgres` - the ledger rows
-and the files they point at only make sense as a pair.
+and the files they point at only make sense as a pair. Keep the
+`BETTER_AUTH_SECRET` from `.env` as well: it encrypts the mailbox passwords
+stored in the database, and a restore without it leaves them unreadable.
 
 ## Notes
 
@@ -101,6 +115,10 @@ and the files they point at only make sense as a pair.
   basic-auth middleware from `docker-compose.for-traefik.yml` in place, or set
   the flag to `false` and create the user by hand (upstream's
   `docs/self-hosted-public-access.md`) if the instance faces the internet.
+- The dev overlay publishes port 7331 on every host interface, because the app
+  is the product rather than a sidecar. With self-hosted mode on there is no
+  login, so only run it on a network you trust - or on a machine whose firewall
+  keeps 7331 private.
 - The `cron` container reads its schedule from `etc/crontab`. Editing that file
   needs a `docker compose restart cron`, not just a save.
 
