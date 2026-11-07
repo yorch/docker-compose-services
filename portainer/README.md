@@ -28,7 +28,24 @@ once per host:
 ../traefik3/setup.sh   # docker network create traefik
 ```
 
-Access Portainer at `http://localhost:9000`
+Access Portainer at `http://localhost:9000` (dev, loopback only).
+
+Portainer has root-equivalent access to the Docker host, and until the first admin is
+created anyone who reaches it can claim it. Behind Traefik it therefore also requires
+basic auth. Generate the hash with:
+
+```bash
+docker run --rm httpd:2.4-alpine htpasswd -nbB admin 'your-password' | cut -d: -f2
+```
+
+## Environment Variables
+
+| Variable                   | Description                                   | Required |
+| -------------------------- | --------------------------------------------- | -------- |
+| `HOST`                     | Hostname Traefik routes to Portainer          | Traefik  |
+| `BASIC_AUTH_USER`          | Basic-auth user                               | Traefik  |
+| `BASIC_AUTH_PASSWORD_HASH` | bcrypt hash for that user, single-quoted      | Traefik  |
+| `DEV_BIND_IP`              | Host interface for the dev port (`127.0.0.1`) | No       |
 
 ## First-Time Setup
 
