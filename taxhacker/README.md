@@ -117,8 +117,11 @@ stored in the database, and a restore without it leaves them unreadable.
   `docs/self-hosted-public-access.md`) if the instance faces the internet.
 - The dev overlay publishes port 7331 on every host interface, because the app
   is the product rather than a sidecar. With self-hosted mode on there is no
-  login, so only run it on a network you trust - or on a machine whose firewall
-  keeps 7331 private.
+  login, so only run it on a network you trust. A host firewall is not a safety
+  net for that: Docker publishes ports ahead of UFW and firewalld rules, so
+  blocking 7331 there has no effect. To keep the port loopback-only, change the
+  `app` mapping in `docker-compose.dev.yml` to
+  `${DEV_BIND_IP:-127.0.0.1}:7331:7331`.
 - The `cron` container reads its schedule from `etc/crontab`. Editing that file
   needs a `docker compose restart cron`, not just a save.
 
