@@ -1,0 +1,73 @@
+x-environment: &default-environment
+  - NODE_ENV=production
+  - PORT=7331
+  - BASE_URL=${BASE_URL:-http://localhost:7331}
+  # Self-hosted mode turns off TaxHacker's own login (see .env.sample)
+  - SELF_HOSTED_MODE=${SELF_HOSTED_MODE:-true}
+  - DISABLE_SIGNUP=${DISABLE_SIGNUP:-true}
+  - UPLOAD_PATH=/app/data/uploads
+  - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env, generate one with openssl rand -hex 24}@postgres:5432/${POSTGRES_DB:-taxhacker}
+  - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env, generate one with openssl rand -hex 32}
+  - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+  - OPENAI_MODEL_NAME=${OPENAI_MODEL_NAME:-gpt-4o-mini}
+  - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+  - GOOGLE_MODEL_NAME=${GOOGLE_MODEL_NAME:-gemini-2.5-flash}
+  - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+  - MISTRAL_MODEL_NAME=${MISTRAL_MODEL_NAME:-mistral-medium-latest}
+
+services:
+  app:
+    image: ghcr.io/vas3k/taxhacker:${TAXHACKER_VERSION:-0.8.5}
+    restart: unless-stopped
+    environment: *default-environment
+    volumes:
+      - ./data/app:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # The image has no curl or wget, so probe with node. The app's entrypoint
+      # runs `prisma migrate deploy` before listening, so a live port implies a
+      # reachable database.
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:7331/', { redirect: 'manual' }).then((res) => process.exit(res.status < 500 ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # Mailbox sync heartbeat for the email importer. Same image as the app, so it
+  # also inherits the entrypoint's migration run - hold it back until the app
+  # is healthy so the two never migrate the same database at the same time.
+  cron:
+    image: ghcr.io/vas3k/taxhacker:${TAXHACKER_VERSION:-0.8.5}
+    restart: unless-stopped
+    command: ['docker-cron-entrypoint.sh']
+    environment: *default-environment
+    volumes:
+      - ./data/app:/app/data
+      - ./etc/crontab:/mnt/crontab:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-taxhacker}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env, generate one with openssl rand -hex 24}
+    volumes:
+      # Postgres 18 keeps its cluster in /var/lib/postgresql, not .../data
+      - ./data/postgres:/var/lib/postgresql
+    healthcheck:
+      test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 5s
+      retries: 10

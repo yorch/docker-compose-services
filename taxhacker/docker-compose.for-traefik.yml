@@ -1,0 +1,22 @@
+services:
+  app:
+    networks:
+      - default
+      - traefik
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      # SELF_HOSTED_MODE=true disables TaxHacker's own login, so this middleware
+      # is the only thing in front of the ledger. It is not optional.
+      - 'traefik.http.routers.taxhacker.middlewares=taxhacker-auth'
+      - 'traefik.http.middlewares.taxhacker-auth.basicauth.users=${BASIC_AUTH_USER:?Variable BASIC_AUTH_USER not set}:${BASIC_AUTH_PASSWORD_HASH:?generate with htpasswd -nbB, see README}'
+      - 'traefik.http.services.taxhacker.loadbalancer.server.port=7331'
+      - 'traefik.http.routers.taxhacker.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.taxhacker.entrypoints=websecure'
+      - 'traefik.http.routers.taxhacker.tls=true'
+      - 'traefik.http.routers.taxhacker.tls.certResolver=webcert'
+      - 'traefik.http.routers.taxhacker.service=taxhacker'
+
+networks:
+  traefik:
+    external: true
