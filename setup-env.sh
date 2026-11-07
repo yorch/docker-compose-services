@@ -614,6 +614,11 @@ process() {
       *_USERNAME | *_AUTH_USER | *_EMAIL) pending_secrets+=("${key}") ;;
       *_AUTH |*_AUTH_URL |*_AUTHENTICATION | *_ISSUER) pending_secrets+=("${key}") ;;
       SMTP_CONNECTION_URL | SMTP_ADDRESS | BASE_URL | SERVER_URL |*_URL) pending_secrets+=("${key}") ;;
+      # A basic-auth hash (BASIC_AUTH_PASSWORD_HASH). We never generate it - it
+      # has to come out of htpasswd - but a blank one stops the Traefik overlay
+      # from starting just as hard as a blank password, so it is reported.
+      # HASHED_PASSWORD and DASHBOARD_HASHED_PASSWORD already match *_PASSWORD.
+      *_HASH) pending_secrets+=("${key}") ;;
     esac
   done
 
