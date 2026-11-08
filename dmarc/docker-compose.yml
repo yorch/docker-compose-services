@@ -1,0 +1,18 @@
+services:
+  dmarc:
+    image: python:3.13-alpine
+    restart: unless-stopped
+    # No ports and no networks: this service only makes outbound IMAP
+    # connections and writes summaries to ./data.
+    environment:
+      - IMAP_HOST=${IMAP_HOST:?Set IMAP_HOST}
+      - IMAP_PORT=${IMAP_PORT:-993}
+      - IMAP_USER=${IMAP_USER:?Set IMAP_USER}
+      - IMAP_PASSWORD=${IMAP_PASSWORD:?Set IMAP_PASSWORD}
+      - IMAP_MAILBOX=${IMAP_MAILBOX:-INBOX}
+      - DMARC_INTERVAL_SECONDS=${DMARC_INTERVAL_SECONDS:-86400}
+      - DMARC_JSON_DIR=/app/data
+    volumes:
+      - ./dmarc-report.py:/app/dmarc-report.py:ro
+      - ./data:/app/data
+    command: ['python3', '/app/dmarc-report.py', '--loop']

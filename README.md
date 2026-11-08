@@ -95,6 +95,7 @@ yarn update-readme   # regenerate the services table below
 | [Couchdb](./couchdb)                             | Apache CouchDB - a NoSQL document database with HTTP API and built-in replication.                                                      |
 | [Countly](./countly)                             | Product analytics platform for mobile, web, and desktop applications.                                                                   |
 | [Datalust Seq](./datalust-seq)                   | Centralized structured log server with powerful search and analysis capabilities.                                                       |
+| [Dmarc](./dmarc)                                 | Turns DMARC aggregate reports into a readable summary of who sends as your domain.                                                      |
 | [Docker Registry](./docker-registry)             | Private Docker registry with web UI and authentication.                                                                                 |
 | [Dokku](./dokku)                                 | Docker-powered PaaS that helps you build and manage the lifecycle of applications.                                                      |
 | [Errbit](./errbit)                               | Open-source error catcher compatible with the Airbrake API for exception tracking.                                                      |
