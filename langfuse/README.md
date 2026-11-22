@@ -153,17 +153,27 @@ Optional.
 
 ## Volumes
 
-| Host Path                | Container Path               | Description              |
-| ------------------------ | ---------------------------- | ------------------------ |
-| `./data/postgres`        | `/var/lib/postgresql/data`   | Accounts and projects    |
-| `./data/clickhouse/data` | `/var/lib/clickhouse`        | Traces and observations  |
-| `./data/clickhouse/logs` | `/var/log/clickhouse-server` | ClickHouse server logs   |
-| `./data/redis`           | `/data`                      | Ingestion queue          |
-| `./data/seaweedfs`       | `/data`                      | Event payloads and media |
+| Host Path                         | Container Path                                | Description                 |
+| --------------------------------- | --------------------------------------------- | --------------------------- |
+| `./data/postgres`                 | `/var/lib/postgresql/data`                    | Accounts and projects       |
+| `./data/clickhouse/data`          | `/var/lib/clickhouse`                         | Traces and observations     |
+| `./data/clickhouse/logs`          | `/var/log/clickhouse-server`                  | ClickHouse server logs      |
+| `./data/redis`                    | `/data`                                       | Ingestion queue             |
+| `./data/seaweedfs`                | `/data`                                       | Event payloads and media    |
+| `./config/clickhouse/logging.xml` | `/etc/clickhouse-server/config.d/logging.xml` | ClickHouse logging override |
 
 Redis is persisted deliberately. It is the queue between `web` and `worker`,
 not a cache, and it runs with `--maxmemory-policy noeviction` so queued
 ingestion jobs are not dropped under memory pressure.
+
+`config/clickhouse/logging.xml` turns ClickHouse's own `system.*_log` tables off
+and drops its logger to `warning`. The defaults are a merge feedback loop on a
+small host: the server logs at `trace` into `system.text_log`, records profiler
+spans for its own background merges in `system.trace_log`, and merging those
+tables writes more rows into them. Once they outgrow the container memory
+limit, merges fail with `MEMORY_LIMIT_EXCEEDED` and retry forever, burning CPU
+on a table nobody queries. `rybbit/` and `plausible-analytics/` ship the same
+treatment.
 
 ## Upgrading
 
