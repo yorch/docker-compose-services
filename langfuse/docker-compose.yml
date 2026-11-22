@@ -74,6 +74,17 @@ services:
         condition: service_completed_successfully
     environment:
       <<: *langfuse-env
+      # Required, and the reason this stack 502s behind Traefik without it.
+      # The image runs Next.js standalone, which binds to $HOSTNAME, and Docker
+      # sets HOSTNAME to the container id. Docker also maps that id in
+      # /etc/hosts to one address per attached network, the first being
+      # `default`, so the server ends up listening on the langfuse_default IP
+      # only. Traefik reaches the container over the `traefik` network, gets a
+      # connection refused, and answers 502 - while the same stack works fine
+      # over its dev overlay, where nothing crosses a network boundary. 0.0.0.0
+      # makes it listen on every interface. Upstream sets it for the same
+      # reason.
+      HOSTNAME: '0.0.0.0'
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?signs session cookies, generate one with openssl rand -base64 32}
       # Presigned media URLs are opened by the browser, so this one address has
       # to be resolvable from outside the compose network. Everything else
@@ -194,7 +205,18 @@ services:
     # path-style addressing and presigned URLs - is stable across 3.x and 4.x.
     image: chrislusf/seaweedfs:4.48
     restart: unless-stopped
-    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    # -ip.bind=0.0.0.0 is required, not cosmetic. SeaweedFS defaults -ip.bind
+    # to -ip, the one address it auto-detects for itself, so it ends up
+    # listening on loopback plus a single interface. In this stack Traefik
+    # attaches the container to a second network and the detected address is
+    # the `traefik` one: the S3 gateway and the filer then answer for
+    # 172.18.x.x but not for the compose address that `seaweedfs` resolves to
+    # (192.168.x.x). Every internal caller - web and worker uploading events
+    # and media to http://seaweedfs:8333, and the bucket step talking to the
+    # filer - gets a connection refused, so ingestion silently fails and
+    # `seaweedfs-bucket` can never finish. Binding every interface keeps both
+    # paths working whichever network Docker attaches first.
+    command: server -dir=/data -ip.bind=0.0.0.0 -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
     configs:
       - source: seaweedfs-s3-auth
         target: /etc/seaweedfs/s3.json
@@ -233,24 +255,42 @@ services:
     # the SeaweedFS chart's own hook: creating a bucket that already exists
     # exits non-zero, which would fail service_completed_successfully and block
     # the whole stack on every `up` after the first.
+    # Every `weed shell` below goes through `timeout`, and readiness is decided
+    # by the filer's HTTP endpoint rather than by `weed shell` itself. That is
+    # not belt-and-braces: `weed shell` does not fail fast when the filer is not
+    # up yet, it blocks in dialling - observed for 19 hours in a live
+    # deployment. Because this is a one-shot that `web` and `worker` wait on
+    # with `service_completed_successfully`, a wedged `weed shell` leaves them
+    # in `Created` forever, and Traefik then answers 404 for the UI because its
+    # docker provider only sees running containers. A retry counter inside the
+    # loop cannot rescue that: the counter only advances when the command
+    # exits, so an unbounded `weed shell` skips every guard we have.
     command:
       - -ec
       - |
         b='${S3_BUCKET_NAME:-langfuse}'
         addr='-master=seaweedfs:9333 -filer=seaweedfs:8888'
         # The healthcheck only covers the S3 port; wait for the filer too.
+        # curl errors out immediately, unlike `weed shell`.
         i=0
-        until echo 's3.bucket.list' | weed shell $$addr >/dev/null 2>&1; do
+        while ! curl -fsS --max-time 3 http://seaweedfs:8888/healthz >/dev/null 2>&1; do
           i=$$((i+1))
           [ "$$i" -ge 30 ] && { echo "filer did not come up"; exit 1; }
           sleep 2
         done
-        if echo 's3.bucket.list' | weed shell $$addr | awk '{print $$1}' | grep -Fxq "$$b"; then
+        buckets() { echo 's3.bucket.list' | timeout 20 weed shell $$addr; }
+        if buckets 2>/dev/null | awk '{print $$1}' | grep -Fxq "$$b"; then
           echo "bucket $$b already exists"
         else
           echo "creating bucket $$b"
-          echo "s3.bucket.create -name $$b" | weed shell $$addr
+          # Creating an existing bucket exits non-zero, so the result is judged
+          # by listing again rather than by this command's status.
+          echo "s3.bucket.create -name $$b" | timeout 20 weed shell $$addr || true
+          buckets 2>/dev/null | awk '{print $$1}' | grep -Fxq "$$b" || {
+            echo "could not create bucket $$b"; exit 1;
+          }
         fi
+        echo "bucket $$b ready"
 
 configs:
   seaweedfs-s3-auth:
