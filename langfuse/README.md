@@ -175,6 +175,10 @@ limit, merges fail with `MEMORY_LIMIT_EXCEEDED` and retry forever, burning CPU
 on a table nobody queries. `rybbit/` and `plausible-analytics/` ship the same
 treatment.
 
+`system.query_log` is the exception: Langfuse's worker scans it for its
+legacy-API-usage job, so it is kept, bounded to 7 days with `ttl_only_drop_parts`
+so expiry drops whole parts instead of rewriting them.
+
 ## Upgrading
 
 **Moving from Langfuse 3 to 4 is not just a retag.** Upstream splits it into

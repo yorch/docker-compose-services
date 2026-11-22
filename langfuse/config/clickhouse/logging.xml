@@ -13,7 +13,24 @@
        observed at 512% CPU and 49 GiB on disk against 292 rows of real data.
        Same treatment as rybbit/ and plausible-analytics/. -->
   <query_thread_log remove="remove" />
-  <query_log remove="remove" />
+  <!-- system.query_log is the one the stack actually reads: Langfuse's worker
+       scans it for its legacy-API-usage job, and dropping the table leaves that
+       job failing with UNKNOWN_TABLE on every repeat. So it stays, but bounded
+       - 7 days, and ttl_only_drop_parts so expiry drops whole parts instead of
+       rewriting them, which is the expensive shape. Query volume here is a few
+       per minute, so this stays tiny. Same approach as plausible-analytics/. -->
+  <query_log replace="1">
+    <database>system</database>
+    <table>query_log</table>
+    <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+    <engine>
+      ENGINE = MergeTree
+      PARTITION BY event_date
+      ORDER BY (event_time)
+      TTL event_date + INTERVAL 7 DAY
+      SETTINGS ttl_only_drop_parts=1
+    </engine>
+  </query_log>
   <query_views_log remove="remove" />
   <query_metric_log remove="remove" />
   <error_log remove="remove" />
