@@ -6,56 +6,17 @@ services:
     labels:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik'
-      # Basic Auth Middleware
-      - 'traefik.http.middlewares.karakeep.basicauth.users=${USERNAME?Variable USERNAME not set}:${HASHED_PASSWORD?Variable HASHED_PASSWORD not set}'
       # Service
       - 'traefik.http.services.karakeep.loadbalancer.server.port=3000'
       # HTTPS Host
-      - 'traefik.http.routers.karakeep.rule=Host(`${DOMAIN}`)'
+      - 'traefik.http.routers.karakeep.rule=Host(`${DOMAIN:?Variable DOMAIN not set}`)'
       - 'traefik.http.routers.karakeep.entrypoints=websecure'
       - 'traefik.http.routers.karakeep.tls=true'
       - 'traefik.http.routers.karakeep.tls.certResolver=webcert'
       - 'traefik.http.routers.karakeep.service=karakeep'
 
-  chrome:
-    networks:
-      - default
-
-  meilisearch:
-    networks:
-      - default
-      - traefik
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.docker.network=traefik'
-      # Auth
-      # - 'traefik.http.routers.karakeep-meilisearch.middlewares=karakeep@docker'
-      # Service
-      - 'traefik.http.services.karakeep-meilisearch.loadbalancer.server.port=7700'
-      # HTTPS Host
-      - 'traefik.http.routers.karakeep-meilisearch.rule=Host(`meilisearch.${DOMAIN}`)'
-      - 'traefik.http.routers.karakeep-meilisearch.entrypoints=websecure'
-      - 'traefik.http.routers.karakeep-meilisearch.tls=true'
-      - 'traefik.http.routers.karakeep-meilisearch.tls.certResolver=webcert'
-      - 'traefik.http.routers.karakeep-meilisearch.service=karakeep-meilisearch'
-
-  meilisearch-ui:
-    networks:
-      - default
-      - traefik
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.docker.network=traefik'
-      # Auth
-      - 'traefik.http.routers.karakeep-meilisearch-ui.middlewares=karakeep@docker'
-      # Service
-      - 'traefik.http.services.karakeep-meilisearch-ui.loadbalancer.server.port=24900'
-      # HTTPS Host
-      - 'traefik.http.routers.karakeep-meilisearch-ui.rule=Host(`meilisearch-ui.${DOMAIN}`)'
-      - 'traefik.http.routers.karakeep-meilisearch-ui.entrypoints=websecure'
-      - 'traefik.http.routers.karakeep-meilisearch-ui.tls=true'
-      - 'traefik.http.routers.karakeep-meilisearch-ui.tls.certResolver=webcert'
-      - 'traefik.http.routers.karakeep-meilisearch-ui.service=karakeep-meilisearch-ui'
+# Meilisearch and its UI are not routed: only `web` talks to Meilisearch, and
+# admin UIs stay in the dev overlay (see AGENTS.md).
 
 networks:
   traefik:
