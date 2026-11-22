@@ -55,6 +55,23 @@ services:
   web:
     image: langfuse/langfuse:${LANGFUSE_VERSION:-4}
     restart: unless-stopped
+    healthcheck:
+      # Liveness for the app itself, not just the container. Every container was
+      # up while Traefik answered 502 here for hours, and nothing reported it:
+      # `docker compose ps` said `running` throughout. This asks the app.
+      # `wget` is in the image, `curl` is not. The endpoint is public and does
+      # not touch ClickHouse, Redis or S3, so unhealthy means the process, not
+      # a degraded dependency.
+      test:
+        [
+          'CMD-SHELL',
+          'wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/public/health || exit 1',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # Migrations run on start, so the first minute is legitimately not ready.
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -148,6 +165,15 @@ services:
     # README.
     image: clickhouse/clickhouse-server:25.12.11.4
     restart: unless-stopped
+    # Upstream's guidance for ClickHouse is nofile 262144; Docker's default here
+    # was 1024. A part-heavy table opens a file descriptor per part while it
+    # merges, so at 1024 a merge dies with "Too many open files" - which leaves
+    # the parts unmerged, which queues more merges. Same non-converging shape as
+    # the logging loop this service hit, from a different cause.
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
     deploy:
       resources:
         limits:

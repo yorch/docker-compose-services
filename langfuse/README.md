@@ -243,6 +243,24 @@ with nothing in any log to say so. That is also why the major is written into
 the compose file rather than taken from a variable — a version knob that cannot
 move the mount path with it is a way to lose a database quietly.
 
+## Monitoring
+
+`web` carries a Docker healthcheck against `/api/public/health`, so
+`docker compose ps` reports `unhealthy` when the app stops answering instead of
+leaving a running-but-broken container behind. That is the signal worth alerting
+on externally: a container-state check alone does not catch this stack's real
+failure modes, which is how it sat broken for the better part of a day with
+nothing reported.
+
+What to watch, and what each answer means:
+
+| Signal                              | Reading it                                                                                                                                                                                       |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `${NEXTAUTH_URL}/api/public/health` | Returns `{"status":"OK"}` without touching ClickHouse, Redis or S3. A 404 from Traefik means no router was registered (a container is down); a 502 means the container runs but is not listening |
+| `${S3_PUBLIC_URL}/healthz`          | The S3 gateway. If this fails, event and media uploads fail while the UI still loads                                                                                                             |
+| ClickHouse CPU and `parts`          | Background merges of oversized tables saturate every core while the UI looks fine. `SELECT count() FROM system.parts WHERE active` is the cheap check                                            |
+| `seaweedfs-bucket` exit status      | It must reach `exited (0)`. `web` and `worker` wait on `service_completed_successfully`, so anything else keeps them in `Created`                                                                |
+
 ## Notes
 
 **Object storage is SeaweedFS, not MinIO.** MinIO stopped publishing community
