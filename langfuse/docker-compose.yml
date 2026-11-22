@@ -165,6 +165,14 @@ services:
     volumes:
       - ./data/clickhouse/data:/var/lib/clickhouse
       - ./data/clickhouse/logs:/var/log/clickhouse-server
+      # Without this the server keeps its stock logging: level `trace`, every
+      # system.*_log table enabled with a 30-day TTL, and profiler spans for its
+      # own background merges recorded into system.trace_log. Merging those
+      # tables writes more rows into them, so they queue more merges than a
+      # small host can finish - and once a merge needs more memory than the 3G
+      # limit below allows, it fails with MEMORY_LIMIT_EXCEEDED and retries
+      # forever. See config/clickhouse/logging.xml.
+      - ./config/clickhouse/logging.xml:/etc/clickhouse-server/config.d/logging.xml:ro
     environment:
       - CLICKHOUSE_DB=${CLICKHOUSE_DB:-default}
       - CLICKHOUSE_USER=${CLICKHOUSE_USER:-clickhouse}
