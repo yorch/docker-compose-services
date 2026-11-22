@@ -43,4 +43,6 @@
   <part_log remove="remove" />
   <latency_log remove="remove" />
   <processors_profile_log remove="remove" />
+  <asynchronous_insert_log remove="remove" />
+  <background_schedule_pool_log remove="remove" />
 </clickhouse>
