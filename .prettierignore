@@ -1,2 +1,12 @@
 .yarn/
 node_modules/
+
+# Prettier has no XML parser. The XML files here are ClickHouse config
+# fragments (rybbit/, plausible-analytics/, langfuse/), so `yarn format` fails
+# on them with "No parser could be inferred" instead of formatting anything.
+**/*.xml
+
+# Runtime log directories of the services running on this host. They are not
+# repo content, they are not gitignored, and they grow past what Prettier can
+# read - traefik/logs/access.log alone fails with "Invalid string length".
+**/logs/
